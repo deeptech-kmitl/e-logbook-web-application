@@ -6,6 +6,7 @@ import {
   Picker,
   TouchableOpacity,
   ScrollView,
+  Dimensions
 } from "react-native";
 import { useSelector } from "react-redux";
 import { db } from "../../data/firebaseDB";
@@ -23,6 +24,8 @@ const ExportScreen = () => {
   const [selectedType, setSelectedType] = useState("all");
   const [previewData, setPreviewData] = useState([]);
   const [usersData, setUsersData] = useState({});
+  const [layoutType, setLayoutType] = useState("column");
+  const [containerHeight, setContainerHeight] = useState(121);  // เพิ่ม state สำหรับ container height
 
   useEffect(() => {
     const fetchUsersData = async () => {
@@ -44,6 +47,29 @@ const ExportScreen = () => {
     };
 
     fetchData();
+  }, []);
+
+  useEffect(() => {
+    const updateLayout = () => {
+      const windowWidth = Dimensions.get("window").width;
+      if (windowWidth >= 768 && windowWidth < 1024) {
+        setLayoutType("row");
+        setContainerHeight(150);  // ตั้งค่าความสูงตามที่ต้องการสำหรับหน้าจอกว้าง
+      } else if (windowWidth < 768) {
+        setLayoutType("column");
+        setContainerHeight(180);  // ตั้งค่าความสูงตามที่ต้องการสำหรับหน้าจอแคบ
+      } else {
+        setLayoutType("row");
+        setContainerHeight(121);  // ความสูงเริ่มต้นสำหรับหน้าจอใหญ่กว่า 1024
+      }
+    };
+  
+    updateLayout();  // เรียกใช้งานเมื่อ component ถูก mount
+  
+    Dimensions.addEventListener("change", updateLayout);
+    return () => {
+      Dimensions.removeEventListener("change", updateLayout);
+    };
   }, []);
 
   const getPatientsData = async (usersData) => {
@@ -241,9 +267,9 @@ const ExportScreen = () => {
 
   return (
     <View style={styles.mainContainer}>
-      <View style={styles.reportContainer}>
+      <View style={[styles.reportContainer, { height: containerHeight }]}>
         {/* <Text style={{ fontSize: 16 }}>Export Data: </Text> */}
-        <View style={styles.reportContent}>
+        <View style={[styles.reportContent, layoutType === "row" ? { flexDirection: "row", justifyContent: "space-between" } : { flexDirection: "column" }]}>
           <Picker
             selectedValue={selectedData}
             style={styles.pickerStyle}
@@ -278,6 +304,7 @@ const ExportScreen = () => {
             <Picker.Item label="Pending" value="pending" />
             <Picker.Item label="Approved" value="approved" />
             <Picker.Item label="Rejected" value="rejected" />
+            <Picker.Item label="Re-approved" value="reApproved" />
           </Picker>
 
           <Picker
@@ -434,7 +461,6 @@ const styles = StyleSheet.create({
   reportContainer: {
     justifyContent: "center",
     alignItems: "center",
-    height: 121,
     width: 766,
     backgroundColor: "white",
     borderWidth: 1,
@@ -443,8 +469,9 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   reportContent: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: "column", // ค่าเริ่มต้นเป็น column
+    justifyContent: "space-between",
+    marginBottom: 20, 
   },
   downloadButton: {
     flexDirection: "row",

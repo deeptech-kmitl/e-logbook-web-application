@@ -289,7 +289,7 @@ const HomeScreen = ({ navigation }) => {
           }}
         >
           <SelectList
-            placeholder="Select status"
+            placeholder="Select types"
             defaultValue={selectedCollection}
             setSelected={setSelectedCollection}
             data={[

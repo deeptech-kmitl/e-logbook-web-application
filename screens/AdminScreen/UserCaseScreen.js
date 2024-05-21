@@ -61,6 +61,7 @@ function UserCaseScreen({ navigation }) {
     { key: "pending", value: "Pending" },
     { key: "approved", value: "Approved" },
     { key: "rejected", value: "Rejected" },
+    { key: "reApproved", value: "Re-approved" },
   ];
 
   const [

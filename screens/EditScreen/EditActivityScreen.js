@@ -34,7 +34,7 @@ function EditActivityScreen({ route, navigation }) {
     activityData.admissionDate.toDate()
   );
 
-  const [mainDiagnosis, setMainDiagnosis] = useState(""); // ใช้ TextInput สำหรับ Main Diagnosis
+  const [mainDiagnosis, setMainDiagnosis] = useState(activityData.mainDiagnosis || []); // ใช้ TextInput สำหรับ Main Diagnosis
   const [selectedDiagnosis, setSelectedDiagnosis] = useState([{}]); // เก็บโรคที่เลือกทั้งหมด
   const [mainDiagnoses, setMainDiagnoses] = useState([]); // เก็บรายชื่อโรค
   const [otherDiagnosis, setOtherDiagnosis] = useState(""); // ใช้ TextInput สำหรับโรคอื่นๆ

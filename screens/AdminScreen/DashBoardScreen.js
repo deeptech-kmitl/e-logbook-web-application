@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Image,
   Dimensions,
   ScrollView,
 } from "react-native";
@@ -17,14 +16,55 @@ import { Chart, ArcElement, Tooltip, Legend } from "chart.js";
 Chart.register(ArcElement, Tooltip, Legend);
 import { SelectList } from "react-native-dropdown-select-list";
 
+const subjectsByYear = [
+  { key: "All", value: "All" },
+  { key: "Family medicine clerkship", value: "Family medicine clerkship" },
+  { key: "Internal medicine clerkship", value: "Internal medicine clerkship" },
+  { key: "Surgery clerkship", value: "Surgery clerkship" },
+  {
+    key: "Anesthesiology, cardiology and critical care medicine clerkship",
+    value: "Anesthesiology, cardiology and critical care medicine clerkship",
+  },
+  {
+    key: "Obstetrics and gynecology clerkship",
+    value: "Obstetrics and gynecology clerkship",
+  },
+  {
+    key: "Ambulatory medicine clerkship",
+    value: "Ambulatory medicine clerkship",
+  },
+  {
+    key: "Accident and emergency medicine clerkship",
+    value: "Accident and emergency medicine clerkship",
+  },
+  {
+    key: "Oncology and palliative medicine clerkship",
+    value: "Oncology and palliative medicine clerkship",
+  },
+  {
+    key: "Practicum in internal medicine",
+    value: "Practicum in internal medicine",
+  },
+  { key: "Practicum in surgery", value: "Practicum in surgery" },
+  { key: "Practicum in Pediatrics", value: "Practicum in Pediatrics" },
+  {
+    key: "Practicum in Obstetrics and gynecology",
+    value: "Practicum in Obstetrics and gynecology",
+  },
+  {
+    key: "Practicum in orthopedics and emergency medicine",
+    value: "Practicum in orthopedics and emergency medicine",
+  },
+];
+
 const DashBoardScreen = ({ navigation }) => {
   const user = useSelector((state) => state.user);
-  const role = useSelector((state) => state.role);
   const dispatch = useDispatch();
 
   const [dimensions, setDimensions] = useState(Dimensions.get("window"));
   const [caseData, setCaseData] = useState([]);
-  const [selectedCollection, setSelectedCollection] = useState("all"); // เพิ่ม state สำหรับเก็บชื่อ Collection ที่ถูกเลือก
+  const [selectedCollection, setSelectedCollection] = useState("all");
+  const [selectedSubject, setSelectedSubject] = useState("All");
 
   useEffect(() => {
     const onChange = ({ window }) => {
@@ -35,7 +75,6 @@ const DashBoardScreen = ({ navigation }) => {
     return () => Dimensions.removeEventListener("change", onChange);
   }, []);
 
-  // ปรับขนาดตัวอักษรตามขนาดหน้าจอ
   const textSize = dimensions.width < 768 ? 20 : 24;
   const buttonTextSize = dimensions.width < 768 ? 20 : 24;
 
@@ -45,9 +84,8 @@ const DashBoardScreen = ({ navigation }) => {
   };
 
   useEffect(() => {
-    // ดึงข้อมูลจาก Firebase และตั้งค่าข้อมูลสำหรับ Pie Chart
     fetchDataForPieChart();
-  }, [selectedCollection]); // เพิ่ม selectedCollection เป็น dependency ของ useEffect เพื่อให้มันเรียกใช้งานใหม่เมื่อมีการเปลี่ยนแปลง
+  }, [selectedCollection, selectedSubject]);
 
   const fetchDataForPieChart = async () => {
     try {
@@ -65,9 +103,17 @@ const DashBoardScreen = ({ navigation }) => {
       let approvedCases = 0;
       let rejectedCases = 0;
       let pendingCases = 0;
+      let reApprovedCases = 0;
 
       for (const collectionRef of collectionRefs) {
-        const userQuerySnapshot = await getDocs(collectionRef);
+        let userQuerySnapshot;
+
+        const queries = [];
+        if (selectedSubject !== "All") {
+          queries.push(where("subject", "==", selectedSubject));
+        }
+
+        userQuerySnapshot = await getDocs(query(collectionRef, ...queries));
 
         userQuerySnapshot.forEach((doc) => {
           const data = doc.data();
@@ -77,16 +123,18 @@ const DashBoardScreen = ({ navigation }) => {
             rejectedCases++;
           } else if (data.status === "pending") {
             pendingCases++;
+          } else if (data.status === "reApproved") {
+            reApprovedCases++;
           }
         });
       }
 
       const data = {
-        labels: ["Approved", "Rejected", "Pending"],
+        labels: ["Approved", "Rejected", "Pending", "Re-approved"],
         datasets: [
           {
-            data: [approvedCases, rejectedCases, pendingCases],
-            backgroundColor: ["#2a9d8f", "#e76f51", "#e9c46a"],
+            data: [approvedCases, rejectedCases, pendingCases, reApprovedCases],
+            backgroundColor: ["#2a9d8f", "#e76f51", "#e9c46a", "#7ecafc"],
           },
         ],
       };
@@ -169,11 +217,11 @@ const DashBoardScreen = ({ navigation }) => {
           }}
         >
           <SelectList
-            placeholder="All"
+            placeholder="Select types"
             defaultValue={selectedCollection}
-            setSelected={setSelectedCollection} // 4. เมื่อมีการเลือก Collection ใหม่ ให้เรียกใช้ handleSelectCollection เพื่อเปลี่ยนค่า selectedCollection
+            setSelected={setSelectedCollection}
             data={[
-              { key: "all", value: "All" }, // เพิ่มตัวเลือก "All"
+              { key: "all", value: "All" },
               { key: "patients", value: "Patients" },
               { key: "activity", value: "Activity" },
               { key: "procedures", value: "Procedures" },
@@ -185,6 +233,23 @@ const DashBoardScreen = ({ navigation }) => {
               borderColor: "#FEF0E6",
               borderWidth: 1,
               borderRadius: 10,
+            }}
+            dropdownStyles={{ backgroundColor: "#FEF0E6" }}
+          />
+
+          <SelectList
+            placeholder="Select subjects"
+            defaultValue={selectedSubject}
+            setSelected={setSelectedSubject}
+            data={subjectsByYear}
+            search={false}
+            boxStyles={{
+              width: "auto",
+              backgroundColor: "#FEF0E6",
+              borderColor: "#FEF0E6",
+              borderWidth: 1,
+              borderRadius: 10,
+              marginLeft: 10,
             }}
             dropdownStyles={{ backgroundColor: "#FEF0E6" }}
           />
