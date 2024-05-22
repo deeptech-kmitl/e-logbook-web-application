@@ -8,7 +8,7 @@ module.exports = {
       user : 'ratakorn',
       host : '10.252.93.208',
       ref  : 'origin/deploy',
-      repo : 'git@github.com:deeptech-kmitl/e-logbook-web-application.git',
+      repo : 'git@github.com-jrm-personal:deeptech-kmitl/e-logbook-web-application.git',
       path : '/home/ratakorn',
       'pre-deploy-local': '',
       'post-deploy' : 'source ~/.nvm/nvm.sh && npm install --force && pm2 reload ecosystem.config.js --env production',
