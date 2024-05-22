@@ -646,20 +646,6 @@ function OpdScreen({ navigation }) {
     });
   };
 
-  // const resetScoresAndComment2 = () => {
-  //   setModalVisible(false)
-  //   setComment("");
-  //   setRating("");
-  //   setProfessionalismScores({
-  //     punctual: false,
-  //     appropriatelyDressed: false,
-  //     respectsPatients: false,
-  //     goodListener: false,
-  //     respectsColleagues: false,
-  //     accurateRecordKeeping: false,
-  //   });
-  // };
-
   const renderAddDataButton = () => {
     if (role == "student") {
       return (

@@ -285,6 +285,12 @@ function AddProcedureScreen({ navigation }) {
         return;
       }
 
+      // Validate hn and hnYear to be numbers and not empty
+      if (isNaN(hn) || isNaN(hnYear) || hn.trim() === "" || hnYear.trim() === "") {
+        alert("HN และปีพ.ศ.ต้องเป็นตัวเลขและไม่เป็นค่าว่าง");
+        return;
+      }
+
       if (!selectedDate) {
         alert("โปรดเลือกวันที่รับผู้ป่วย");
         return;
