@@ -7,6 +7,7 @@ import {
   Picker,
   Dimensions,
   Image,
+  ScrollView
 } from "react-native";
 import { useDispatch } from "react-redux";
 import { setSubject } from "../redux/action";
@@ -66,63 +67,66 @@ const SelectSubjectScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <Header />
-      <SubHeader text="Select your subject" />
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+      <View style={{ flex: 1 }}>
+          <Header />
+          <SubHeader text="Select your subject" />
 
-      <Image
-        source={require("../assets/bookshelf.png")}
-        style={{ width: 300, height: 300, alignSelf: "center", marginTop: 20 }}
-        resizeMode="contain"
-      />
+          <Image
+            source={require("../assets/bookshelf.png")}
+            style={{ width: 300, height: 300, alignSelf: "center", marginTop: 20 }}
+            resizeMode="contain"
+          />
 
-      <View style={styles.contentContainer}>
-        <View style={styles.pickerContainer}>
-          <Text style={styles.pickerLabel}>Select Year:</Text>
-          <Picker
-            selectedValue={selectedYear}
-            style={styles.picker}
-            onValueChange={(itemValue) => setSelectedYear(itemValue)}
-          >
-            {years.map((year) => (
-              <Picker.Item key={year} label={`Year ${year}`} value={year} />
-            ))}
-          </Picker>
-        </View>
+          <View style={styles.contentContainer}>
+            <View style={styles.pickerContainer}>
+              <Text style={styles.pickerLabel}>Select Year:</Text>
+              <Picker
+                selectedValue={selectedYear}
+                style={styles.picker}
+                onValueChange={(itemValue) => setSelectedYear(itemValue)}
+              >
+                {years.map((year) => (
+                  <Picker.Item key={year} label={`Year ${year}`} value={year} />
+                ))}
+              </Picker>
+            </View>
 
-        <View style={styles.pickerContainer}>
-          <Text style={styles.pickerLabel}>Select Subject:</Text>
-          <Picker
-            selectedValue={selectedSubject}
-            style={styles.picker}
-            onValueChange={(itemValue) => setSelectedSubject(itemValue)}
-          >
-            {subjectsByYear[selectedYear].map((subject) => (
-              <Picker.Item
-                key={subject.id}
-                label={subject.name}
-                value={subject.id}
-              />
-            ))}
-          </Picker>
-        </View>
+            <View style={styles.pickerContainer}>
+              <Text style={styles.pickerLabel}>Select Subject:</Text>
+              <Picker
+                selectedValue={selectedSubject}
+                style={styles.picker}
+                onValueChange={(itemValue) => setSelectedSubject(itemValue)}
+              >
+                {subjectsByYear[selectedYear].map((subject) => (
+                  <Picker.Item
+                    key={subject.id}
+                    label={subject.name}
+                    value={subject.id}
+                  />
+                ))}
+              </Picker>
+            </View>
 
-        <TouchableOpacity
-          style={styles.loginButton}
-          onPress={handleSubjectSelection}
-        >
-          <Text style={styles.buttonText}>Select Subject</Text>
-        </TouchableOpacity>
-        <Text
-          style={[
-            styles.passwordResetLink,
-            { textAlign: "center", fontSize: backFontSize },
-          ]}
-          onPress={() => navigation.goBack()}
-        >
-          ◄ Back to select role
-        </Text>
-      </View>
-      <View style={{ flex: 1 }} />
+            <TouchableOpacity
+              style={styles.loginButton}
+              onPress={handleSubjectSelection}
+            >
+              <Text style={styles.buttonText}>Select Subject</Text>
+            </TouchableOpacity>
+            <Text
+              style={[
+                styles.passwordResetLink,
+                { textAlign: "center", fontSize: backFontSize },
+              ]}
+              onPress={() => navigation.goBack()}
+            >
+              ◄ Back to select role
+            </Text>
+            </View>
+          </View>
+        </ScrollView>
       <Footer />
     </View>
   );

@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Dimensions,
   Image,
+  ScrollView
 } from "react-native";
 import { auth, db } from "../data/firebaseDB";
 import { signInWithEmailAndPassword } from "firebase/auth";
@@ -123,131 +124,132 @@ const LoginScreen = ({ route, navigation }) => {
 
   return (
     <View style={styles.container}>
-      <Header />
-      <SubHeader text={roleText} />
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+        <View style={{ flex: 1 }}>
+          <Header />
+          <SubHeader text={roleText} />
+          <Image
+            source={
+              role === "student"
+                ? require("../assets/student.png")
+                : role === "teacher"
+                ? require("../assets/professor.png")
+                : require("../assets/staff.png")
+            }
+            style={{ width: 300, height: 300, alignSelf: "center", marginTop: 20 }}
+            resizeMode="contain"
+          />
+          <View style={{ alignItems: "center" }}>
+            <Text
+              style={{
+                fontSize: emailFontSize,
+                alignSelf: "flex-start",
+                marginLeft: marginLeftTest,
+                marginBottom: 10,
+                marginTop: 10,
+              }}
+            >
+              Email
+            </Text>
+            <TextInput
+              placeholder="username"
+              placeholderTextColor={"grey"}
+              value={email}
+              onChangeText={(text) => setEmail(text.toLowerCase())}
+              style={[
+                styles.input,
+                {
+                  width: inputWidth,
+                  fontSize: inputFontSize,
+                  backgroundColor: "#FEF0E6",
+                },
+              ]}
+            />
+          </View>
 
-      <Image
-        source={
-          role === "student"
-            ? require("../assets/student.png")
-            : role === "teacher"
-            ? require("../assets/professor.png")
-            : require("../assets/staff.png")
-        }
-        style={{ width: 300, height: 300, alignSelf: "center", marginTop: 20 }}
-        resizeMode="contain"
-      />
-      <View style={{ alignItems: "center" }}>
-        <Text
-          style={{
-            fontSize: emailFontSize,
-            alignSelf: "flex-start",
-            marginLeft: marginLeftTest,
-            marginBottom: 10,
-            marginTop: 10,
-          }}
-        >
-          Email
-        </Text>
-        <TextInput
-          placeholder="username"
-          placeholderTextColor={"grey"}
-          value={email}
-          onChangeText={(text) => setEmail(text.toLowerCase())}
-          style={[
-            styles.input,
-            {
-              width: inputWidth,
-              fontSize: inputFontSize,
-              backgroundColor: "#FEF0E6",
-            },
-          ]}
-        />
-      </View>
+          <View style={{ alignItems: "center" }}>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                width: inputWidth,
+                alignItems: "center",
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: passwordFontSize,
+                  textAlign: "left",
+                  marginBottom: 10,
+                  marginTop: 10,
+                }}
+              >
+                Password
+              </Text>
+              <TouchableOpacity
+                onPress={() => navigation.navigate("ResetPassword")}
+              >
+                <Text style={{ color: "#9D5716", marginLeft: "auto" }}>
+                  Forgot Password?
+                </Text>
+              </TouchableOpacity>
+            </View>
+            <TextInput
+              placeholder="password"
+              placeholderTextColor={"grey"}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              style={[
+                styles.input,
+                {
+                  width: inputWidth,
+                  fontSize: inputFontSize,
+                  backgroundColor: "#FEF0E6",
+                },
+              ]}
+            />
+          </View>
 
-      <View style={{ alignItems: "center" }}>
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            width: inputWidth,
-            alignItems: "center",
-          }}
-        >
-          <Text
-            style={{
-              fontSize: passwordFontSize,
-              textAlign: "left",
-              marginBottom: 10,
-              marginTop: 10,
-            }}
-          >
-            Password
-          </Text>
           <TouchableOpacity
-            onPress={() => navigation.navigate("ResetPassword")}
+            style={[
+              styles.loginButton,
+              {
+                width: inputWidth,
+                height: loginButtonHeightSize,
+                backgroundColor: loggedInRole ? "#FE810E" : "gray",
+                alignSelf: "center",
+                justifyContent: "center",
+                marginTop: 20,
+              },
+            ]}
+            onPress={handleLogin}
           >
-            <Text style={{ color: "#9D5716", marginLeft: "auto" }}>
-              Forgot Password?
+            <Text
+              style={{
+                fontSize: loginButtonFontSize,
+                color: "white",
+                textAlign: "center",
+                fontWeight: "bold",
+              }}
+            >
+              Login
             </Text>
           </TouchableOpacity>
+          <Text style={{ color: "red", marginTop: 10, textAlign: "center" }}>
+            {errorMessage}
+          </Text>
+          <Text
+            style={[
+              styles.passwordResetLink,
+              { textAlign: "center", fontSize: backFontSize },
+            ]}
+            onPress={() => navigation.goBack()}
+          >
+            ◄ Back to select role
+          </Text>
         </View>
-        <TextInput
-          placeholder="password"
-          placeholderTextColor={"grey"}
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          style={[
-            styles.input,
-            {
-              width: inputWidth,
-              fontSize: inputFontSize,
-              backgroundColor: "#FEF0E6",
-            },
-          ]}
-        />
-      </View>
-
-      <TouchableOpacity
-        style={[
-          styles.loginButton,
-
-          {
-            width: inputWidth,
-            height: loginButtonHeightSize,
-            backgroundColor: loggedInRole ? "#FE810E" : "gray",
-            alignSelf: "center",
-            justifyContent: "center",
-            marginTop: 20,
-          },
-        ]}
-        onPress={handleLogin}
-      >
-        <Text
-          style={{
-            fontSize: loginButtonFontSize,
-            color: "white",
-            textAlign: "center",
-            fontWeight: "bold",
-          }}
-        >
-          Login
-        </Text>
-      </TouchableOpacity>
-      <Text style={{ color: "red", marginTop: 10, textAlign: "center" }}>
-        {errorMessage}
-      </Text>
-      <Text
-        style={[
-          styles.passwordResetLink,
-          { textAlign: "center", fontSize: backFontSize },
-        ]}
-        onPress={() => navigation.goBack()}
-      >
-        ◄ Back to select role
-      </Text>
-      <View style={{ flex: 1 }} />
+      </ScrollView>
       <Footer />
     </View>
   );
@@ -257,7 +259,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: "center",
-    // alignItems: 'center',
   },
   input: {
     padding: 15,
@@ -267,8 +268,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   loginButton: {
-    // height: 63,
-    // width: 216,
     padding: 15,
     marginVertical: 10,
     backgroundColor: "gray",
