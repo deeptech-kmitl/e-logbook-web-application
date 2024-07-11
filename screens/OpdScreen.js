@@ -652,11 +652,11 @@ function OpdScreen({ navigation }) {
         <TouchableOpacity
           onPress={handleAddData}
           style={{
-            height: 37,
-            width: 174,
-            marginTop: isLandscape ? 25 : 50,
+            height: isLandscape ? 37 : 30,
+            width: isLandscape ? 174 : 120,
+            marginTop: isLandscape ? 25 : 0,
             // marginRight: isLandscape ? 60 : 50,
-            marginBottom: isLandscape ? 25 : 0,
+            marginBottom: isLandscape ? 25 : 10,
             justifyContent: "center",
             alignItems: "center",
             backgroundColor: "#FE810E",
@@ -671,7 +671,7 @@ function OpdScreen({ navigation }) {
             elevation: 5,
           }}
         >
-          <Text style={{ fontSize: 22, color: "white" }}>Add</Text>
+          <Text style={{ fontSize: isLandscape ? 22 : 18, color: "white" }}>Add</Text>
         </TouchableOpacity>
       );
     }
@@ -1002,7 +1002,7 @@ function OpdScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <View style={{ marginVertical: windowWidth < 768 ? 20 : 60 }}>
+      <View style={{ marginVertical: windowWidth < 768 ? 10 : 50 }}>
         <SubHeader text="OUTPATIENT" />
       </View>
 
@@ -1010,7 +1010,7 @@ function OpdScreen({ navigation }) {
 
       <View
         style={{
-          marginVertical: 10,
+          // marginVertical: 10,
           flexDirection: isMobile ? "column" : "row",
           alignItems: "center",
         }}
@@ -1140,9 +1140,12 @@ function OpdScreen({ navigation }) {
 
       <View style={styles.boxCard}>
         {role === "student" && (
-          <Text style={styles.modalText}>
-            <Text style={{ fontWeight: "bold" }}>{subject}</Text>
-          </Text>
+          <View styles={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={styles.modalText}>
+              <Text style={{ fontWeight: "bold" }}>{subject}</Text>
+            </Text>
+          {renderAddDataButton()}
+          </View>
         )}
         <ScrollView>{renderCards()}</ScrollView>
       </View>
@@ -1637,7 +1640,7 @@ function OpdScreen({ navigation }) {
           </View>
         </View>
       </Modal>
-      <View
+      {/* <View
         style={{
           flex: 1,
           justifyContent: "flex-start",
@@ -1646,7 +1649,7 @@ function OpdScreen({ navigation }) {
         }}
       >
         {renderAddDataButton()}
-      </View>
+      </View> */}
     </View>
   );
 }

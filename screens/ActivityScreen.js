@@ -654,28 +654,28 @@ function ActivityScreen({ navigation }) {
     if (role == "student") {
       return (
         <TouchableOpacity
-          onPress={handleAddData}
-          style={{
-            height: 37,
-            width: 174,
-            marginTop: isLandscape ? 25 : 50,
-            // marginRight: isLandscape ? 60 : 50,
-            marginBottom: isLandscape ? 25 : 0,
-            justifyContent: "center",
-            alignItems: "center",
-            backgroundColor: "#FE810E",
-            borderRadius: 10,
-            shadowColor: "#000",
-            shadowOffset: {
-              width: 0,
-              height: 2,
-            },
-            shadowOpacity: 0.25,
-            shadowRadius: 4,
-            elevation: 5,
-          }}
-        >
-          <Text style={{ fontSize: 22, color: "white" }}>Add</Text>
+        onPress={handleAddData}
+        style={{
+          height: isLandscape ? 37 : 30,
+          width: isLandscape ? 174 : 120,
+          marginTop: isLandscape ? 25 : 0,
+          // marginRight: isLandscape ? 60 : 50,
+          marginBottom: isLandscape ? 25 : 10,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: "#FE810E",
+          borderRadius: 10,
+          shadowColor: "#000",
+          shadowOffset: {
+            width: 0,
+            height: 2,
+          },
+          shadowOpacity: 0.25,
+          shadowRadius: 4,
+          elevation: 5,
+        }}
+      >
+          <Text style={{ fontSize: isLandscape ? 22 : 18, color: "white" }}>Add</Text>
         </TouchableOpacity>
       );
     }
@@ -1005,7 +1005,7 @@ function ActivityScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <View style={{ marginVertical: windowWidth < 768 ? 20 : 60 }}>
+      <View style={{ marginVertical: windowWidth < 768 ? 10 : 50 }}>
         <SubHeader text="ACTIVITY" />
       </View>
 
@@ -1013,7 +1013,7 @@ function ActivityScreen({ navigation }) {
 
       <View
         style={{
-          marginVertical: 10,
+          // marginVertical: 10,
           flexDirection: isMobile ? "column" : "row",
           alignItems: "center",
         }}
@@ -1176,9 +1176,12 @@ function ActivityScreen({ navigation }) {
 
       <View style={styles.boxCard}>
         {role === "student" && (
-          <Text style={styles.modalText}>
-            <Text style={{ fontWeight: "bold" }}>{subject}</Text>
-          </Text>
+          <View styles={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={styles.modalText}>
+              <Text style={{ fontWeight: "bold" }}>{subject}</Text>
+            </Text>
+            {renderAddDataButton()}
+          </View>
         )}
         <ScrollView>{renderCards()}</ScrollView>
       </View>
@@ -1770,7 +1773,7 @@ function ActivityScreen({ navigation }) {
           </View>
         </View>
       </Modal>
-      <View
+      {/* <View
         style={{
           flex: 1,
           justifyContent: "flex-start",
@@ -1779,7 +1782,7 @@ function ActivityScreen({ navigation }) {
         }}
       >
         {renderAddDataButton()}
-      </View>
+      </View> */}
     </View>
   );
 }
