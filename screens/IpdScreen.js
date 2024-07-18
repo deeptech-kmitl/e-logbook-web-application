@@ -1640,16 +1640,6 @@ function IpdScreen({ navigation }) {
           </View>
         </View>
       </Modal>
-      {/* <View
-        style={{
-          flex: 1,
-          justifyContent: "flex-start",
-          alignSelf: "flex-start",
-          marginLeft: 50,
-        }}
-      >
-        {renderAddDataButton()}
-      </View> */}
     </View>
   );
 }

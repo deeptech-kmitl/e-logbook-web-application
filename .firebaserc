@@ -1,0 +1,9 @@
+{
+  "projects": {
+    "medical": "medical-552fc",
+    "default": "medical-552fc"
+  },
+  "targets": {},
+  "etags": {},
+  "dataconnectEmulatorConfig": {}
+}
