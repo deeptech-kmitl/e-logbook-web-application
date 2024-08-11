@@ -38,8 +38,8 @@ function AddProcedureScreen({ navigation }) {
   const [remarks, setRemarks] = useState(""); // remarks
   const status = "pending"; // Status
   const [createBy_id, setCreateById] = useState(null); // User ID
-  const [approvedById, setApprovedById] = useState(null); // สถานะสำหรับเก็บ id ของอาจารย์ที่ถูกเลือก
-  const [approvedByName, setApprovedByName] = useState(null); // สถานะสำหรับเก็บชื่ออาจารย์ที่ถูกเลือก
+  const [professorId, setProfessorId] = useState(null); // สถานะสำหรับเก็บ id ของอาจารย์ที่ถูกเลือก
+  const [professorName, setProfessorName] = useState(null); // สถานะสำหรับเก็บชื่ออาจารย์ที่ถูกเลือก
   const [teachers, setTeachers] = useState([]); // สถานะสำหรับเก็บรายการอาจารย์ทั้งหมด
   const [procedureLevel, setProcedureLevel] = useState(0);
   const [date, setDate] = useState(new Date());
@@ -220,8 +220,8 @@ function AddProcedureScreen({ navigation }) {
     );
     // console.log(selectedTeacher)
     if (selectedTeacher) {
-      setApprovedByName(selectedTeacher.value);
-      setApprovedById(selectedTeacher.key);
+      setProfessorName(selectedTeacher.value);
+      setProfessorId(selectedTeacher.key);
     } else {
       console.error("Teacher not found:", selectedTeacherId);
     }
@@ -296,7 +296,7 @@ function AddProcedureScreen({ navigation }) {
         return;
       }
 
-      if (!approvedByName) {
+      if (!professorName) {
         alert("โปรดเลือกอาจารย์");
         return;
       }
@@ -330,9 +330,9 @@ function AddProcedureScreen({ navigation }) {
         hn: fullHN,
         procedureType: selectedProcedures,
         remarks: remarks,
-        approvedByName: approvedByName,
+        professorName: professorName,
         status: status,
-        approvedById: approvedById,
+        professorId: professorId,
         procedureLevel: procedureLevel,
         images: [], // We'll store the image URLs in the next step
         hours: selectedHour,
@@ -517,12 +517,12 @@ function AddProcedureScreen({ navigation }) {
                 alignItems: "flex-start",
               }}
             >
-              Approver
+              Instructor
             </Text>
             <SelectList
               setSelected={onSelectTeacher}
               data={teachers}
-              placeholder={"Select the professor name"}
+              placeholder={"Select the instructor name"}
               placeholderTextColor="grey"
               boxStyles={{
                 width: "auto",

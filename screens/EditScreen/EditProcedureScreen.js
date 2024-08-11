@@ -44,9 +44,9 @@ function EditProcedureScreen({ route, navigation }) {
   const [hnYear, setHNYear] = useState(procedureData.hnYear);
   const [lastHN, setLastHN] = useState(procedureData.lastHN);
   const [remarks, setRemarks] = useState(procedureData.remarks); // remarks
-  const [approvedById, setApprovedById] = useState(procedureData.approvedById); // สถานะสำหรับเก็บ id ของอาจารย์ที่ถูกเลือก
-  const [approvedByName, setApprovedByName] = useState(
-    procedureData.approvedByName
+  const [professorId, setProfessorId] = useState(procedureData.professorId); // สถานะสำหรับเก็บ id ของอาจารย์ที่ถูกเลือก
+  const [professorName, setProfessorName] = useState(
+    procedureData.professorName
   ); // สถานะสำหรับเก็บชื่ออาจารย์ที่ถูกเลือก
   const [teachers, setTeachers] = useState([]); // สถานะสำหรับเก็บรายการอาจารย์ทั้งหมด
   const [procedureLevel, setProcedureLevel] = useState(
@@ -233,8 +233,8 @@ function EditProcedureScreen({ route, navigation }) {
     );
     // console.log(selectedTeacher)
     if (selectedTeacher) {
-      setApprovedByName(selectedTeacher.value);
-      setApprovedById(selectedTeacher.key);
+      setProfessorName(selectedTeacher.value);
+      setProfessorId(selectedTeacher.key);
     } else {
       console.error("Teacher not found:", selectedTeacherId);
     }
@@ -303,7 +303,7 @@ function EditProcedureScreen({ route, navigation }) {
         return;
       }
 
-      if (!approvedByName) {
+      if (!professorName) {
         alert("โปรดเลือกอาจารย์");
         return;
       }
@@ -337,14 +337,14 @@ function EditProcedureScreen({ route, navigation }) {
       if (procedureDocSnapshot.exists()) {
         const procedureData = procedureDocSnapshot.data();
 
-        if (procedureData.status === "reApproved") {
+        if (procedureData.status === "recheck") {
           await updateDoc(procedureDocRef, {
             admissionDate: Timestamp.fromDate(new Date(selectedDate)),
             hn: fullHN,
             procedureType: selectedProcedures,
             remarks: remarks,
-            approvedByName: teachers.find((t) => t.key === approvedById)?.value,
-            approvedById: approvedById,
+            professorName: teachers.find((t) => t.key === professorId)?.value,
+            professorId: professorId,
             procedureLevel: procedureLevel,
             images:
               uploadedImages.length > 0
@@ -365,8 +365,8 @@ function EditProcedureScreen({ route, navigation }) {
             hn: fullHN,
             procedureType: selectedProcedures,
             remarks: remarks,
-            approvedByName: teachers.find((t) => t.key === approvedById)?.value,
-            approvedById: approvedById,
+            professorName: teachers.find((t) => t.key === professorId)?.value,
+            professorId: professorId,
             procedureLevel: procedureLevel,
             images:
               uploadedImages.length > 0
@@ -547,13 +547,13 @@ function EditProcedureScreen({ route, navigation }) {
                 alignItems: "flex-start",
               }}
             >
-              Approver
+              Instructor
             </Text>
             <SelectList
               setSelected={onSelectTeacher}
-              defaultOption={{ key: approvedById, value: approvedByName }}
+              defaultOption={{ key: professorId, value: professorName }}
               data={teachers}
-              placeholder={"Select the professor name"}
+              placeholder={"Select the instructor name"}
               placeholderTextColor="grey"
               boxStyles={{
                 width: "auto",

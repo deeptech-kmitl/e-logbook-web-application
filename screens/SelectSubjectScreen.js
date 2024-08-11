@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,7 +7,7 @@ import {
   Picker,
   Dimensions,
   Image,
-  ScrollView
+  ScrollView,
 } from "react-native";
 import { useDispatch } from "react-redux";
 import { setSubject } from "../redux/action";
@@ -55,6 +55,12 @@ const SelectSubjectScreen = ({ navigation }) => {
     ],
   };
 
+  useEffect(() => {
+    // เมื่อ selectedYear เปลี่ยน ให้ตั้ง selectedSubject เป็นค่าแรกใน subjectsByYear ของ year นั้น
+    const firstSubject = subjectsByYear[selectedYear][0].id;
+    setSelectedSubject(firstSubject);
+  }, [selectedYear]);
+
   const handleSubjectSelection = () => {
     const selectedSubjectData = subjectsByYear[selectedYear].find(
       (subject) => subject.id === selectedSubject
@@ -68,13 +74,18 @@ const SelectSubjectScreen = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-      <View style={{ flex: 1 }}>
+        <View style={{ flex: 1 }}>
           <Header />
           <SubHeader text="Select your subject" />
 
           <Image
             source={require("../assets/bookshelf.png")}
-            style={{ width: 300, height: 300, alignSelf: "center", marginTop: 20 }}
+            style={{
+              width: 300,
+              height: 300,
+              alignSelf: "center",
+              marginTop: 20,
+            }}
             resizeMode="contain"
           />
 
@@ -112,6 +123,7 @@ const SelectSubjectScreen = ({ navigation }) => {
             <TouchableOpacity
               style={styles.loginButton}
               onPress={handleSubjectSelection}
+              disabled={!selectedSubject} // disabled ถ้าไม่มี subject ที่ถูกเลือก
             >
               <Text style={styles.buttonText}>Select Subject</Text>
             </TouchableOpacity>
@@ -124,9 +136,9 @@ const SelectSubjectScreen = ({ navigation }) => {
             >
               ◄ Back to select role
             </Text>
-            </View>
           </View>
-        </ScrollView>
+        </View>
+      </ScrollView>
       <Footer />
     </View>
   );
@@ -138,7 +150,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   contentContainer: {
-    flex: 1, // ให้ส่วนเนื้อหาขยายตามพื้นที่ที่เหลือ
+    flex: 1,
     justifyContent: "center",
     alignItems: "center",
   },

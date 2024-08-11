@@ -107,7 +107,7 @@ const LoginScreen = ({ route, navigation }) => {
   if (role === "student") {
     roleText = "Medical Student";
   } else if (role === "teacher") {
-    roleText = "Professor";
+    roleText = "Instructor/Staff";
   } else if (role === "staff") {
     roleText = "Staff";
   }

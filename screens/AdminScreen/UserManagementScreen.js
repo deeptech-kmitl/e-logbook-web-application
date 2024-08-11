@@ -4,11 +4,11 @@ import {
   getDocs,
   doc,
   deleteDoc,
+  updateDoc
 } from "firebase/firestore";
 import { deleteUser, updateProfile, updateEmail } from "firebase/auth";
 import { db } from "../../data/firebaseDB";
 import { getFunctions, httpsCallable } from 'firebase/functions'
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import {
   Alert,
   Modal,
@@ -20,7 +20,8 @@ import {
   ScrollView,
   Dimensions,
   TextInput,
-  ActivityIndicator
+  ActivityIndicator,
+  Picker
 } from "react-native";
 import { SelectList } from "react-native-dropdown-select-list";
 import { Ionicons, FontAwesome, MaterialIcons } from "@expo/vector-icons";
@@ -42,6 +43,7 @@ function UserManagementScreen({ navigation }) {
   const [originalEmail, setOriginalEmail] = useState("");
 
   const [selectedRole, setSelectedRole] = useState("");
+  const [uid, setUid] = useState("");
 
   const [windowWidth, setWindowWidth] = useState(
     Dimensions.get("window").width
@@ -60,8 +62,8 @@ function UserManagementScreen({ navigation }) {
 
   const [selectedStatus, setSelectedStatus] = useState("student");
   const statusOptions = [
-    { key: "student", value: "Student" },
-    { key: "teacher", value: "Teacher" },
+    { key: "student", value: "student" },
+    { key: "teacher", value: "teacher" },
   ];
 
   const updateWindowDimensions = () => {
@@ -117,6 +119,8 @@ function UserManagementScreen({ navigation }) {
       setOriginalDisplayName(selectedUser.displayName);
       setEmail(selectedUser.email);
       setOriginalEmail(selectedUser.email);
+      setSelectedRole(selectedUser.role);
+      setUid(selectedUser.uid);
     }
   }, [selectedUser]);
 
@@ -127,9 +131,9 @@ function UserManagementScreen({ navigation }) {
   };
 
   const handleCardPress = (user) => {
-    console.log(selectedUser)
     setSelectedUser(user);
     setModalVisible(true);
+    console.log(selectedRole);
   };
 
   const handleEditUser = (user) => {
@@ -194,6 +198,40 @@ function UserManagementScreen({ navigation }) {
   }, [searchText, unfilteredUserData]); // ให้ useEffect ทำงานเมื่อ searchText หรือ unfilteredPatientData เปลี่ยน
 
   const handleUpdateUser = async () => {
+    if (selectedUser) {
+      try {
+        // กำหนดค่า loading เป็น true เพื่อแสดง indicator ระหว่างการโหลด
+        setLoading(true);
+  
+        // อ้างอิงไปที่ document ที่ต้องการแก้ไขใน collection users
+        const userRef = doc(db, "users", selectedUser.uid);
+  
+        // ข้อมูลใหม่ที่จะอัพเดท
+        const updatedUserData = {
+          displayName: displayName,
+          role: selectedRole,
+        };
+  
+        // อัพเดทข้อมูลใน Firestore
+        await updateDoc(userRef, updatedUserData);
+  
+        // โหลดข้อมูลใหม่อีกครั้งเพื่ออัพเดท state
+        await loadUserData();
+  
+        // ปิด modal แก้ไขและรีเซ็ต selectedUser
+        setModalEditVisible(false);
+        setSelectedUser(null);
+  
+        alert("User updated successfully!");
+  
+      } catch (error) {
+        console.error("Error updating user:", error);
+        alert("Error updating user. Please try again.");
+      } finally {
+        // กำหนดค่า loading เป็น false หลังจากเสร็จสิ้นการอัพเดท
+        setLoading(false);
+      }
+    }
   };
 
   const handleDeleteUser = async () => {
@@ -696,7 +734,7 @@ function UserManagementScreen({ navigation }) {
                   alignItems: "flex-start",
                 }}
               >
-                E-mail
+                E-mail (ไม่สามารถแก้ไขได้)
               </Text>
               <View
                 style={{
@@ -710,6 +748,8 @@ function UserManagementScreen({ navigation }) {
               >
                 <TextInput
                   value={email}
+                  editable={false}
+                  selectTextOnFocus={false}
                   onChangeText={setEmail}
                   style={{
                     width: "100%",
@@ -748,7 +788,7 @@ function UserManagementScreen({ navigation }) {
                   data={statusOptions}
                   setSelected={setSelectedRole}
                   placeholder="Select role"
-                  defaultOption={selectedUser ? selectedUser.role : ""} // แก้ไขตรงนี้
+                  defaultOption={{ key: selectedRole, value: selectedRole }} // แก้ไขตรงนี้
                   search={false}
                   boxStyles={{
                     width: "auto",

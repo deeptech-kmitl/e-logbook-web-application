@@ -493,12 +493,12 @@ function AddIpdScreen({ navigation }) {
                 alignItems: "flex-start",
               }}
             >
-              Professor
+              Instructor
             </Text>
             <SelectList
               setSelected={onSelectTeacher}
               data={teachers}
-              placeholder={"Select the professor name"}
+              placeholder={"Select the instructor name"}
               placeholderTextColor="grey"
               boxStyles={{
                 width: "auto",

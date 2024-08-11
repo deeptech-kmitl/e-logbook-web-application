@@ -70,8 +70,12 @@ function ActivityScreen({ navigation }) {
 
   const [selectedSubject, setSelectedSubject] = useState("All");
   const subjectsByYear = [
-    { key: "All", value: "All" },
-    { key: "Family medicine clerkship", value: "Family medicine clerkship" },
+    { key: "All", 
+      value: "All" 
+    },
+    { key: "Family medicine clerkship", 
+      value: "Family medicine clerkship" 
+    },
     {
       key: "Internal medicine clerkship",
       value: "Internal medicine clerkship",
@@ -802,7 +806,7 @@ function ActivityScreen({ navigation }) {
                   <Text
                     style={{ marginLeft: 20, lineHeight: 30, opacity: 0.4 }}
                   >
-                    Professor Name : {activity.professorName}
+                    Instructor Name : {activity.professorName}
                   </Text>
 
                   {activity.status === "pending" ? (
@@ -1009,7 +1013,7 @@ function ActivityScreen({ navigation }) {
         <SubHeader text="ACTIVITY" />
       </View>
 
-      {renderApprovedButton()}
+      {/* {renderApprovedButton()} */}
 
       <View
         style={{
@@ -1262,7 +1266,7 @@ function ActivityScreen({ navigation }) {
 
                   <Text style={styles.modalText}>
                     <Text style={{ fontWeight: "bold" }}>
-                      Professor Name :{" "}
+                      Instructor Name :{" "}
                     </Text>{" "}
                     {selectedActivity.professorName}
                   </Text>
@@ -1272,7 +1276,7 @@ function ActivityScreen({ navigation }) {
                   </Text>
                   <Text style={styles.modalText}>
                     <Text style={{ fontWeight: "bold" }}>Topic : </Text>{" "}
-                    {selectedActivity.mainDiagnosis}
+                    {selectedActivity.topic || "None"}
                   </Text>
                   <Text style={styles.modalText}>
                     <Text style={{ fontWeight: "bold" }}>

@@ -34,12 +34,13 @@ function EditActivityScreen({ route, navigation }) {
     activityData.admissionDate.toDate()
   );
 
-  const [mainDiagnosis, setMainDiagnosis] = useState(activityData.mainDiagnosis || []); // ใช้ TextInput สำหรับ Main Diagnosis
-  const [selectedDiagnosis, setSelectedDiagnosis] = useState([{}]); // เก็บโรคที่เลือกทั้งหมด
-  const [mainDiagnoses, setMainDiagnoses] = useState([]); // เก็บรายชื่อโรค
-  const [otherDiagnosis, setOtherDiagnosis] = useState(""); // ใช้ TextInput สำหรับโรคอื่นๆ
-  const [isOtherSelected, setIsOtherSelected] = useState(false); // ตัวแปรสำหรับตรวจสอบว่าเลือก Other หรือไม่
+  // const [mainDiagnosis, setMainDiagnosis] = useState(activityData.mainDiagnosis || []); // ใช้ TextInput สำหรับ Main Diagnosis
+  // const [selectedDiagnosis, setSelectedDiagnosis] = useState([{}]); // เก็บโรคที่เลือกทั้งหมด
+  // const [mainDiagnoses, setMainDiagnoses] = useState([]); // เก็บรายชื่อโรค
+  // const [otherDiagnosis, setOtherDiagnosis] = useState(""); // ใช้ TextInput สำหรับโรคอื่นๆ
+  // const [isOtherSelected, setIsOtherSelected] = useState(false); // ตัวแปรสำหรับตรวจสอบว่าเลือก Other หรือไม่
 
+  const [topic, setTopic] = useState(activityData.topic);
   const [professorId, setProfessorId] = useState(activityData.professorId);
   const [professorName, setProfessorName] = useState(
     activityData.professorName
@@ -217,36 +218,36 @@ function EditActivityScreen({ route, navigation }) {
     }
   };
 
-  const fetchMainDiagnoses = async () => {
-    try {
-      const mainDiagnosisDocRef = doc(
-        db,
-        "mainDiagnosis",
-        "LcvLDMSEraOH9zH4fbmS"
-      );
-      const docSnap = await getDoc(mainDiagnosisDocRef);
+  // const fetchMainDiagnoses = async () => {
+  //   try {
+  //     const mainDiagnosisDocRef = doc(
+  //       db,
+  //       "mainDiagnosis",
+  //       "LcvLDMSEraOH9zH4fbmS"
+  //     );
+  //     const docSnap = await getDoc(mainDiagnosisDocRef);
 
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        const diagnoses = data.diseases.map((disease, index) => ({
-          key: `${(index + 1).toString().padStart(3, "0")} | ${disease}`, // ปรับแก้ที่นี่เพื่อให้ key เป็นชื่อโรคด้วย
-          value: `${(index + 1).toString().padStart(3, "0")} | ${disease}`,
-        }));
+  //     if (docSnap.exists()) {
+  //       const data = docSnap.data();
+  //       const diagnoses = data.diseases.map((disease, index) => ({
+  //         key: `${(index + 1).toString().padStart(3, "0")} | ${disease}`, // ปรับแก้ที่นี่เพื่อให้ key เป็นชื่อโรคด้วย
+  //         value: `${(index + 1).toString().padStart(3, "0")} | ${disease}`,
+  //       }));
 
-        diagnoses.sort((a, b) => a.value.localeCompare(b.value));
+  //       diagnoses.sort((a, b) => a.value.localeCompare(b.value));
 
-        setMainDiagnoses(diagnoses);
-      } else {
-        console.log("No such document!");
-      }
-    } catch (error) {
-      console.error("Error fetching main diagnoses:", error);
-    }
-  };
+  //       setMainDiagnoses(diagnoses);
+  //     } else {
+  //       console.log("No such document!");
+  //     }
+  //   } catch (error) {
+  //     console.error("Error fetching main diagnoses:", error);
+  //   }
+  // };
 
-  useEffect(() => {
-    fetchMainDiagnoses();
-  }, []);
+  // useEffect(() => {
+  //   fetchMainDiagnoses();
+  // }, []);
 
   useEffect(() => {
     async function fetchTeachers() {
@@ -296,8 +297,8 @@ function EditActivityScreen({ route, navigation }) {
 
   const saveDataToFirestore = async () => {
     try {
-      if (!mainDiagnosis && !otherDiagnosis) {
-        alert("โปรดกรอก Main Diagnosis หรือใส่โรคอื่นๆ");
+      if (!topic) {
+        alert("โปรดกรอกหัวข้อที่เรียนรู้");
         return;
       }
 
@@ -339,7 +340,7 @@ function EditActivityScreen({ route, navigation }) {
             admissionDate: Timestamp.fromDate(new Date(selectedDate)),
             activityType: selectedActivityType, // Activity
             createBy_id: user.uid, // User ID
-            mainDiagnosis: isOtherSelected ? otherDiagnosis : mainDiagnosis,
+            topic: topic,
             note: note, // Note
             professorName: teachers.find((t) => t.key === professorId)?.value,
             professorId: professorId,
@@ -361,7 +362,7 @@ function EditActivityScreen({ route, navigation }) {
             admissionDate: Timestamp.fromDate(new Date(selectedDate)),
             activityType: selectedActivityType, // Activity
             createBy_id: user.uid, // User ID
-            mainDiagnosis: isOtherSelected ? otherDiagnosis : mainDiagnosis,
+            topic: topic,
             note: note, // Note
             professorName: teachers.find((t) => t.key === professorId)?.value,
             professorId: professorId,
@@ -519,13 +520,13 @@ function EditActivityScreen({ route, navigation }) {
                 alignItems: "flex-start",
               }}
             >
-              Professor
+              Instructor
             </Text>
             <SelectList
               setSelected={onSelectTeacher}
               defaultOption={{ key: professorId, value: professorName }}
               data={teachers}
-              placeholder={"Select the professor name"}
+              placeholder={"Select the instructor name"}
               placeholderTextColor="grey"
               boxStyles={{
                 width: "auto",
@@ -548,9 +549,9 @@ function EditActivityScreen({ route, navigation }) {
               textAlign: "left",
             }}
           >
-            Topic (ถ้าไม่มีตัวเลือก ให้เลือก Other)
+            Topic
           </Text>
-          {isOtherSelected ? (
+
             <View
               style={{
                 height: 48,
@@ -563,10 +564,10 @@ function EditActivityScreen({ route, navigation }) {
               }}
             >
               <TextInput
-                placeholder="Fill the main diagnosis"
+                placeholder="Fill the topic"
                 placeholderTextColor="grey"
-                value={otherDiagnosis} // Display otherDiagnosis value here
-                onChangeText={setOtherDiagnosis}
+                value={topic} // Display otherDiagnosis value here
+                onChangeText={setTopic}
                 style={{
                   width: "100%",
                   textAlign: "center",
@@ -576,30 +577,6 @@ function EditActivityScreen({ route, navigation }) {
                 }}
               />
             </View>
-          ) : (
-            <SelectList
-              setSelected={(value) => {
-                if (value === "Other") {
-                  setIsOtherSelected(true);
-                  setMainDiagnosis(""); // เปลี่ยนเป็น string และกำหนดให้เป็นค่าว่างเมื่อเลือก Other
-                } else {
-                  setIsOtherSelected(false);
-                  setMainDiagnosis(value); // เปลี่ยนค่า mainDiagnosis เมื่อเลือก diagnosis อื่น
-                }
-              }}
-              data={[...mainDiagnoses, { key: "Other", value: "Other" }]}
-              placeholder={"Select a diagnosis"}
-              defaultOption={{ key: mainDiagnosis, value: mainDiagnosis }} // กำหนด defaultOption ให้เป็นค่า mainDiagnosis ปัจจุบัน
-              boxStyles={{
-                width: "auto",
-                backgroundColor: "#FEF0E6",
-                borderColor: "#FEF0E6",
-                borderWidth: 1,
-                borderRadius: 10,
-              }}
-              dropdownStyles={{ backgroundColor: "#FEF0E6" }}
-            />
-          )}
         </View>
 
         <View style={{ marginBottom: 16, width: "70%" }}>

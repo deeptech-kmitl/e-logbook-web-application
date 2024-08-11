@@ -9,7 +9,7 @@ import {
   ScrollView,
 } from "react-native";
 import { useSelector, useDispatch } from "react-redux";
-import { clearUser } from "../redux/action";
+import { clearSubject, clearUser } from "../redux/action";
 import { db } from "../data/firebaseDB";
 import { getDocs, collection, query, where } from "firebase/firestore";
 import { Pie } from "react-chartjs-2";
@@ -81,10 +81,16 @@ const HomeScreen = ({ navigation }) => {
 
   const textSize = dimensions.width < 768 ? 20 : 24;
   const buttonTextSize = dimensions.width < 768 ? 20 : 24;
+  const buttonNewTextSize = dimensions.width < 768 ? 20 : 24;
 
   const handleLogout = () => {
     dispatch(clearUser());
     navigation.navigate("SelectRole");
+  };
+
+  const handleClearSubject = () => {
+    dispatch(clearSubject());
+    navigation.navigate("Subject");
   };
 
   useEffect(() => {
@@ -96,7 +102,7 @@ const HomeScreen = ({ navigation }) => {
       case "student":
         return "Student";
       case "teacher":
-        return "Professor";
+        return "Instructor/Staff";
       case "staff":
         return "Staff";
       default:
@@ -120,7 +126,7 @@ const HomeScreen = ({ navigation }) => {
       let approvedCases = 0;
       let rejectedCases = 0;
       let pendingCases = 0;
-      let reApprovedCases = 0;
+      let recheckCases = 0;
 
       for (const collectionRef of collectionRefs) {
         let userQuerySnapshot;
@@ -149,17 +155,17 @@ const HomeScreen = ({ navigation }) => {
             rejectedCases++;
           } else if (data.status === "pending") {
             pendingCases++;
-          } else if (data.status === "reApproved") {
-            reApprovedCases++;
+          } else if (data.status === "recheck") {
+            recheckCases++;
           }
         });
       }
 
       const data = {
-        labels: ["Approved", "Rejected", "Pending", "Re-approved"],
+        labels: ["Approved", "Rejected", "Pending", "Recheck"],
         datasets: [
           {
-            data: [approvedCases, rejectedCases, pendingCases, reApprovedCases],
+            data: [approvedCases, rejectedCases, pendingCases, recheckCases],
             backgroundColor: ["#2a9d8f", "#e76f51", "#e9c46a", "#7ecafc"],
           },
         ],
@@ -256,6 +262,7 @@ const HomeScreen = ({ navigation }) => {
               Logout
             </Text>
           </TouchableOpacity>
+
         </View>
         <View style={styles.line} />
 
@@ -266,7 +273,7 @@ const HomeScreen = ({ navigation }) => {
               fontSize: textSize,
               alignSelf: "center",
               textAlign: "center",
-              marginVertical: 25,
+              marginVertical: 20,
               fontWeight: "bold",
             },
           ]}
@@ -308,24 +315,45 @@ const HomeScreen = ({ navigation }) => {
             }}
             dropdownStyles={{ backgroundColor: "#FEF0E6" }}
           />
-
-          <SelectList
+        </View>
+        <SelectList
             placeholder="Select subjects"
             defaultValue={selectedSubject}
             setSelected={setSelectedSubject} // 4. เมื่อมีการเลือก Subject ใหม่ ให้เรียกใช้ handleSelectSubject เพื่อเปลี่ยนค่า selectedSubject
             data={subjectsByYear}
             search={false}
             boxStyles={{
-              width: "auto",
+              width: "50%",
               backgroundColor: "#FEF0E6",
               borderColor: "#FEF0E6",
               borderWidth: 1,
               borderRadius: 10,
               marginLeft: 10,
+              justifyContent: 'center',
+              alignItems: 'center',
+              alignSelf: 'center'
             }}
-            dropdownStyles={{ backgroundColor: "#FEF0E6" }}
+            dropdownStyles={{ backgroundColor: "#FEF0E6", width: "50%",              justifyContent: 'center',
+              alignItems: 'center',
+              alignSelf: 'center' }}
           />
-        </View>
+        {/* <TouchableOpacity
+            style={[styles.button, styles.subjectButton]}
+            onPress={handleClearSubject}
+          >
+            <Text style={[styles.buttonText, { fontSize: buttonNewTextSize }]}>
+            ◄ Back to select subject
+            </Text>
+          </TouchableOpacity> */}
+          <Text
+              style={[
+                styles.passwordResetLink,
+                { textAlign: "center", fontSize: buttonNewTextSize },
+              ]}
+              onPress={handleClearSubject}
+            >
+              ◄ Back to select subject
+            </Text>
       </ScrollView>
     </View>
   );
@@ -357,6 +385,9 @@ const styles = StyleSheet.create({
   logoutButton: {
     backgroundColor: "red",
   },
+  subjectButton: {
+    backgroundColor: "orange",
+  },
   bottomBox: {
     marginTop: 20,
     alignItems: "center",
@@ -364,6 +395,10 @@ const styles = StyleSheet.create({
   buttonText: {
     color: "white",
     textAlign: "center",
+  },
+  passwordResetLink: {
+    marginVertical: 10,
+    color: "#9D5716",
   },
 });
 

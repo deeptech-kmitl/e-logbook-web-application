@@ -26,8 +26,10 @@ import {
   TextInput,
   CheckBox,
   Image,
+  Platform
 } from "react-native";
 import { SelectList } from "react-native-dropdown-select-list";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { isEmpty } from "lodash";
 import { Ionicons, FontAwesome, MaterialIcons } from "@expo/vector-icons";
 
@@ -47,6 +49,12 @@ function UserCaseScreen({ navigation }) {
 
   const [selectedCase, setSelectedCase] = useState(null);
 
+  const [hnSearch, setHnSearch] = useState("");
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(new Date());
+  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+
   const [windowWidth, setWindowWidth] = useState(
     Dimensions.get("window").width
   );
@@ -61,8 +69,174 @@ function UserCaseScreen({ navigation }) {
     { key: "pending", value: "Pending" },
     { key: "approved", value: "Approved" },
     { key: "rejected", value: "Rejected" },
-    { key: "reApproved", value: "Re-approved" },
+    { key: "recheck", value: "Recheck" },
   ];
+
+  const [professors, setProfessors] = useState([]);
+  const [selectedProfessor, setSelectedProfessor] = useState(null);
+  const [professorList, setProfessorList] = useState([]);
+  const [professorId, setProfessorId] = useState(null); // สถานะสำหรับเก็บ id ของอาจารย์ที่ถูกเลือก
+  const [professorName, setProfessorName] = useState(null); // สถานะสำหรับเก็บชื่ออาจารย์ที่ถูกเลือก
+  const [teachers, setTeachers] = useState([]); // สถานะสำหรับเก็บรายการอาจารย์ทั้งหมด
+
+  // const loadProfessorData = async () => {
+  //   try {
+  //     const usersCollectionRef = collection(db, "users");
+  //     const querySnapshot = await getDocs(usersCollectionRef);
+  //     const professors = [];
+
+  //     querySnapshot.forEach((doc) => {
+  //       const data = doc.data();
+  //       if (data.role === "teacher") {
+  //         professors.push({ key: doc.id, value: data.displayName });
+  //       }
+  //     });
+
+  //     setProfessorList(professors);
+  //   } catch (error) {
+  //     console.error("Error fetching professor data:", error);
+  //   }
+  // };
+
+  useEffect(() => {
+    async function fetchTeachers() {
+      try {
+        const teacherRef = collection(db, "users");
+        const q = query(teacherRef, where("role", "==", "teacher")); // ใช้ query และ where ในการ filter
+
+        const querySnapshot = await getDocs(q); // ใช้ query ที่ถูก filter ในการ getDocs
+
+        const teacherArray = [];
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          teacherArray.push({ key: doc.id, value: data.displayName });
+        });
+
+        setTeachers(teacherArray); // ตั้งค่ารายการอาจารย์
+      } catch (error) {
+        console.error("Error fetching teachers:", error);
+      }
+    }
+
+    fetchTeachers(); // เรียกฟังก์ชันเพื่อดึงข้อมูลอาจารย์
+  }, []);
+
+  const onSelectTeacher = (selectedTeacherId) => {
+    const selectedTeacher = teachers.find(
+      (teacher) => teacher.key === selectedTeacherId
+    );
+    // console.log(selectedTeacher)
+    if (selectedTeacher) {
+      setProfessorName(selectedTeacher.value);
+      setProfessorId(selectedTeacher.key);
+    } else {
+      console.error("Teacher not found:", selectedTeacherId);
+    }
+  };
+
+  useEffect(() => {
+    // Trigger re-render when hnSearch, startDate, endDate, selectedType, or selectedProfessor change
+    renderCards();
+  }, [hnSearch, startDate, endDate, selectedType, selectedStatus, selectedProfessor]);
+
+  // useEffect(() => {
+  //   const unsubscribe = navigation.addListener("focus", () => {
+  //     loadPatientData();
+  //     loadActivityAndProcedureData();
+  //     loadProfessorData();
+  //   });
+
+  //   return unsubscribe;
+  // }, [navigation]);
+
+  const handleStartDateChange = (event, selectedDate) => {
+    const currentDate = selectedDate || startDate;
+    setShowStartDatePicker(false);
+    setStartDate(currentDate);
+  };
+
+  const handleEndDateChange = (event, selectedDate) => {
+    const currentDate = selectedDate || endDate;
+    setShowEndDatePicker(false);
+    setEndDate(currentDate);
+  };
+
+  const StartDateInput = () => {
+    if (Platform.OS === "web") {
+      return (
+        <input
+          type="date"
+          style={{
+            marginTop: 5,
+            padding: 10,
+            fontSize: 16,
+            width: "95%",
+            backgroundColor: "#FEF0E6",
+            borderColor: "#FEF0E6",
+            borderWidth: 1,
+            borderRadius: 10,
+          }}
+          value={startDate ? startDate.toISOString().substr(0, 10) : ""}
+          onChange={(event) => setStartDate(event.target.value ? new Date(event.target.value) : null)}
+        />
+      );
+    } else {
+      return (
+        <>
+          <Button onPress={showStartDatePicker} title="Show date picker!" />
+          {showStartDatePicker && (
+            <DateTimePicker
+              testID="startDateTimePicker"
+              value={startDate || new Date()}
+              mode="date"
+              is24Hour={true}
+              display="default"
+              onChange={handleStartDateChange}
+            />
+          )}
+        </>
+      );
+    }
+  };
+
+  const EndDateInput = () => {
+    if (Platform.OS === "web") {
+      return (
+        <input
+          type="date"
+          style={{
+            marginTop: 5,
+            padding: 10,
+            fontSize: 16,
+            width: "95%",
+            backgroundColor: "#FEF0E6",
+            borderColor: "#FEF0E6",
+            borderWidth: 1,
+            borderRadius: 10,
+            marginLeft: 10
+          }}
+          value={endDate.toISOString().substr(0, 10)}
+          onChange={(event) => setEndDate(new Date(event.target.value))}
+        />
+      );
+    } else {
+      return (
+        <>
+          <Button onPress={showEndDatePicker} title="Show date picker!" />
+          {showEndDatePicker && (
+            <DateTimePicker
+              testID="endDateTimePicker"
+              value={endDate || new Date()}
+              mode="date"
+              is24Hour={true}
+              display="default"
+              onChange={handleEndDateChange}
+            />
+          )}
+        </>
+      );
+    }
+  };
 
   const [
     professionalismScoresModalVisible,
@@ -440,26 +614,31 @@ function UserCaseScreen({ navigation }) {
 
   const handleChange = async () => {
     try {
-      console.log(selectedCase);
+      console.log("Selected Case:", selectedCase);
       if (selectedCase && selectedCase.id) {
-        // ตรวจสอบว่า selectedCase ไม่เป็น null และมี id
         const documentId = selectedCase.id;
-
+        console.log("Document ID:", documentId);
+  
         const collectionsToCheck = ["patients", "activity", "procedure"];
-
+  
         for (const collectionName of collectionsToCheck) {
-          const querySnapshot = await getDocs(
-            query(collection(db, collectionName), where("id", "==", documentId))
-          );
-
-          if (!isEmpty(querySnapshot.docs)) {
-            // พบ documentId ใน Collection ที่เป็นไปได้ ทำการอัปเดต
-            const docRef = doc(db, collectionName, documentId);
+          console.log(`Checking collection: ${collectionName}`);
+          const docRef = doc(db, collectionName, documentId);
+          const docSnapshot = await getDoc(docRef);
+  
+          if (docSnapshot.exists()) {
+            console.log(`Document found in collection: ${collectionName}`);
             await updateDoc(docRef, { status: "pending" });
+            console.log("Document status updated to 'pending'");
+            loadPatientData();
+            loadActivityAndProcedureData();
             setChangeModalVisible(false);
-            break;
+            alert("Case updated status successfully!");
+            return;
           }
         }
+  
+        console.log("Document not found in any collection");
       } else {
         console.error("Missing selectedCase or document ID.");
       }
@@ -467,7 +646,7 @@ function UserCaseScreen({ navigation }) {
       console.error("Error updating document status:", error);
     }
   };
-
+  
   const handleButtonChange = (caseData) => {
     setSelectedCase(caseData);
     setChangeModalVisible(true);
@@ -492,9 +671,29 @@ function UserCaseScreen({ navigation }) {
   };
 
   const renderCards = () => {
-    const allCases = filterCasesByType(selectedType).filter(
-      (caseData) => caseData.status === selectedStatus
-    );
+    const allCases = filterCasesByType(selectedType)
+    .filter((caseData) => caseData.status === selectedStatus)
+    .filter((caseData) => {
+      // Filter by hnSearch
+      const hnMatch = hnSearch
+        ? caseData.hn?.toLowerCase().includes(hnSearch.toLowerCase())
+        : true;
+
+      // Filter by date range
+      const admissionDate = caseData.admissionDate.toDate();
+      const dateInRange =
+        (!startDate || admissionDate >= startDate) &&
+        (!endDate || admissionDate <= endDate);
+
+      // Filter by professor
+      const professorMatch = professorId
+        ? caseData.professorId === professorId
+        : professorName
+        ? caseData.professorName === professorName
+        : true;
+
+      return hnMatch && dateInRange && professorMatch;
+    });
 
     return allCases
       .sort((a, b) => b.admissionDate.toDate() - a.admissionDate.toDate())
@@ -535,9 +734,9 @@ function UserCaseScreen({ navigation }) {
                   <Text
                     style={{ marginLeft: 20, lineHeight: 30, opacity: 0.4 }}
                   >
-                    {caseData.procedureType ? "Approved By" : "Professor Name"}:{" "}
+                    {caseData.procedureType ? "Instructor Name" : "Instructor Name"}:{" "}
                     {caseData.procedureType
-                      ? caseData.approvedByName
+                      ? caseData.professorName
                       : caseData.professorName}
                   </Text>
                 </>
@@ -556,9 +755,9 @@ function UserCaseScreen({ navigation }) {
                   <Text
                     style={{ marginLeft: 20, lineHeight: 30, opacity: 0.4 }}
                   >
-                    {caseData.procedureType ? "Approved By" : "Professor Name"}:{" "}
+                    {caseData.procedureType ? "Instructor Name" : "Instructor Name"}:{" "}
                     {caseData.procedureType
-                      ? caseData.approvedByName
+                      ? caseData.professorName
                       : caseData.professorName}
                   </Text>
                   {caseData.procedureType && (
@@ -667,7 +866,7 @@ function UserCaseScreen({ navigation }) {
         <SelectList
           data={statusOptions}
           setSelected={setSelectedStatus}
-          placeholder="Select status"
+          placeholder="Pending"
           defaultOption={selectedStatus}
           search={false}
           boxStyles={{
@@ -701,6 +900,67 @@ function UserCaseScreen({ navigation }) {
           }}
           dropdownStyles={{ backgroundColor: "#FEF0E6" }}
         />
+      </View>
+      <View
+        style={{
+          marginVertical: 10,
+          flexDirection: "row",
+          alignItems: "center",
+        }}
+      >
+
+        <TextInput
+          style={{
+            flex: 1,
+            backgroundColor: "#FEF0E6",
+            borderColor: "#FEF0E6",
+            borderWidth: 1,
+            borderRadius: 10,
+            padding: 12,
+            marginLeft: isMobile ? 0 : 15,
+            textAlign: "center",
+          }}
+          placeholder="Search by hn"
+          value={hnSearch}
+          onChangeText={(text) => {
+            setHnSearch(text);
+          }}
+        />
+
+      </View>
+      <View
+        style={{
+          marginVertical: 10,
+          flexDirection: "row",
+          alignItems: "center",
+        }}
+      >
+     <SelectList
+              setSelected={onSelectTeacher}
+              data={teachers}
+              placeholder={"Select the instructor name"}
+              placeholderTextColor="grey"
+              boxStyles={{
+                width: "auto",
+                backgroundColor: "#FEF0E6",
+                borderColor: "#FEF0E6",
+                borderWidth: 1,
+                borderRadius: 10,
+              }}
+              dropdownStyles={{ backgroundColor: "#FEF0E6" }}
+            />
+      </View>
+
+      <View
+        style={{
+          marginVertical: 10,
+          flexDirection: "row",
+          alignItems: "center",
+        }}
+      >
+        <StartDateInput />
+        <EndDateInput />
+
       </View>
 
       <View style={styles.boxCard}>
@@ -768,12 +1028,12 @@ function UserCaseScreen({ navigation }) {
                   <Text style={styles.modalText}>
                     <Text style={{ fontWeight: "bold" }}>
                       {selectedCase.procedureType
-                        ? "Approved By"
-                        : "Professor Name"}
+                        ? "Instructor Name"
+                        : "Instructor Name"}
                       :{" "}
                     </Text>{" "}
                     {selectedCase.procedureType
-                      ? selectedCase.approvedByName
+                      ? selectedCase.professorName
                       : selectedCase.professorName}
                   </Text>
                   {selectedCase.activityType && (

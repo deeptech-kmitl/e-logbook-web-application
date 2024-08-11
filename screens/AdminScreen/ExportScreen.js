@@ -6,26 +6,44 @@ import {
   Picker,
   TouchableOpacity,
   ScrollView,
-  Dimensions
+  Dimensions,
+  Platform,
+  Button
 } from "react-native";
 import { useSelector } from "react-redux";
 import { db } from "../../data/firebaseDB";
 import { collection, getDocs } from "firebase/firestore";
 import * as XLSX from "xlsx";
 import { AntDesign } from "@expo/vector-icons";
+import DateTimePicker from "@react-native-community/datetimepicker";
 
 const ExportScreen = () => {
   const currentUserUid = useSelector((state) => state.user.uid);
   const [patientsData, setPatientsData] = useState([]);
   const [proceduresData, setProceduresData] = useState([]);
   const [fileFormat, setFileFormat] = useState("csv");
-  const [selectedData, setSelectedData] = useState("");
+  const [selectedData, setSelectedData] = useState("patients");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedType, setSelectedType] = useState("all");
   const [previewData, setPreviewData] = useState([]);
   const [usersData, setUsersData] = useState({});
   const [layoutType, setLayoutType] = useState("column");
   const [containerHeight, setContainerHeight] = useState(121);  // เพิ่ม state สำหรับ container height
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(new Date());
+  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+
+  const [dimensions, setDimensions] = useState(Dimensions.get("window"));
+
+  useEffect(() => {
+    const updateLayout = () => {
+      setDimensions(Dimensions.get("window"));
+    };
+
+    Dimensions.addEventListener("change", updateLayout);
+    return () => Dimensions.removeEventListener("change", updateLayout);
+  }, []);
 
   useEffect(() => {
     const fetchUsersData = async () => {
@@ -114,21 +132,119 @@ const ExportScreen = () => {
     });
   };
 
-  const getSelectedDataForExport = () => {
-    let dataForExport;
-    if (selectedData === "patients") {
-      dataForExport = patientsData.filter(
-        (patient) =>
-          (selectedStatus === "all" || patient.status === selectedStatus) &&
-          (selectedType === "all" || patient.patientType === selectedType)
+  const filterByDateRange = (data) => {
+    return data.filter((item) => {
+      if (!item.admissionDate || typeof item.admissionDate.toDate !== 'function') {
+        return false; // ข้ามรายการที่ไม่มีค่า admissionDate หรือไม่ใช่ Firestore Timestamp
+      }
+      
+      const admissionDate = item.admissionDate.toDate(); // Assuming admissionDate is a Firestore Timestamp
+      const admissionDateOnly = new Date(admissionDate.getFullYear(), admissionDate.getMonth(), admissionDate.getDate());
+      const startDateOnly = startDate ? new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()) : null;
+      const endDateOnly = endDate ? new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate()) : null;
+  
+      if (startDateOnly && endDateOnly) {
+        return admissionDateOnly >= startDateOnly && admissionDateOnly <= endDateOnly;
+      } else if (startDateOnly) {
+        return admissionDateOnly >= startDateOnly;
+      } else if (endDateOnly) {
+        return admissionDateOnly <= endDateOnly;
+      }
+      return true;
+    });
+  };
+
+const getSelectedDataForExport = () => {
+  let dataForExport;
+  
+  if (selectedData === "patients") {
+    dataForExport = filterByDateRange(patientsData).filter(
+      (patient) =>
+        (selectedStatus === "all" || patient.status === selectedStatus) &&
+        (selectedType === "all" || patient.patientType === selectedType)
+    );
+  } else {
+    dataForExport = filterByDateRange(proceduresData).filter(
+      (procedure) =>
+        (selectedStatus === "all" || procedure.status === selectedStatus)
+    );
+  }
+  
+  return dataForExport;
+};
+
+  const StartDateInput = () => {
+    if (Platform.OS === "web") {
+      return (
+        <input
+          type="date"
+          style={{
+            padding: 10,
+            fontSize: 16,
+            width: "80%",
+            backgroundColor: "#FEF0E6",
+            borderColor: "#FEF0E6",
+            borderWidth: 1,
+            borderRadius: 10,
+          }}
+          value={startDate ? startDate.toISOString().substr(0, 10) : ""}
+          onChange={(event) => setStartDate(event.target.value ? new Date(event.target.value) : null)}
+        />
       );
     } else {
-      dataForExport = proceduresData.filter(
-        (procedure) =>
-          selectedStatus === "all" || procedure.status === selectedStatus
+      return (
+        <>
+          <Button onPress={showStartDatePicker} title="Show date picker!" />
+          {showStartDatePicker && (
+            <DateTimePicker
+              testID="startDateTimePicker"
+              value={startDate || new Date()}
+              mode="date"
+              is24Hour={true}
+              display="default"
+              onChange={handleStartDateChange}
+            />
+          )}
+        </>
       );
     }
-    return dataForExport;
+  };
+
+  const EndDateInput = () => {
+    if (Platform.OS === "web") {
+      return (
+        <input
+          type="date"
+          style={{
+            padding: 10,
+            fontSize: 16,
+            width: "80%",
+            backgroundColor: "#FEF0E6",
+            borderColor: "#FEF0E6",
+            borderWidth: 1,
+            borderRadius: 10,
+          }}
+          value={endDate.toISOString().substr(0, 10)}
+          onChange={(event) => setEndDate(new Date(event.target.value))}
+        />
+      );
+    } else {
+      return (
+        <>
+          <Button onPress={showEndDatePicker} title="Show date picker!" />
+          {showEndDatePicker && (
+            <DateTimePicker
+              testID="endDateTimePicker"
+              value={endDate || new Date()}
+              mode="date"
+              is24Hour={true}
+              display="default"
+              onChange={handleEndDateChange}
+            />
+          )}
+        </>
+      );
+    }
   };
 
   const handlePreview = () => {
@@ -192,15 +308,28 @@ const ExportScreen = () => {
     return date.toLocaleDateString();
   };
 
+  const handleStartDateChange = (event, selectedDate) => {
+    const currentDate = selectedDate || startDate;
+    setShowStartDatePicker(false);
+    setStartDate(currentDate);
+  };
+
+  const handleEndDateChange = (event, selectedDate) => {
+    const currentDate = selectedDate || endDate;
+    setShowEndDatePicker(false);
+    setEndDate(currentDate);
+  };
+
   const translateProfessionalismScores = (scores) => {
     if (scores) {
       const translationMap = {
-        punctual: "ตรงต่อเวลา",
-        appropriatelyDressed: "แต่งกายเหมาะสม",
-        respectsPatients: "เคารพผู้ป่วย",
-        goodListener: "เป็นผู้ฟังที่ดี",
-        respectsColleagues: "ให้เกียรติเพื่อนร่วมงาน",
-        accurateRecordKeeping: "บันทึกข้อมูลผู้ป่วยอย่างถูกต้อง",
+        basicKnowledge: "Basic knowledge/basic science",
+        clinicalSkills: "Clinical skills (history taking and physical examination)",
+        problemIdentification: "Problem identification and approaching",
+        managementProblem: "Management/Problem solving",
+        patientEducation: "Patient education",
+        evidenceBase: "Evidence-based medicine",
+        ethicalManner: "Ethical and manner issues"
       };
       return JSON.stringify(
         Object.entries(scores)
@@ -226,8 +355,8 @@ const ExportScreen = () => {
       "Co-Morbid": patient.coMorbid
         ? patient.coMorbid.map((item) => item.value).join(", ")
         : "", // แปลง JSON ให้เป็นสตริง
-      "Professor Name": patient.professorName,
-      "Professor ID": patient.professorId,
+      "Instructor Name": patient.professorName,
+      "Instructor ID": patient.professorId,
       Status: patient.status,
       Note: patient.note,
       Comment: patient.comment,
@@ -250,8 +379,8 @@ const ExportScreen = () => {
       HN: procedure.hn,
       "Procedure Level": procedure.procedureLevel,
       "Procedure Type": procedure.procedureType,
-      "Approved By Name": procedure.approvedByName,
-      "Approved By ID": procedure.approvedById,
+      "Instructor Name": procedure.professorName,
+      "Instructor ID": procedure.professorId,
       Status: procedure.status,
       Remarks: procedure.remarks,
       Comment: procedure.comment,
@@ -269,71 +398,84 @@ const ExportScreen = () => {
     <View style={styles.mainContainer}>
       <View style={[styles.reportContainer, { height: containerHeight }]}>
         {/* <Text style={{ fontSize: 16 }}>Export Data: </Text> */}
-        <View style={[styles.reportContent, layoutType === "row" ? { flexDirection: "row", justifyContent: "space-between" } : { flexDirection: "column" }]}>
-          <Picker
-            selectedValue={selectedData}
-            style={styles.pickerStyle}
-            onValueChange={(itemValue, itemIndex) => setSelectedData(itemValue)}
-          >
-            <Picker.Item label="Patients" value="patients" />
-            <Picker.Item label="Procedures" value="procedures" />
-          </Picker>
-
-          {selectedData === "patients" && (
+        <View style={{flexDirection: "row", justifyContent: 'space-between'}}>
+          <View style={{flexDirection: "column"}}>
             <Picker
-              selectedValue={selectedType}
+              selectedValue={selectedData}
+              style={styles.pickerStyle}
+              onValueChange={(itemValue, itemIndex) => setSelectedData(itemValue)}
+            >
+              <Picker.Item label="Patients" value="patients" />
+              <Picker.Item label="Procedures" value="procedures" />
+            </Picker>
+
+            {selectedData === "patients" && (
+              <Picker
+                selectedValue={selectedType}
+                style={styles.pickerStyle}
+                onValueChange={(itemValue, itemIndex) =>
+                  setSelectedType(itemValue)
+                }
+              >
+                <Picker.Item label="All Types" value="all" />
+                <Picker.Item label="Inpatient" value="inpatient" />
+                <Picker.Item label="Outpatient" value="outpatient" />
+              </Picker>
+            )}
+
+            <Picker
+              selectedValue={selectedStatus}
               style={styles.pickerStyle}
               onValueChange={(itemValue, itemIndex) =>
-                setSelectedType(itemValue)
+                setSelectedStatus(itemValue)
               }
             >
-              <Picker.Item label="All Types" value="all" />
-              <Picker.Item label="Inpatient" value="inpatient" />
-              <Picker.Item label="Outpatient" value="outpatient" />
+              <Picker.Item label="All Status" value="all" />
+              <Picker.Item label="Pending" value="pending" />
+              <Picker.Item label="Approved" value="approved" />
+              <Picker.Item label="Rejected" value="rejected" />
+              <Picker.Item label="Recheck" value="recheck" />
             </Picker>
-          )}
 
-          <Picker
-            selectedValue={selectedStatus}
-            style={styles.pickerStyle}
-            onValueChange={(itemValue, itemIndex) =>
-              setSelectedStatus(itemValue)
-            }
-          >
-            <Picker.Item label="All Status" value="all" />
-            <Picker.Item label="Pending" value="pending" />
-            <Picker.Item label="Approved" value="approved" />
-            <Picker.Item label="Rejected" value="rejected" />
-            <Picker.Item label="Re-approved" value="reApproved" />
-          </Picker>
+            <Picker
+              selectedValue={fileFormat}
+              style={styles.pickerStyle}
+              onValueChange={(itemValue, itemIndex) => setFileFormat(itemValue)}
+            >
+              <Picker.Item label="CSV" value="csv" />
+              <Picker.Item label="XLS" value="xls" />
+              <Picker.Item label="XLSX" value="xlsx" />
+            </Picker>
+          </View>
+          
+          <View style={{flexDirection: "column", justifyContent: 'center', alignSelf: 'center'}}>
+            <View style={{marginVertical: 10}}>
+              <StartDateInput />
+            </View>
+              <EndDateInput />
+          </View>
 
-          <Picker
-            selectedValue={fileFormat}
-            style={styles.pickerStyle}
-            onValueChange={(itemValue, itemIndex) => setFileFormat(itemValue)}
-          >
-            <Picker.Item label="CSV" value="csv" />
-            <Picker.Item label="XLS" value="xls" />
-            <Picker.Item label="XLSX" value="xlsx" />
-          </Picker>
+          <View style={{flexDirection: "column", justifyContent: 'center', alignSelf: 'center'}}>
+              <TouchableOpacity
+                style={styles.previewButton}
+                onPress={handlePreview}
+              >
+                <AntDesign name="eye" size={16} color="white" />
+                <Text style={styles.previewText}>Preview</Text>
+              </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.previewButton}
-            onPress={handlePreview}
-          >
-            <AntDesign name="eye" size={16} color="white" />
-            <Text style={styles.previewText}>Preview</Text>
-          </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.downloadButton}
+                onPress={handleDownload}
+              >
+                <AntDesign name="download" size={16} color="white" />
+                <Text style={styles.downloadText}>Download</Text>
+              </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.downloadButton}
-            onPress={handleDownload}
-          >
-            <AntDesign name="download" size={16} color="white" />
-            <Text style={styles.downloadText}>Download</Text>
-          </TouchableOpacity>
+            </View>
+          </View>
         </View>
-      </View>
+
 
       <ScrollView>
         <ScrollView horizontal={true} style={{ flex: 1 }}>
@@ -351,8 +493,8 @@ const ExportScreen = () => {
                     <Text style={styles.columnHeader}>Patient Type</Text>
                     <Text style={styles.columnHeader}>Main Diagnosis</Text>
                     {/* <Text style={styles.columnHeader}>Co-Morbid</Text> */}
-                    <Text style={styles.columnHeader}>Professor Name</Text>
-                    <Text style={styles.columnHeader}>Professor ID</Text>
+                    <Text style={styles.columnHeader}>Instructor Name</Text>
+                    <Text style={styles.columnHeader}>Instructor ID</Text>
                     <Text style={styles.columnHeader}>Status</Text>
                     {/* <Text style={styles.columnHeader}>PDF URL</Text> */}
                     <Text style={styles.columnHeader}>Note</Text>
@@ -374,8 +516,8 @@ const ExportScreen = () => {
                     <Text style={styles.columnHeader}>HN</Text>
                     <Text style={styles.columnHeader}>Procedure Level</Text>
                     <Text style={styles.columnHeader}>Procedure Type</Text>
-                    <Text style={styles.columnHeader}>Approved By Name</Text>
-                    <Text style={styles.columnHeader}>Approved By ID</Text>
+                    <Text style={styles.columnHeader}>Instructor Name</Text>
+                    <Text style={styles.columnHeader}>Instructor ID</Text>
                     <Text style={styles.columnHeader}>Status</Text>
                     {/* <Text style={styles.columnHeader}>Images</Text> */}
                     <Text style={styles.columnHeader}>Remarks</Text>
@@ -431,9 +573,9 @@ const ExportScreen = () => {
                       </Text>
                       <Text style={styles.tableCell}>{item.procedureType}</Text>
                       <Text style={styles.tableCell}>
-                        {item.approvedByName}
+                        {item.professorName}
                       </Text>
-                      <Text style={styles.tableCell}>{item.approvedById}</Text>
+                      <Text style={styles.tableCell}>{item.professorId}</Text>
                       <Text style={styles.tableCell}>{item.status}</Text>
                       {/* <Text style={styles.tableCell}>{item.images}</Text> */}
                       <Text style={styles.tableCell}>{item.remarks}</Text>
@@ -479,7 +621,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#2196F3",
     padding: 5,
     borderRadius: 16,
-    marginLeft: 20,
+    marginLeft: 10,
+    marginRight: 10
   },
   downloadText: {
     marginLeft: 5,
@@ -488,11 +631,13 @@ const styles = StyleSheet.create({
   },
   previewButton: {
     flexDirection: "row",
+    marginVertical: 10,
     alignItems: "center",
     backgroundColor: "#4CAF50",
     padding: 5,
     borderRadius: 16,
-    marginLeft: 20,
+    marginLeft: 10,
+    marginRight: 10
   },
   previewText: {
     marginLeft: 5,
@@ -501,8 +646,9 @@ const styles = StyleSheet.create({
   },
   pickerStyle: {
     textAlign: "center",
+    marginVertical: 5,
+    marginRight: 10,
     shadowColor: "#000",
-    marginLeft: 10,
     width: 130,
     shadowOffset: {
       width: 0,

@@ -75,7 +75,7 @@ const DashBoardScreen = ({ navigation }) => {
     return () => Dimensions.removeEventListener("change", onChange);
   }, []);
 
-  const textSize = dimensions.width < 768 ? 20 : 24;
+  const textSize = dimensions.width < 768 ? 22 : 26;
   const buttonTextSize = dimensions.width < 768 ? 20 : 24;
 
   const handleLogout = () => {
@@ -103,7 +103,7 @@ const DashBoardScreen = ({ navigation }) => {
       let approvedCases = 0;
       let rejectedCases = 0;
       let pendingCases = 0;
-      let reApprovedCases = 0;
+      let recheckCases = 0;
 
       for (const collectionRef of collectionRefs) {
         let userQuerySnapshot;
@@ -123,17 +123,17 @@ const DashBoardScreen = ({ navigation }) => {
             rejectedCases++;
           } else if (data.status === "pending") {
             pendingCases++;
-          } else if (data.status === "reApproved") {
-            reApprovedCases++;
+          } else if (data.status === "recheck") {
+            recheckCases++;
           }
         });
       }
 
       const data = {
-        labels: ["Approved", "Rejected", "Pending", "Re-approved"],
+        labels: ["Approved", "Rejected", "Pending", "Recheck"],
         datasets: [
           {
-            data: [approvedCases, rejectedCases, pendingCases, reApprovedCases],
+            data: [approvedCases, rejectedCases, pendingCases, recheckCases],
             backgroundColor: ["#2a9d8f", "#e76f51", "#e9c46a", "#7ecafc"],
           },
         ],
@@ -195,7 +195,6 @@ const DashBoardScreen = ({ navigation }) => {
               fontSize: textSize,
               alignSelf: "center",
               textAlign: "center",
-              marginVertical: 25,
               fontWeight: "bold",
             },
           ]}
@@ -236,8 +235,8 @@ const DashBoardScreen = ({ navigation }) => {
             }}
             dropdownStyles={{ backgroundColor: "#FEF0E6" }}
           />
-
-          <SelectList
+        </View>
+        <SelectList
             placeholder="Select subjects"
             defaultValue={selectedSubject}
             setSelected={setSelectedSubject}
@@ -253,7 +252,6 @@ const DashBoardScreen = ({ navigation }) => {
             }}
             dropdownStyles={{ backgroundColor: "#FEF0E6" }}
           />
-        </View>
       </ScrollView>
     </View>
   );
@@ -277,10 +275,10 @@ const styles = StyleSheet.create({
     height: 41,
     width: 130,
     justifyContent: "center",
-    alignSelf: "center",
-    alignItems: "center",
+    alignSelf: "flex-end",
     borderRadius: 5,
     marginBottom: 10,
+    marginRight: 15
   },
   logoutButton: {
     backgroundColor: "red",

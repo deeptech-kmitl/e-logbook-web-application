@@ -193,7 +193,7 @@ function EditIpdScreen({ route, navigation }) {
       if (patientDocSnapshot.exists()) {
         const patientData = patientDocSnapshot.data();
 
-        if (patientData.status === "reApproved") {
+        if (patientData.status === "recheck") {
           await updateDoc(patientDocRef, {
             admissionDate: Timestamp.fromDate(new Date(selectedDate)),
             coMorbid: selectedDiagnosis,
@@ -495,13 +495,13 @@ function EditIpdScreen({ route, navigation }) {
                 alignItems: "flex-start",
               }}
             >
-              Professor
+              Instructor
             </Text>
             <SelectList
               setSelected={onSelectTeacher}
               defaultOption={{ key: professorId, value: professorName }}
               data={teachers}
-              placeholder={"Select the professor name"}
+              placeholder={"Select the instructor name"}
               placeholderTextColor="grey"
               boxStyles={{
                 width: "auto",

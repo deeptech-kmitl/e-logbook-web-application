@@ -31,11 +31,11 @@ import SubHeader from "../../component/SubHeader";
 function AddActivityScreen({ navigation }) {
   const [selectedDate, setSelectedDate] = useState(new Date());
 
-  const [mainDiagnosis, setMainDiagnosis] = useState(""); // ใช้ TextInput สำหรับ Main Diagnosis
-  const [selectedDiagnosis, setSelectedDiagnosis] = useState([{}]); // เก็บโรคที่เลือกทั้งหมด
-  const [mainDiagnoses, setMainDiagnoses] = useState([]); // เก็บรายชื่อโรค
-  const [otherDiagnosis, setOtherDiagnosis] = useState(""); // ใช้ TextInput สำหรับโรคอื่นๆ
-  const [isOtherSelected, setIsOtherSelected] = useState(false); // ตัวแปรสำหรับตรวจสอบว่าเลือก Other หรือไม่
+  // const [mainDiagnosis, setMainDiagnosis] = useState(""); // ใช้ TextInput สำหรับ Main Diagnosis
+  // const [selectedDiagnosis, setSelectedDiagnosis] = useState([{}]); // เก็บโรคที่เลือกทั้งหมด
+  // const [mainDiagnoses, setMainDiagnoses] = useState([]); // เก็บรายชื่อโรค
+  // const [otherDiagnosis, setOtherDiagnosis] = useState(""); // ใช้ TextInput สำหรับโรคอื่นๆ
+  // const [isOtherSelected, setIsOtherSelected] = useState(false); // ตัวแปรสำหรับตรวจสอบว่าเลือก Other หรือไม่
 
   const [professorId, setProfessorId] = useState(null);
   const [professorName, setProfessorName] = useState(null); // สถานะสำหรับเก็บชื่ออาจารย์ที่ถูกเลือก
@@ -46,6 +46,9 @@ function AddActivityScreen({ navigation }) {
 
   const [note, setNote] = useState(""); // Note
   const status = "pending"; // Status
+
+  const [topic, setTopic] = useState("");
+
   const [date, setDate] = useState(new Date());
   const [show, setShow] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
@@ -230,36 +233,36 @@ function AddActivityScreen({ navigation }) {
     fetchTeachers(); // เรียกฟังก์ชันเพื่อดึงข้อมูลอาจารย์
   }, []);
 
-  const fetchMainDiagnoses = async () => {
-    try {
-      const mainDiagnosisDocRef = doc(
-        db,
-        "mainDiagnosis",
-        "LcvLDMSEraOH9zH4fbmS"
-      );
-      const docSnap = await getDoc(mainDiagnosisDocRef);
+  // const fetchMainDiagnoses = async () => {
+  //   try {
+  //     const mainDiagnosisDocRef = doc(
+  //       db,
+  //       "mainDiagnosis",
+  //       "LcvLDMSEraOH9zH4fbmS"
+  //     );
+  //     const docSnap = await getDoc(mainDiagnosisDocRef);
 
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        const diagnoses = data.diseases.map((disease, index) => ({
-          key: `${(index + 1).toString().padStart(3, "0")} | ${disease}`, // ปรับแก้ที่นี่เพื่อให้ key เป็นชื่อโรคด้วย
-          value: `${(index + 1).toString().padStart(3, "0")} | ${disease}`,
-        }));
+  //     if (docSnap.exists()) {
+  //       const data = docSnap.data();
+  //       const diagnoses = data.diseases.map((disease, index) => ({
+  //         key: `${(index + 1).toString().padStart(3, "0")} | ${disease}`, // ปรับแก้ที่นี่เพื่อให้ key เป็นชื่อโรคด้วย
+  //         value: `${(index + 1).toString().padStart(3, "0")} | ${disease}`,
+  //       }));
 
-        diagnoses.sort((a, b) => a.value.localeCompare(b.value));
+  //       diagnoses.sort((a, b) => a.value.localeCompare(b.value));
 
-        setMainDiagnoses(diagnoses);
-      } else {
-        console.log("No such document!");
-      }
-    } catch (error) {
-      console.error("Error fetching main diagnoses:", error);
-    }
-  };
+  //       setMainDiagnoses(diagnoses);
+  //     } else {
+  //       console.log("No such document!");
+  //     }
+  //   } catch (error) {
+  //     console.error("Error fetching main diagnoses:", error);
+  //   }
+  // };
 
-  useEffect(() => {
-    fetchMainDiagnoses();
-  }, []);
+  // useEffect(() => {
+  //   fetchMainDiagnoses();
+  // }, []);
 
   useEffect(() => {
     async function fetchActivityType() {
@@ -286,8 +289,8 @@ function AddActivityScreen({ navigation }) {
 
   const saveDataToFirestore = async () => {
     try {
-      if (!mainDiagnosis && !otherDiagnosis) {
-        alert("โปรดกรอก Main Diagnosis หรือใส่โรคอื่นๆ");
+      if (!topic ) {
+        alert("โปรดกรอกหัวข้อที่เรียนรู้");
         return;
       }
 
@@ -324,7 +327,7 @@ function AddActivityScreen({ navigation }) {
         admissionDate: timestamp,
         activityType: selectedActivityType, // Activity
         createBy_id: user.uid, // User ID
-        mainDiagnosis: isOtherSelected ? otherDiagnosis : mainDiagnosis,
+        topic: topic,
         note: note, // Note
         professorName: professorName,
         status: status,
@@ -341,9 +344,7 @@ function AddActivityScreen({ navigation }) {
 
       // Clear the input fields and states
       setSelectedDate(new Date());
-      setMainDiagnosis("");
-      setOtherDiagnosis("");
-      setIsOtherSelected(false);
+      setTopic("");
       setSelectedActivityType("");
       setNote("");
       setSelectedHour("");
@@ -483,12 +484,12 @@ function AddActivityScreen({ navigation }) {
                 alignItems: "flex-start",
               }}
             >
-              Professor
+              Instructor
             </Text>
             <SelectList
               setSelected={onSelectTeacher}
               data={teachers}
-              placeholder={"Select the professor name"}
+              placeholder={"Select the instructor name"}
               placeholderTextColor="grey"
               boxStyles={{
                 width: "auto",
@@ -511,9 +512,8 @@ function AddActivityScreen({ navigation }) {
               textAlign: "left",
             }}
           >
-            Topic (ถ้าไม่มีตัวเลือก ให้เลือก Other)
+            Topic
           </Text>
-          {isOtherSelected ? (
             <View
               style={{
                 height: 48,
@@ -526,10 +526,10 @@ function AddActivityScreen({ navigation }) {
               }}
             >
               <TextInput
-                placeholder="Fill the main diagnosis"
+                placeholder="Fill the topic"
                 placeholderTextColor="grey"
-                value={otherDiagnosis}
-                onChangeText={setOtherDiagnosis}
+                value={topic}
+                onChangeText={setTopic}
                 style={{
                   width: "100%",
                   textAlign: "center",
@@ -539,29 +539,7 @@ function AddActivityScreen({ navigation }) {
                 }}
               />
             </View>
-          ) : (
-            <SelectList
-              setSelected={(value) => {
-                if (value === "Other") {
-                  setIsOtherSelected(true);
-                  setMainDiagnosis("");
-                } else {
-                  setIsOtherSelected(false);
-                  setMainDiagnosis(value);
-                }
-              }}
-              data={[...mainDiagnoses, { key: "Other", value: "Other" }]}
-              placeholder={"Select a diagnosis"}
-              boxStyles={{
-                width: "auto",
-                backgroundColor: "#FEF0E6",
-                borderColor: "#FEF0E6",
-                borderWidth: 1,
-                borderRadius: 10,
-              }}
-              dropdownStyles={{ backgroundColor: "#FEF0E6" }}
-            />
-          )}
+
         </View>
 
         <View style={{ marginBottom: 16, width: "70%" }}>
