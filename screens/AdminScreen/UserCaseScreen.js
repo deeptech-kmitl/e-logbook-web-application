@@ -377,6 +377,11 @@ function UserCaseScreen({ navigation }) {
       textAlign: "left",
       fontSize: windowWidth < 768 ? 20 : 24,
     },
+    modalText2: {
+      marginBottom: 15,
+      textAlign: "center",
+      fontSize: windowWidth < 768 ? 20 : 24,
+    },
     centerView: {
       flex: 1,
       justifyContent: "center",
@@ -391,8 +396,7 @@ function UserCaseScreen({ navigation }) {
     },
     buttonsContainer: {
       flexDirection: "row",
-      justifyContent: "flex-end",
-      marginRight: 20,
+      justifyContent: "center",
       marginBottom: 20,
     },
     approveButton: {
@@ -423,7 +427,7 @@ function UserCaseScreen({ navigation }) {
     rightContainer: {
       flex: 1,
       justifyContent: "center",
-      alignItems: "flex-end",
+      alignItems: "center",
     },
     recheckModalButton: {
       flex: 1,
@@ -716,7 +720,14 @@ function UserCaseScreen({ navigation }) {
                         lineHeight: 30,
                       }}
                     >
-                      {caseData.procedureType} ({caseData.status})
+                      HN : {caseData.hn} ({caseData.status})
+                    </Text>
+                  )}
+                  {caseData.procedureType && (
+                    <Text
+                      style={{ marginLeft: 20, lineHeight: 30, opacity: 0.4 }}
+                    >
+                      Type : {caseData.procedureType}
                     </Text>
                   )}
                   {caseData.activityType && (
@@ -799,7 +810,7 @@ function UserCaseScreen({ navigation }) {
                 </Text>
               )}
             </View>
-            {caseData.status !== "pending" && (
+            {/* {caseData.status !== "pending" && (
               <View style={styles.rightContainer}>
                 <View style={styles.buttonsContainer}>
                   <TouchableOpacity
@@ -812,7 +823,7 @@ function UserCaseScreen({ navigation }) {
                   </TouchableOpacity>
                 </View>
               </View>
-            )}
+            )} */}
           </View>
         </TouchableOpacity>
       ));
@@ -967,36 +978,6 @@ function UserCaseScreen({ navigation }) {
         <ScrollView>{renderCards()}</ScrollView>
       </View>
 
-      {/* Modal สำหรับยืนยันการเปลี่ยน */}
-      <Modal
-        animationType="fade"
-        transparent={true}
-        visible={changeModalVisible}
-        onRequestClose={() => setChangeModalVisible(false)}
-      >
-        <View style={styles.centerView}>
-          <View style={styles.modalView}>
-            <Text style={styles.modalText}>
-              Change status this case to pending?
-            </Text>
-            <View style={styles.buttonContainer}>
-              <Pressable
-                style={[styles.recheckModalButton, styles.buttonApprove]}
-                onPress={handleChange}
-              >
-                <Text style={styles.textStyle}>Confirm</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.recheckModalButton, styles.buttonCancel]}
-                onPress={() => setChangeModalVisible(false)}
-              >
-                <Text style={styles.textStyle}>Cancel</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
       <Modal
         animationType="fade"
         transparent={true}
@@ -1008,6 +989,27 @@ function UserCaseScreen({ navigation }) {
             <ScrollView>
               {selectedCase && (
                 <>
+                {selectedCase.status !== "pending" && (
+                  <View style={styles.rightContainer}>
+                    <View style={styles.buttonsContainer}>
+                      <TouchableOpacity
+                        style={styles.rejectButton}
+                        onPress={() => {
+                          handleButtonChange(selectedCase);
+                        }}
+                      >
+                        <Text style={styles.buttonText}>Change</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
+                {selectedCase.subject && (
+                <View styles={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', alignSelf: 'center' }}>
+                  <Text style={styles.modalText2}>
+                    <Text style={{ fontWeight: "bold" }}>{selectedCase.subject}</Text>
+                  </Text>
+                </View>
+                )}
                   <Text style={styles.modalText}>
                     <Text style={{ fontWeight: "bold" }}>
                       Admission Date :{" "}
@@ -1145,6 +1147,37 @@ function UserCaseScreen({ navigation }) {
           </View>
         </View>
       </Modal>
+
+{/* Modal สำหรับยืนยันการเปลี่ยน */}
+<Modal
+        animationType="fade"
+        transparent={true}
+        visible={changeModalVisible}
+        onRequestClose={() => setChangeModalVisible(false)}
+      >
+        <View style={styles.centerView}>
+          <View style={styles.modalView}>
+            <Text style={styles.modalText}>
+              Change status this case to pending?
+            </Text>
+            <View style={styles.buttonContainer}>
+              <Pressable
+                style={[styles.recheckModalButton, styles.buttonApprove]}
+                onPress={handleChange}
+              >
+                <Text style={styles.textStyle}>Confirm</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.recheckModalButton, styles.buttonCancel]}
+                onPress={() => setChangeModalVisible(false)}
+              >
+                <Text style={styles.textStyle}>Cancel</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
 
       <Modal
         animationType="slide"

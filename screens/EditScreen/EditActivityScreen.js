@@ -335,7 +335,7 @@ function EditActivityScreen({ route, navigation }) {
       if (activityDocSnapshot.exists()) {
         const activityData = activityDocSnapshot.data();
 
-        if (activityData.status === "reApproved") {
+        if (activityData.status === "recheck") {
           await updateDoc(activityDocRef, {
             admissionDate: Timestamp.fromDate(new Date(selectedDate)),
             activityType: selectedActivityType, // Activity

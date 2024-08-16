@@ -7,6 +7,8 @@ import {
   updateDoc,
   Timestamp,
   deleteDoc,
+  query,
+  where,
 } from "firebase/firestore";
 import { db } from "../data/firebaseDB";
 import {
@@ -24,8 +26,10 @@ import {
   TextInput,
   CheckBox,
   ActivityIndicator,
+  Platform
 } from "react-native";
 import { SelectList } from "react-native-dropdown-select-list";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { useSelector } from "react-redux";
 import { Ionicons, FontAwesome, MaterialIcons } from "@expo/vector-icons";
 import SubHeader from "../component/SubHeader";
@@ -56,16 +60,28 @@ function ActivityScreen({ navigation }) {
 
   const [dimensions, setDimensions] = useState(Dimensions.get("window"));
 
+  const [sortOrder, setSortOrder] = useState('newest');
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(new Date());
+  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+
   const [searchText, setSearchText] = useState("");
   const [filteredActivityData, setFilteredActivityData] = useState([]); // state เก็บข้อมูลผู้ใช้ที่ผ่านการกรอง
   const [unfilteredActivityData, setUnfilteredActivityData] = useState([]);
 
   const [selectedStatus, setSelectedStatus] = useState("pending");
   const statusOptions = [
+    { key: "all", value: "All" },
     { key: "pending", value: "Pending" },
     { key: "approved", value: "Approved" },
     { key: "rejected", value: "Rejected" },
-    { key: "reApproved", value: "Re-approved" },
+    { key: "recheck", value: "Recheck" },
+  ];
+
+  const dateOptions = [
+    { key: 'newest', value: 'Newest to Oldest' },
+    { key: 'oldest', value: 'Oldest to Newest' }
   ];
 
   const [selectedSubject, setSelectedSubject] = useState("All");
@@ -166,7 +182,110 @@ function ActivityScreen({ navigation }) {
   useEffect(() => {
     // เรียก handleSearch เมื่อ searchText เปลี่ยน
     handleSearch(searchText);
-  }, [searchText, unfilteredActivityData]); // ให้ useEffect ทำงานเมื่อ searchText หรือ unfilteredPatientData เปลี่ยน
+  }, [searchText, unfilteredActivityData, sortOrder]); // ให้ useEffect ทำงานเมื่อ searchText หรือ unfilteredPatientData เปลี่ยน
+
+  const handleStartDateChange = (event, selectedDate) => {
+    const currentDate = selectedDate || startDate;
+    setShowStartDatePicker(false);
+    setStartDate(currentDate);
+  };
+
+  const handleEndDateChange = (event, selectedDate) => {
+    const currentDate = selectedDate || endDate;
+    setShowEndDatePicker(false);
+    setEndDate(currentDate);
+  };
+
+  const filterByDateRange = (activities) => {
+    return activities.filter((activity) => {
+      const admissionDate = activity.admissionDate.toDate();
+      const admissionDateOnly = new Date(admissionDate.getFullYear(), admissionDate.getMonth(), admissionDate.getDate());
+      const startDateOnly = startDate ? new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()) : null;
+      const endDateOnly = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+  
+      if (startDateOnly && endDateOnly) {
+        return admissionDateOnly >= startDateOnly && admissionDateOnly <= endDateOnly;
+      } else if (startDateOnly) {
+        return admissionDateOnly >= startDateOnly;
+      } else if (endDateOnly) {
+        return admissionDateOnly <= endDateOnly;
+      }
+      return true;
+    });
+  };
+  const StartDateInput = () => {
+    if (Platform.OS === "web") {
+      return (
+        <input
+          type="date"
+          style={{
+            padding: 10,
+            fontSize: 16,
+            width: "90%",
+            backgroundColor: "#FEF0E6",
+            borderColor: "#FEF0E6",
+            borderWidth: 1,
+            borderRadius: 10,
+          }}
+          value={startDate ? startDate.toISOString().substr(0, 10) : ""}
+          onChange={(event) => setStartDate(event.target.value ? new Date(event.target.value) : null)}
+        />
+      );
+    } else {
+      return (
+        <>
+          <Button onPress={showStartDatePicker} title="Show date picker!" />
+          {showStartDatePicker && (
+            <DateTimePicker
+              testID="startDateTimePicker"
+              value={startDate || new Date()}
+              mode="date"
+              is24Hour={true}
+              display="default"
+              onChange={handleStartDateChange}
+            />
+          )}
+        </>
+      );
+    }
+  };
+
+  const EndDateInput = () => {
+    if (Platform.OS === "web") {
+      return (
+        <input
+          type="date"
+          style={{
+            padding: 10,
+            fontSize: 16,
+            width: "90%",
+            backgroundColor: "#FEF0E6",
+            borderColor: "#FEF0E6",
+            borderWidth: 1,
+            borderRadius: 10,
+          }}
+          value={endDate.toISOString().substr(0, 10)}
+          onChange={(event) => setEndDate(new Date(event.target.value))}
+        />
+      );
+    } else {
+      return (
+        <>
+          <Button onPress={showEndDatePicker} title="Show date picker!" />
+          {showEndDatePicker && (
+            <DateTimePicker
+              testID="endDateTimePicker"
+              value={endDate || new Date()}
+              mode="date"
+              is24Hour={true}
+              display="default"
+              onChange={handleEndDateChange}
+            />
+          )}
+        </>
+      );
+    }
+  };
 
   const updateWindowDimensions = () => {
     setWindowWidth(Dimensions.get("window").width);
@@ -196,7 +315,7 @@ function ActivityScreen({ navigation }) {
 
   useEffect(() => {
     if (selectedActivity) {
-      if (selectedStatus === "reApproved") {
+      if (selectedStatus === "recheck") {
         setComment(selectedActivity.comment || "");
         setRating(selectedActivity.rating || "");
         setProfessionalismScores(
@@ -209,6 +328,19 @@ function ActivityScreen({ navigation }) {
             accurateRecordKeeping: false,
           }
         );
+      } else if (selectedStatus === "all") {
+        setComment(selectedActivity.comment || "");
+        setRating(selectedActivity.rating || "");
+        setProfessionalismScores(
+          selectedActivity.professionalismScores || {
+            basicKnowledge: false,
+            clinicalSkills: false,
+            problemIdentification: false,
+            managementProblem: false,
+            patientEducation: false,
+            evidenceBase: false,
+            ethicalManner: false
+        });
       } else if (selectedStatus === "pending") {
         setComment("");
         setRating("");
@@ -227,8 +359,13 @@ function ActivityScreen({ navigation }) {
   const isEditable = () => {
     if (selectedStatus === "pending") {
       return true;
-    } else if (selectedStatus === "reApproved") {
+    } else if (selectedStatus === "recheck") { 
       return selectedActivity ? selectedActivity.isEdited : false;
+    } else if (selectedStatus === "all") {
+      if (selectedActivity && selectedActivity.isEdited === false) {
+        return false;
+      }
+      return true; // Default to true if the condition for 'false' is not met
     }
     return false;
   };
@@ -586,13 +723,18 @@ function ActivityScreen({ navigation }) {
 
   const handleApprove = async () => {
     try {
+      if (rating === "Unsatisfied") {
+        alert("ไม่สามารถ Approve ได้(เนื่องจากคุณเลือก Unsatisfied)");
+        return; // หยุดการทำงานของฟังก์ชันที่นี่ถ้า rating เป็น unsatisfied
+      }
+
       const activityDocRef = doc(db, "activity", selectedActivity.id);
       await updateDoc(activityDocRef, {
         status: "approved",
         comment: comment,
         rating: rating,
         approvalTimestamp: Timestamp.now(),
-        professionalismScores: professionalismScores,
+        // professionalismScores: professionalismScores,
       });
       resetScoresAndComment();
       setModalVisible(false);
@@ -604,14 +746,18 @@ function ActivityScreen({ navigation }) {
 
   const handleReApprove = async () => {
     try {
+      if (rating === "Unsatisfied") {
+        alert("ไม่สามารถ Recheck ได้(เนื่องจากคุณเลือก Unsatisfied)");
+        return; // หยุดการทำงานของฟังก์ชันที่นี่ถ้า rating เป็น unsatisfied
+      }
       const activityDocRef = doc(db, "activity", selectedActivity.id);
       await updateDoc(activityDocRef, {
-        status: "reApproved",
+        status: "recheck",
         comment: comment,
         rating: rating,
         reApprovalTimestamp: Timestamp.now(),
-        professionalismScores: professionalismScores, // บันทึกคะแนนความเป็นมืออาชีพ
-        isReApproved: true,
+        // professionalismScores: professionalismScores, 
+        isRecheck: true,
         isEdited: false,
       });
       // รีเซ็ตคะแนนและความคิดเห็น
@@ -631,7 +777,7 @@ function ActivityScreen({ navigation }) {
         comment: comment,
         rejectionTimestamp: Timestamp.now(),
         rating: rating,
-        professionalismScores: professionalismScores, // บันทึกคะแนนความเป็นมืออาชีพ
+        // professionalismScores: professionalismScores, 
       });
       resetScoresAndComment();
       setModalVisible(false);
@@ -760,17 +906,27 @@ function ActivityScreen({ navigation }) {
         // <Text>Loading...</Text>
       );
     }
-    return filteredActivityData
+    const filteredByDate = filterByDateRange(filteredActivityData);
+
+    return filteredByDate
       .filter(
         (activity) =>
           selectedSubject === "All" ||
           (activity.subject && activity.subject === selectedSubject)
       )
-      .filter((activity) => activity.status === selectedStatus) // กรองเฉพาะข้อมูลที่มีสถานะเป็น pending
+      .filter((activity) =>
+        selectedStatus === "all" ? true : activity.status === selectedStatus
+      )
       .filter((activity) =>
         role === "student" ? activity.subject === subject : true
       )
-      .sort((a, b) => b.admissionDate.toDate() - a.admissionDate.toDate()) // เรียงลำดับตามวันที่ล่าสุดไปยังเก่าสุด
+      .sort((a, b) => {
+        if (sortOrder === 'newest') {
+          return b.admissionDate.toDate() - a.admissionDate.toDate();
+        } else {
+          return a.admissionDate.toDate() - b.admissionDate.toDate();
+        }
+      })
       .map((activity, index) => (
         <TouchableOpacity
           style={styles.cardContainer}
@@ -859,8 +1015,9 @@ function ActivityScreen({ navigation }) {
                     </Text>
                   )}
 
-                  {selectedStatus !== "approved" &&
-                    selectedStatus !== "rejected" && (
+                  {
+                  (selectedStatus === "all" || selectedStatus === "pending" || selectedStatus === "recheck") &&
+                      (activity.status === "pending" || activity.status === "recheck") && (
                       <>
                         <TouchableOpacity
                           style={{ position: "absolute", top: 10, right: 10 }}
@@ -958,7 +1115,7 @@ function ActivityScreen({ navigation }) {
                       {activity.reApprovalTimestamp && (
                         <Text>
                           {" "}
-                          (Re-Approved:{" "}
+                          (Recheck:{" "}
                           {formatDateToThai(
                             activity.reApprovalTimestamp.toDate()
                           )}
@@ -1009,7 +1166,7 @@ function ActivityScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <View style={{ marginVertical: windowWidth < 768 ? 10 : 50 }}>
+      <View style={{ marginVertical: windowWidth < 768 ? 0 : 50 }}>
         <SubHeader text="ACTIVITY" />
       </View>
 
@@ -1017,70 +1174,130 @@ function ActivityScreen({ navigation }) {
 
       <View
         style={{
-          // marginVertical: 10,
-          flexDirection: isMobile ? "column" : "row",
-          alignItems: "center",
+          marginVertical: 10,
+          flexDirection: "row",
+          alignContent: 'space-between',
+          alignItems: "center",             // Center items vertically                 // Full width of the parent container
         }}
       >
-        {role !== "student" && (
-          <SelectList
-            data={subjectsByYear}
-            setSelected={setSelectedSubject}
-            placeholder="Select subjects"
-            defaultOption={selectedSubject}
-            search={false}
-            boxStyles={{
-              width: "auto",
-              backgroundColor: "#FEF0E6",
-              borderColor: "#FEF0E6",
-              borderWidth: 1,
-              borderRadius: 10,
-              marginRight: isMobile ? 0 : 10,
-              marginBottom: isMobile ? 10 : 0,
-            }}
-            dropdownStyles={{ backgroundColor: "#FEF0E6" }}
-          />
-        )}
+     <View> <Text style={{ marginBottom: 10, textAlign: 'center'}}>Filter by type name : </Text>
+    <TextInput
+      style={{
+        width: '100%',
+        backgroundColor: "#FEF0E6",
+        borderColor: "#FEF0E6",
+        borderWidth: 1,
+        borderRadius: 10,
+        padding: 12,
+        textAlign: "center",
+        marginRight: role !== "student" ? 10 : 0, // Add margin between TextInput and SelectList
+      }}
+      placeholder="Search by type name"
+      value={searchText}
+      onChangeText={(text) => {
+        setSearchText(text);
+      }}
+    />
+    </View>
+    {role !== "student" && (
+    <View style={{ marginLeft: 20 }}> <Text style={{ textAlign: 'center', marginBottom: 10}}>Filter by subject : </Text>
+      <SelectList
+        data={subjectsByYear}
+        setSelected={setSelectedSubject}
+        placeholder="Select subjects"
+        defaultOption={selectedSubject}
+        search={false}
+        boxStyles={{
+          width: "100%",
+          backgroundColor: "#FEF0E6",
+          borderColor: "#FEF0E6",
+          borderWidth: 1,
+          borderRadius: 10,
+          // marginLeft: 10,
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}
+        dropdownStyles={{ 
+          backgroundColor: "#FEF0E6",     
+          width: "100%",      
+        }}
+      />
+      </View>
+    )}
+  </View>
 
+      <View
+        style={{
+          marginVertical: 10,
+          flexDirection: "row",
+          alignContent: 'space-between',
+          alignItems: "center",  
+        }}
+      >
+        <View> <Text style={{ textAlign: 'center', marginBottom: 10}}>Sort by date : </Text>
+        <SelectList
+          data={dateOptions}
+          setSelected={setSortOrder}
+          placeholder="Sort by date"
+          defaultOption={sortOrder}
+          search={false}
+          boxStyles={{
+            width: '100%',
+            backgroundColor: "#FEF0E6",
+            borderColor: "#FEF0E6",
+            borderWidth: 1,
+            borderRadius: 10,
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+          dropdownStyles={{ 
+            backgroundColor: "#FEF0E6",
+            width: "100%",
+           }}
+        />
+        </View>
+
+        <View style={{ marginLeft: 20}}> <Text style={{ textAlign: 'center', marginBottom: 10}}>Filter by status : </Text>
         <SelectList
           data={statusOptions}
           setSelected={setSelectedStatus}
-          placeholder="Select status"
+          placeholder="Pending"
           defaultOption={selectedStatus}
           search={false}
           boxStyles={{
-            width: "auto",
+            width: '100%',
             backgroundColor: "#FEF0E6",
             borderColor: "#FEF0E6",
             borderWidth: 1,
             borderRadius: 10,
-            marginBottom: isMobile ? 10 : 0,
+            // marginLeft: 20,
+            justifyContent: 'center',
+            alignItems: 'center',
           }}
-          dropdownStyles={{ backgroundColor: "#FEF0E6" }}
+          dropdownStyles={{ 
+            backgroundColor: "#FEF0E6" ,
+            // marginLeft: 20,
+            width: "100%",
+          }}
         />
+        </View>
 
-        <TextInput
-          style={{
-            flex: 1,
-            backgroundColor: "#FEF0E6",
-            borderColor: "#FEF0E6",
-            borderWidth: 1,
-            borderRadius: 10,
-            padding: 12,
-            marginLeft: isMobile ? 0 : 15,
-            textAlign: "center",
-          }}
-          placeholder="Search by type name"
-          placeholderStyle={{
-            textAlign: "center",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-          value={searchText}
-          onChangeText={(text) => {
-            setSearchText(text);
-          }}
-        />
+      </View>
+
+        <View
+        style={{
+          marginVertical: 10,
+          flexDirection: "row",
+          alignContent: 'space-between',
+          alignItems: "center",  
+        }}
+      >
+        <View> <Text style={{ textAlign: 'center', marginBottom: 10}}>Start Date : </Text>
+          <StartDateInput />
+        </View>
+        <View style={{ marginLeft: 20 }}> <Text style={{ textAlign: 'center', marginBottom: 10}}>End Date : </Text>
+          <EndDateInput />
+        </View>
       </View>
 
       {/* Modal สำหรับยืนยัน Approve/Reject */}
@@ -1287,8 +1504,11 @@ function ActivityScreen({ navigation }) {
 
                   {(selectedStatus === "approved" ||
                     selectedStatus === "rejected" ||
-                    (selectedStatus === "reApproved" &&
-                      role === "student")) && (
+                    (selectedStatus === "all" && 
+                      (selectedActivity.status !== "pending" && 
+                      (role === "student" || (role === "teacher" && selectedActivity.status !== "recheck")) && 
+                      (selectedActivity.status === "approved" || selectedActivity.status === "rejected" || selectedActivity.status === "recheck"))) ||
+                    (selectedStatus === "recheck" && role === "student")) && (
                     <Text style={styles.modalText}>
                       <Text style={{ fontWeight: "bold" }}>Rating : </Text>
                       {selectedActivity.rating || "ไม่มี"}
@@ -1297,8 +1517,11 @@ function ActivityScreen({ navigation }) {
 
                   {(selectedStatus === "approved" ||
                     selectedStatus === "rejected" ||
-                    (selectedStatus === "reApproved" &&
-                      role === "student")) && (
+                    (selectedStatus === "all" && 
+                      (selectedActivity.status !== "pending" && 
+                      (role === "student" || (role === "teacher" && selectedActivity.status !== "recheck")) && 
+                      (selectedActivity.status === "approved" || selectedActivity.status === "rejected" || selectedActivity.status === "recheck"))) ||
+                    (selectedStatus === "recheck" && role === "student")) && (
                     <Text style={styles.modalText}>
                       <Text style={{ fontWeight: "bold" }}>***Comment : </Text>
                       {selectedActivity.comment || "ไม่มี"}
@@ -1306,10 +1529,13 @@ function ActivityScreen({ navigation }) {
                   )}
 
                   <View style={styles.buttonRow}>
-                    {(selectedStatus === "approved" ||
-                      selectedStatus === "rejected" ||
-                      (selectedStatus === "reApproved" &&
-                        role === "student")) && (
+                  {/* {(selectedStatus === "approved" ||
+                    selectedStatus === "rejected" ||
+                    (selectedStatus === "all" && 
+                      (selectedActivity.status !== "pending" && 
+                      (role === "student" || (role === "teacher" && selectedActivity.status !== "recheck")) && 
+                      (selectedActivity.status === "approved" || selectedActivity.status === "rejected" || selectedActivity.status === "recheck"))) ||
+                    (selectedStatus === "recheck" && role === "student")) && (
                       <Pressable
                         style={[styles.button, styles.buttonProfessional]}
                         onPress={() =>
@@ -1320,17 +1546,19 @@ function ActivityScreen({ navigation }) {
                           View Professionalism Score
                         </Text>
                       </Pressable>
-                    )}
+                    )} */}
 
                     {role !== "student" &&
                       selectedStatus !== "approved" &&
-                      selectedStatus !== "rejected" && (
+                      selectedStatus !== "rejected" &&
+                      (selectedStatus === "all" || selectedStatus === "pending" || selectedStatus === "recheck") &&
+                      (selectedActivity.status === "pending" || selectedActivity.status === "recheck") &&  (
                         <View style={styles.centerView2}>
-                          <Text style={styles.professionalismHeader}>
+                          {/* <Text style={styles.professionalismHeader}>
                             Professionalism
                           </Text>{" "}
                           (เลือกได้หลายตัวเลือก)
-                          {/* แสดง Checkbox และ Label */}
+                          
                           {selectedActivity && (
                             <View style={styles.checkboxContainer}>
                               <CheckBox
@@ -1416,7 +1644,7 @@ function ActivityScreen({ navigation }) {
                                 Accurately record Activity information
                               </Text>
                             </View>
-                          )}
+                          )} */}
                           <Text
                             style={{
                               fontSize: 24,
@@ -1466,7 +1694,8 @@ function ActivityScreen({ navigation }) {
                             <Text style={styles.checkboxLabel}>
                               Unsatisfied
                             </Text>
-                          </View>
+                          </View>{" "}
+                          (ไม่สามารถเลือก Approve หรือ Recheck ได้)
                           <Text
                             style={{
                               marginBottom: 10,
@@ -1506,8 +1735,9 @@ function ActivityScreen({ navigation }) {
                               </Pressable>
                             )}
                           <View style={styles.buttonContainer}>
-                            {(selectedActivity.isEdited ||
-                              selectedStatus === "pending") && (
+                          {((selectedActivity.isEdited === undefined || selectedActivity.isEdited === true) &&
+                              selectedStatus === "all" || selectedStatus === "pending" || (selectedStatus === "recheck" && selectedActivity.isEdited === true)) &&
+                              (selectedActivity.status === "pending" || selectedActivity.status === "recheck") && (
                               <Pressable
                                 style={[
                                   styles.recheckModalButton,
@@ -1518,7 +1748,7 @@ function ActivityScreen({ navigation }) {
                                 <Text style={styles.textStyle}>Approve</Text>
                               </Pressable>
                             )}
-                            {!selectedActivity.isReApproved && (
+                            {((selectedActivity.isEdited === undefined && selectedActivity.isRecheck === undefined) || selectedActivity.isEdited === true) && (
                               <Pressable
                                 style={[
                                   styles.recheckModalButton,
@@ -1526,11 +1756,12 @@ function ActivityScreen({ navigation }) {
                                 ]}
                                 onPress={() => handleReApprove()}
                               >
-                                <Text style={styles.textStyle}>Re-approve</Text>
+                                <Text style={styles.textStyle}>Recheck</Text>
                               </Pressable>
                             )}
-                            {(selectedActivity.isEdited ||
-                              selectedStatus === "pending") && (
+                            {((selectedActivity.isEdited === undefined || selectedActivity.isEdited === true) &&
+                              selectedStatus === "all" || selectedStatus === "pending" || (selectedStatus === "recheck" && selectedActivity.isEdited === true)) &&
+                              (selectedActivity.status === "pending" || selectedActivity.status === "recheck") && (
                               <Pressable
                                 style={[
                                   styles.recheckModalButton,
@@ -1554,7 +1785,8 @@ function ActivityScreen({ navigation }) {
                     {(role !== "teacher" ||
                       (role === "teacher" &&
                         (selectedStatus === "approved" ||
-                          selectedStatus === "rejected"))) &&
+                          selectedStatus === "rejected" ||
+                          (selectedStatus === "all" && (selectedActivity.status !== "pending" && selectedActivity.status !== "recheck"))))) &&
                       selectedActivity.images &&
                       selectedActivity.images.length > 0 && (
                         <Pressable
@@ -1568,7 +1800,8 @@ function ActivityScreen({ navigation }) {
                     {(role !== "teacher" ||
                       (role === "teacher" &&
                         (selectedStatus === "approved" ||
-                          selectedStatus === "rejected"))) && (
+                          selectedStatus === "rejected" ||
+                          (selectedStatus === "all" && (selectedActivity.status !== "pending" && selectedActivity.status !== "recheck"))))) && (
                       <Pressable
                         style={[styles.button, styles.buttonClose]}
                         onPress={() => setModalVisible(!modalVisible)}
@@ -1668,7 +1901,8 @@ function ActivityScreen({ navigation }) {
                       professionalismScoresModalVisible &&
                       (selectedActivity.status === "approved" ||
                         selectedActivity.status === "rejected" ||
-                        (selectedActivity.status === "reApproved" &&
+                        (selectedStatus === "all" && selectedActivity.status !== "pending") ||
+                        (selectedActivity.status === "recheck" &&
                           role === "student"))
                     }
                     onRequestClose={() => {
@@ -1777,16 +2011,6 @@ function ActivityScreen({ navigation }) {
           </View>
         </View>
       </Modal>
-      {/* <View
-        style={{
-          flex: 1,
-          justifyContent: "flex-start",
-          alignSelf: "flex-start",
-          marginLeft: 50,
-        }}
-      >
-        {renderAddDataButton()}
-      </View> */}
     </View>
   );
 }

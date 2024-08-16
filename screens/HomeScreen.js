@@ -333,7 +333,10 @@ const HomeScreen = ({ navigation }) => {
               alignItems: 'center',
               alignSelf: 'center'
             }}
-            dropdownStyles={{ backgroundColor: "#FEF0E6", width: "50%",              justifyContent: 'center',
+            dropdownStyles={{ 
+              backgroundColor: "#FEF0E6", 
+              width: "50%",              
+              justifyContent: 'center',
               alignItems: 'center',
               alignSelf: 'center' }}
           />

@@ -215,10 +215,9 @@ const dateOptions = [
         <input
           type="date"
           style={{
-            marginTop: 5,
             padding: 10,
             fontSize: 16,
-            width: "95%",
+            width: "90%",
             backgroundColor: "#FEF0E6",
             borderColor: "#FEF0E6",
             borderWidth: 1,
@@ -253,15 +252,13 @@ const dateOptions = [
         <input
           type="date"
           style={{
-            marginTop: 5,
             padding: 10,
             fontSize: 16,
-            width: "95%",
+            width: "90%",
             backgroundColor: "#FEF0E6",
             borderColor: "#FEF0E6",
             borderWidth: 1,
             borderRadius: 10,
-            marginLeft: 10
           }}
           value={endDate.toISOString().substr(0, 10)}
           onChange={(event) => setEndDate(new Date(event.target.value))}
@@ -740,7 +737,7 @@ const dateOptions = [
         comment: comment,
         rating: rating,
         approvalTimestamp: Timestamp.now(),
-        professionalismScores: professionalismScores, // บันทึกคะแนนความเป็นมืออาชีพ
+        // professionalismScores: professionalismScores, 
       });
       resetScoresAndComment();
       setModalVisible(false);
@@ -763,7 +760,7 @@ const dateOptions = [
         comment: comment,
         rating: rating,
         reApprovalTimestamp: Timestamp.now(),
-        professionalismScores: professionalismScores, // บันทึกคะแนนความเป็นมืออาชีพ
+        // professionalismScores: professionalismScores, 
         isRecheck: true,
         isEdited: false,
       });
@@ -784,7 +781,7 @@ const dateOptions = [
         comment: comment,
         rating: rating,
         rejectionTimestamp: Timestamp.now(),
-        professionalismScores: professionalismScores, // บันทึกคะแนนความเป็นมืออาชีพ
+        // professionalismScores: professionalismScores, 
       });
       resetScoresAndComment();
       setModalVisible(false);
@@ -1209,84 +1206,69 @@ const dateOptions = [
 
       {/* {renderApprovedButton()} */}
 
-      {/* <View
-        style={{
-          marginVertical: 10,
-          flexDirection: isMobile ? "column" : "row",
-          alignItems: "center",
-        }}
-      > */}
       <View
         style={{
           marginVertical: 10,
           flexDirection: "row",
-          alignItems: "center",
+          alignContent: 'space-between',
+          alignItems: "center",             // Center items vertically                 // Full width of the parent container
         }}
       >
-        {role !== "student" && (
-          <SelectList
-            data={subjectsByYear}
-            setSelected={setSelectedSubject}
-            placeholder="Select subjects"
-            defaultOption={selectedSubject}
-            search={false}
-            boxStyles={{
-              width: "auto",
-              backgroundColor: "#FEF0E6",
-              borderColor: "#FEF0E6",
-              borderWidth: 1,
-              borderRadius: 10,
-              marginRight: isMobile ? 0 : 10,
-              marginBottom: isMobile ? 10 : 0,
-            }}
-            dropdownStyles={{ backgroundColor: "#FEF0E6" }}
-          />
-        )}
+     <View> <Text style={{ marginBottom: 10, textAlign: 'center'}}>Filter by hn : </Text>
+    <TextInput
+      style={{
+        width: '100%',
+        backgroundColor: "#FEF0E6",
+        borderColor: "#FEF0E6",
+        borderWidth: 1,
+        borderRadius: 10,
+        padding: 12,
+        textAlign: "center",
+        marginRight: role !== "student" ? 10 : 0, // Add margin between TextInput and SelectList
+      }}
+      placeholder="Search by hn"
+      value={searchText}
+      onChangeText={(text) => {
+        setSearchText(text);
+      }}
+    />
+    </View>
+    {role !== "student" && (
+    <View style={{ marginLeft: 20 }}> <Text style={{ textAlign: 'center', marginBottom: 10}}>Filter by subject : </Text>
+      <SelectList
+        data={subjectsByYear}
+        setSelected={setSelectedSubject}
+        placeholder="Select subjects"
+        defaultOption={selectedSubject}
+        search={false}
+        boxStyles={{
+          width: "100%",
+          backgroundColor: "#FEF0E6",
+          borderColor: "#FEF0E6",
+          borderWidth: 1,
+          borderRadius: 10,
+          // marginLeft: 10,
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}
+        dropdownStyles={{ 
+          backgroundColor: "#FEF0E6",     
+          width: "100%",      
+        }}
+      />
       </View>
+    )}
+  </View>
 
       <View
         style={{
           marginVertical: 10,
           flexDirection: "row",
-          alignItems: "center",
+          alignContent: 'space-between',
+          alignItems: "center",  
         }}
       >
-        <SelectList
-          data={statusOptions}
-          setSelected={setSelectedStatus}
-          placeholder="Pending"
-          defaultOption={selectedStatus}
-          search={false}
-          boxStyles={{
-            width: "auto",
-            backgroundColor: "#FEF0E6",
-            borderColor: "#FEF0E6",
-            borderWidth: 1,
-            borderRadius: 10,
-            marginBottom: isMobile ? 10 : 0,
-          }}
-          dropdownStyles={{ backgroundColor: "#FEF0E6" }}
-        />
-        <TextInput
-          style={{
-            flex: 1,
-            backgroundColor: "#FEF0E6",
-            borderColor: "#FEF0E6",
-            borderWidth: 1,
-            borderRadius: 10,
-            padding: 12,
-            marginLeft: 15,
-            textAlign: "center",
-            marginBottom: isMobile ? 10 : 0,
-          }}
-          placeholder="Search by hn"
-          value={searchText}
-          onChangeText={(text) => {
-            setSearchText(text);
-          }}
-        />
-      </View>
-
+        <View> <Text style={{ textAlign: 'center', marginBottom: 10}}>Sort by date : </Text>
         <SelectList
           data={dateOptions}
           setSelected={setSortOrder}
@@ -1294,25 +1276,62 @@ const dateOptions = [
           defaultOption={sortOrder}
           search={false}
           boxStyles={{
-            width: 'auto',
-            backgroundColor: '#FEF0E6',
-            borderColor: '#FEF0E6',
+            width: '100%',
+            backgroundColor: "#FEF0E6",
+            borderColor: "#FEF0E6",
             borderWidth: 1,
             borderRadius: 10,
-            marginBottom: isMobile ? 10 : 0,
+            justifyContent: 'center',
+            alignItems: 'center',
           }}
-          dropdownStyles={{ backgroundColor: '#FEF0E6' }}
+          dropdownStyles={{ 
+            backgroundColor: "#FEF0E6",
+            width: "100%",
+           }}
         />
+        </View>
 
-      <View
+        <View style={{ marginLeft: 20}}> <Text style={{ textAlign: 'center', marginBottom: 10}}>Filter by status : </Text>
+        <SelectList
+          data={statusOptions}
+          setSelected={setSelectedStatus}
+          placeholder="Pending"
+          defaultOption={selectedStatus}
+          search={false}
+          boxStyles={{
+            width: '100%',
+            backgroundColor: "#FEF0E6",
+            borderColor: "#FEF0E6",
+            borderWidth: 1,
+            borderRadius: 10,
+            // marginLeft: 20,
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+          dropdownStyles={{ 
+            backgroundColor: "#FEF0E6" ,
+            // marginLeft: 20,
+            width: "100%",
+          }}
+        />
+        </View>
+
+      </View>
+
+        <View
         style={{
           marginVertical: 10,
           flexDirection: "row",
-          alignItems: "center",
+          alignContent: 'space-between',
+          alignItems: "center",  
         }}
       >
-        <StartDateInput />
-        <EndDateInput />
+        <View> <Text style={{ textAlign: 'center', marginBottom: 10}}>Start Date : </Text>
+          <StartDateInput />
+        </View>
+        <View style={{ marginLeft: 20 }}> <Text style={{ textAlign: 'center', marginBottom: 10}}>End Date : </Text>
+          <EndDateInput />
+        </View>
       </View>
 
       {/* Modal สำหรับยืนยัน Approve/Reject */}
@@ -1549,7 +1568,7 @@ const dateOptions = [
                   )}
 
                   <View style={styles.buttonRow}>
-                  {(selectedStatus === "approved" ||
+                  {/* {(selectedStatus === "approved" ||
                     selectedStatus === "rejected" ||
                     (selectedStatus === "all" && 
                       (selectedProcedure.status !== "pending" && 
@@ -1566,7 +1585,8 @@ const dateOptions = [
                           View Professionalism Score
                         </Text>
                       </Pressable>
-                    )}
+                    )} */}
+
 
                     {role !== "student" &&
                       selectedStatus !== "approved" &&
@@ -1574,11 +1594,11 @@ const dateOptions = [
                       (selectedStatus === "all" || selectedStatus === "pending" || selectedStatus === "recheck") &&
                       (selectedProcedure.status === "pending" || selectedProcedure.status === "recheck") &&  (
                         <View style={styles.centerView2}>
-                          <Text style={styles.professionalismHeader}>
+                          {/* <Text style={styles.professionalismHeader}>
                             Professionalism
                           </Text>{" "}
                           (เลือกได้หลายตัวเลือก)
-                          {/* แสดง Checkbox และ Label */}
+
                           {selectedProcedure && (
                             <View style={styles.checkboxContainer}>
                               <CheckBox
@@ -1680,7 +1700,8 @@ const dateOptions = [
                               Ethical and manner issues
                               </Text>
                             </View>
-                          )}
+                          )} */}
+                          
                           <Text
                             style={{
                               fontSize: 24,

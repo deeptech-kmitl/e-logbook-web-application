@@ -21,6 +21,7 @@ const ExportScreen = () => {
   const currentUserUid = useSelector((state) => state.user.uid);
   const [patientsData, setPatientsData] = useState([]);
   const [proceduresData, setProceduresData] = useState([]);
+  const [activityData, setActivityData] = useState([]);
   const [fileFormat, setFileFormat] = useState("csv");
   const [selectedData, setSelectedData] = useState("patients");
   const [selectedStatus, setSelectedStatus] = useState("all");
@@ -62,6 +63,7 @@ const ExportScreen = () => {
       setUsersData(fetchedUsersData);
       await getPatientsData(fetchedUsersData);
       await getProceduresData(fetchedUsersData);
+      await getActivityData(fetchedUsersData);
     };
 
     fetchData();
@@ -116,6 +118,19 @@ const ExportScreen = () => {
     setProceduresData(procedureData);
   };
 
+  const getActivityData = async (usersData) => {
+    const activityCollection = collection(db, "activity");
+    const activitySnapshot = await getDocs(activityCollection);
+    const activityData = activitySnapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        ...data,
+        displayName: usersData[data.createBy_id] || "ไม่พบข้อมูล",
+      };
+    });
+    setActivityData(activityData);
+  };
+
   const sortPatientsByAdmissionDate = (data) => {
     return data.sort((a, b) => {
       const dateA = new Date(a.admissionDate);
@@ -125,6 +140,14 @@ const ExportScreen = () => {
   };
 
   const sortProceduresByAdmissionDate = (data) => {
+    return data.sort((a, b) => {
+      const dateA = new Date(a.admissionDate);
+      const dateB = new Date(b.admissionDate);
+      return dateA - dateB;
+    });
+  };
+
+  const sortActivitiesByAdmissionDate = (data) => {
     return data.sort((a, b) => {
       const dateA = new Date(a.admissionDate);
       const dateB = new Date(b.admissionDate);
@@ -163,10 +186,15 @@ const getSelectedDataForExport = () => {
         (selectedStatus === "all" || patient.status === selectedStatus) &&
         (selectedType === "all" || patient.patientType === selectedType)
     );
-  } else {
+  } else if (selectedData === "procedures") {
     dataForExport = filterByDateRange(proceduresData).filter(
       (procedure) =>
         (selectedStatus === "all" || procedure.status === selectedStatus)
+    );
+  } else if (selectedData === "activity") {
+    dataForExport = filterByDateRange(activityData).filter(
+      (activity) =>
+        (selectedStatus === "all" || activity.status === selectedStatus)
     );
   }
   
@@ -255,6 +283,7 @@ const getSelectedDataForExport = () => {
       admissionDate: formatTimestamp(item.admissionDate),
       approvalTimestamp: formatTimestamp(item.approvalTimestamp),
       rejectionTimestamp: formatTimestamp(item.rejectionTimestamp),
+      reApprovalTimestamp: formatTimestamp(item.reApprovalTimestamp),
       // professionalismScores: translateProfessionalismScores(item.professionalismScores)
     }));
     setPreviewData(formattedPreviewData);
@@ -267,11 +296,17 @@ const getSelectedDataForExport = () => {
     const sortedData =
       selectedData === "patients"
         ? sortPatientsByAdmissionDate(dataForExport)
-        : sortProceduresByAdmissionDate(dataForExport);
+        : selectedData === "procedures"
+        ? sortProceduresByAdmissionDate(dataForExport)
+        : selectedData === "activity"
+        ? sortActivitiesByAdmissionDate(dataForExport)
+        : dataForExport; 
     const formattedData =
       selectedData === "patients"
         ? formatPatientsDataForExport(sortedData)
-        : formatProceduresDataForExport(sortedData);
+        : selectedData === "procedures"
+        ? formatProceduresDataForExport(sortedData)
+        : formatActivityDataForExport(sortedData);
 
     const ws = XLSX.utils.json_to_sheet(formattedData);
     XLSX.utils.book_append_sheet(
@@ -362,10 +397,12 @@ const getSelectedDataForExport = () => {
       Comment: patient.comment,
       "Approval Timestamp": formatTimestamp(patient.approvalTimestamp),
       "Rejection Timestamp": formatTimestamp(patient.rejectionTimestamp),
+      "Recheck Timestamp": formatTimestamp(patient.reApprovalTimestamp),
       Rating: patient.rating || "",
       "Professionalism Scores": translateProfessionalismScores(
         patient.professionalismScores || null
       ),
+      "Subject": patient.subject
     }));
   };
 
@@ -390,7 +427,33 @@ const getSelectedDataForExport = () => {
       "Rejection Timestamp": formatTimestamp(
         procedure.rejectionTimestamp || null
       ),
+      "Recheck Timestamp": formatTimestamp(
+        procedure.reApprovalTimestamp || null
+      ),
       Rating: procedure.rating || "",
+      "Subject": procedure.subject
+    }));
+  };
+
+  const formatActivityDataForExport = (data) => {
+    return data.map((activity) => ({
+      "Admission Date": formatTimestamp(activity.admissionDate),
+      Hours: activity.hours,
+      Minutes: activity.minutes,
+      "Display Name": activity.displayName,
+      "Creator ID": activity.createBy_id,
+      "Topic": activity.topic,
+      "Activity Type": activity.activityType,
+      "Instructor Name": activity.professorName,
+      "Instructor ID": activity.professorId,
+      Status: activity.status,
+      Note: activity.note,
+      Comment: activity.comment,
+      "Approval Timestamp": formatTimestamp(activity.approvalTimestamp) || null,
+      "Rejection Timestamp": formatTimestamp(activity.rejectionTimestamp) || null,
+      "Recheck Timestamp": formatTimestamp(activity.reApprovalTimestamp) || null,
+      Rating: activity.rating || "",
+      "Subject": activity.subject
     }));
   };
 
@@ -407,6 +470,7 @@ const getSelectedDataForExport = () => {
             >
               <Picker.Item label="Patients" value="patients" />
               <Picker.Item label="Procedures" value="procedures" />
+              <Picker.Item label="Activity" value="activity" />
             </Picker>
 
             {selectedData === "patients" && (
@@ -501,12 +565,14 @@ const getSelectedDataForExport = () => {
                     <Text style={styles.columnHeader}>Comment</Text>
                     <Text style={styles.columnHeader}>Approval Timestamp</Text>
                     <Text style={styles.columnHeader}>Rejection Timestamp</Text>
+                    <Text style={styles.columnHeader}>Recheck Timestamp</Text>
                     <Text style={styles.columnHeader}>Rating</Text>
                     <Text style={styles.columnHeader}>
                       Professionalism Scores
                     </Text>
+                    <Text style={styles.columnHeader}>Subject</Text>
                   </>
-                ) : (
+                ) : selectedData === "procedures" ? (
                   <>
                     <Text style={styles.columnHeader}>Admission Date</Text>
                     <Text style={styles.columnHeader}>Hours</Text>
@@ -524,9 +590,31 @@ const getSelectedDataForExport = () => {
                     <Text style={styles.columnHeader}>Comment</Text>
                     <Text style={styles.columnHeader}>Approval Timestamp</Text>
                     <Text style={styles.columnHeader}>Rejection Timestamp</Text>
+                    <Text style={styles.columnHeader}>Recheck Timestamp</Text>
                     <Text style={styles.columnHeader}>Rating</Text>
+                    <Text style={styles.columnHeader}>Subject</Text>
                   </>
-                )}
+                ) : selectedData === "activity" ? (
+                  <>
+                    <Text style={styles.columnHeader}>Activity Date</Text>
+                    <Text style={styles.columnHeader}>Hours</Text>
+                    <Text style={styles.columnHeader}>Minutes</Text>
+                    <Text style={styles.columnHeader}>Display Name</Text>
+                    <Text style={styles.columnHeader}>Creator ID</Text>
+                    <Text style={styles.columnHeader}>Topic</Text>
+                    <Text style={styles.columnHeader}>Activity Type</Text>
+                    <Text style={styles.columnHeader}>Instructor Name</Text>
+                    <Text style={styles.columnHeader}>Instructor ID</Text>
+                    <Text style={styles.columnHeader}>Status</Text>
+                    <Text style={styles.columnHeader}>Remarks</Text>
+                    <Text style={styles.columnHeader}>Comment</Text>
+                    <Text style={styles.columnHeader}>Approval Timestamp</Text>
+                    <Text style={styles.columnHeader}>Rejection Timestamp</Text>
+                    <Text style={styles.columnHeader}>Recheck Timestamp</Text>
+                    <Text style={styles.columnHeader}>Rating</Text>
+                    <Text style={styles.columnHeader}>Subject</Text>
+                  </>
+                ) : null}
               </View>
               {previewData.map((item, index) => (
                 <View key={index} style={styles.tableRow}>
@@ -553,14 +641,18 @@ const getSelectedDataForExport = () => {
                       <Text style={styles.tableCell}>
                         {item.rejectionTimestamp}
                       </Text>
+                      <Text style={styles.tableCell}>
+                        {item.reApprovalTimestamp}
+                      </Text>
                       <Text style={styles.tableCell}>{item.rating}</Text>
                       <Text style={styles.tableCell}>
                         {translateProfessionalismScores(
                           item.professionalismScores
                         )}
                       </Text>
+                      <Text style={styles.tableCell}>{item.subject}</Text>
                     </>
-                  ) : (
+                  ) : selectedData === "procedures" ? (
                     <>
                       <Text style={styles.tableCell}>{item.admissionDate}</Text>
                       <Text style={styles.tableCell}>{item.hours}</Text>
@@ -586,9 +678,40 @@ const getSelectedDataForExport = () => {
                       <Text style={styles.tableCell}>
                         {item.rejectionTimestamp}
                       </Text>
+                      <Text style={styles.tableCell}>
+                        {item.reApprovalTimestamp}
+                      </Text>
                       <Text style={styles.tableCell}>{item.rating}</Text>
+                      <Text style={styles.tableCell}>{item.subject}</Text>
                     </>
-                  )}
+                  ) : selectedData === "activity" ? (
+                    <>
+                      <Text style={styles.tableCell}>{item.admissionDate}</Text>
+                      <Text style={styles.tableCell}>{item.hours}</Text>
+                      <Text style={styles.tableCell}>{item.minutes}</Text>
+                      <Text style={styles.tableCell}>{item.displayName}</Text>
+                      <Text style={styles.tableCell}>{item.createBy_id}</Text>
+                      <Text style={styles.tableCell}>{item.topic}</Text>
+                      <Text style={styles.tableCell}>{item.activityType}</Text>
+                      <Text style={styles.tableCell}>{item.professorName}</Text>
+                      <Text style={styles.tableCell}>{item.professorId}</Text>
+                      <Text style={styles.tableCell}>{item.status}</Text>
+                      {/* <Text style={styles.tableCell}>{item.images}</Text> */}
+                      <Text style={styles.tableCell}>{item.note}</Text>
+                      <Text style={styles.tableCell}>{item.comment}</Text>
+                      <Text style={styles.tableCell}>
+                        {item.approvalTimestamp}
+                      </Text>
+                      <Text style={styles.tableCell}>
+                        {item.rejectionTimestamp}
+                      </Text>
+                      <Text style={styles.tableCell}>
+                        {item.reApprovalTimestamp}
+                      </Text>
+                      <Text style={styles.tableCell}>{item.rating}</Text>
+                      <Text style={styles.tableCell}>{item.subject}</Text>
+                    </>
+                  ) : null}
                 </View>
               ))}
             </View>

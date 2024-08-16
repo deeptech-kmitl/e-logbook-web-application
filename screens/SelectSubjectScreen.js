@@ -9,16 +9,23 @@ import {
   Image,
   ScrollView,
 } from "react-native";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { setSubject } from "../redux/action";
 
 import Header from "../component/Header";
 import SubHeader from "../component/SubHeader";
 import Footer from "../component/Footer";
+import { Pie } from "react-chartjs-2";
+import { Chart, ArcElement, Tooltip, Legend } from "chart.js";
+import { getDocs, collection, query, where } from "firebase/firestore";
+import { db } from "../data/firebaseDB"; // ตรวจสอบว่ามีการ import db
+Chart.register(ArcElement, Tooltip, Legend);
 
 const SelectSubjectScreen = ({ navigation }) => {
+  const user = useSelector((state) => state.user);
   const dispatch = useDispatch();
 
+  const [caseData, setCaseData] = useState([]);
   const [selectedYear, setSelectedYear] = useState("4");
   const [selectedSubject, setSelectedSubject] = useState("1766603");
   const [screenWidth, setScreenWidth] = useState(
@@ -56,6 +63,10 @@ const SelectSubjectScreen = ({ navigation }) => {
   };
 
   useEffect(() => {
+    fetchDataForPieChart();
+  }, [selectedSubject]);
+
+  useEffect(() => {
     // เมื่อ selectedYear เปลี่ยน ให้ตั้ง selectedSubject เป็นค่าแรกใน subjectsByYear ของ year นั้น
     const firstSubject = subjectsByYear[selectedYear][0].id;
     setSelectedSubject(firstSubject);
@@ -71,6 +82,89 @@ const SelectSubjectScreen = ({ navigation }) => {
     }
   };
 
+  const fetchDataForPieChart = async () => {
+    try {
+      let collectionRefs = [
+        collection(db, "patients"),
+        collection(db, "activity"),
+        collection(db, "procedures"),
+      ];
+  
+      let approvedCases = 0;
+      let rejectedCases = 0;
+      let pendingCases = 0;
+      let recheckCases = 0;
+  
+      // แปลง selectedSubject (id) เป็น name ของวิชา
+      const selectedSubjectName = subjectsByYear[selectedYear].find(
+        (subject) => subject.id === selectedSubject
+      )?.name;
+  
+      for (const collectionRef of collectionRefs) {
+        let queryField = "createBy_id";
+        const queries = [where(queryField, "==", user.uid)];
+        queries.push(where("subject", "==", selectedSubjectName)); // ใช้ name ของวิชาในการ Query
+        const userQuerySnapshot = await getDocs(query(collectionRef, ...queries));
+  
+        console.log("Fetched documents from collection:", collectionRef.path);
+        console.log("Document count:", userQuerySnapshot.size);
+  
+        userQuerySnapshot.forEach((doc) => {
+          const data = doc.data();
+          console.log("Document data:", data);
+  
+          if (data.status === "approved") {
+            approvedCases++;
+          } else if (data.status === "rejected") {
+            rejectedCases++;
+          } else if (data.status === "pending") {
+            pendingCases++;
+          } else if (data.status === "recheck") {
+            recheckCases++;
+          }
+        });
+      }
+  
+      console.log("Approved Cases:", approvedCases);
+      console.log("Rejected Cases:", rejectedCases);
+      console.log("Pending Cases:", pendingCases);
+      console.log("Recheck Cases:", recheckCases);
+  
+      const data = {
+        labels: ["Approved", "Rejected", "Pending", "Recheck"],
+        datasets: [
+          {
+            data: [approvedCases, rejectedCases, pendingCases, recheckCases],
+            backgroundColor: ["#2a9d8f", "#e76f51", "#e9c46a", "#7ecafc"],
+          },
+        ],
+      };
+  
+      setCaseData(data);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    }
+  };
+  
+  
+  const options = {
+    maintainAspectRatio: false,
+    legend: {
+      display: true,
+      position: "right",
+    },
+    tooltips: {
+      enabled: true,
+      callbacks: {
+        label: function (tooltipItem, data) {
+          const label = data.labels[tooltipItem.index];
+          const value = data.datasets[0].data[tooltipItem.index];
+          return `${label}: ${value}`;
+        },
+      },
+    },
+  };
+
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
@@ -78,16 +172,11 @@ const SelectSubjectScreen = ({ navigation }) => {
           <Header />
           <SubHeader text="Select your subject" />
 
-          <Image
-            source={require("../assets/bookshelf.png")}
-            style={{
-              width: 300,
-              height: 300,
-              alignSelf: "center",
-              marginTop: 20,
-            }}
-            resizeMode="contain"
-          />
+          <View style={{ alignItems: "center", marginTop: 20 }}>
+            {caseData && caseData.datasets && (
+              <Pie data={caseData} options={options} width={500} height={500} />
+            )}
+          </View>
 
           <View style={styles.contentContainer}>
             <View style={styles.pickerContainer}>
