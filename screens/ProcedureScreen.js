@@ -1200,7 +1200,7 @@ const dateOptions = [
 
   return (
     <View style={styles.container}>
-      <View style={{ marginVertical: windowWidth < 768 ? 0 : 50 }}>
+      <View style={{ marginVertical: windowWidth < 768 ? 0 : 20 }}>
         <SubHeader text="PROCEDURE" />
       </View>
 

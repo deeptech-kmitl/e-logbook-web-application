@@ -167,10 +167,9 @@ function UserCaseScreen({ navigation }) {
         <input
           type="date"
           style={{
-            marginTop: 5,
             padding: 10,
             fontSize: 16,
-            width: "95%",
+            width: "90%",
             backgroundColor: "#FEF0E6",
             borderColor: "#FEF0E6",
             borderWidth: 1,
@@ -205,15 +204,13 @@ function UserCaseScreen({ navigation }) {
         <input
           type="date"
           style={{
-            marginTop: 5,
             padding: 10,
             fontSize: 16,
-            width: "95%",
+            width: "90%",
             backgroundColor: "#FEF0E6",
             borderColor: "#FEF0E6",
             borderWidth: 1,
             borderRadius: 10,
-            marginLeft: 10
           }}
           value={endDate.toISOString().substr(0, 10)}
           onChange={(event) => setEndDate(new Date(event.target.value))}
@@ -871,9 +868,40 @@ function UserCaseScreen({ navigation }) {
         style={{
           marginVertical: 10,
           flexDirection: "row",
+          alignContent: 'space-between',
           alignItems: "center",
         }}
       >
+      <View> 
+        <Text style={{ marginBottom: 10, textAlign: 'center'}}>Filter by hn : </Text>
+          <TextInput
+            style={{
+              width: '100%',
+              backgroundColor: "#FEF0E6",
+              borderColor: "#FEF0E6",
+              borderWidth: 1,
+              borderRadius: 10,
+              padding: 12,
+              textAlign: "center",
+            }}
+            placeholder="Search by hn"
+            value={hnSearch}
+            onChangeText={(text) => {
+              setHnSearch(text);
+            }}
+          />
+      </View>
+    </View>
+
+    <View
+        style={{
+          marginVertical: 10,
+          flexDirection: "row",
+          alignContent: 'space-between',
+          alignItems: "center",  
+        }}
+      >
+        <View style={{ marginLeft: 20}}> <Text style={{ textAlign: 'center', marginBottom: 10}}>Filter by status : </Text>
         <SelectList
           data={statusOptions}
           setSelected={setSelectedStatus}
@@ -881,71 +909,58 @@ function UserCaseScreen({ navigation }) {
           defaultOption={selectedStatus}
           search={false}
           boxStyles={{
-            width: "auto",
+            width: '100%',
             backgroundColor: "#FEF0E6",
             borderColor: "#FEF0E6",
             borderWidth: 1,
             borderRadius: 10,
+            // marginLeft: 20,
+            justifyContent: 'center',
+            alignItems: 'center',
           }}
-          dropdownStyles={{ backgroundColor: "#FEF0E6" }}
+          dropdownStyles={{ 
+            backgroundColor: "#FEF0E6" ,
+            // marginLeft: 20,
+            width: "100%",
+          }}
         />
+        </View>
 
-        <SelectList
-          data={[
-            { key: "inpatient", value: "IPD" },
-            { key: "outpatient", value: "OPD" },
-            { key: "procedure", value: "Procedure" },
-            { key: "activity", value: "Activity" },
-          ]}
-          setSelected={setSelectedType}
-          placeholder="Select case type"
-          defaultOption={selectedType}
-          search={false}
-          boxStyles={{
-            width: "auto",
-            backgroundColor: "#FEF0E6",
-            borderColor: "#FEF0E6",
-            borderWidth: 1,
-            borderRadius: 10,
-            marginLeft: 15,
-          }}
-          dropdownStyles={{ backgroundColor: "#FEF0E6" }}
-        />
+        <View style={{ marginLeft: 20}}> <Text style={{ textAlign: 'center', marginBottom: 10}}>Filter by case type : </Text>
+          <SelectList
+            data={[
+              { key: "inpatient", value: "IPD" },
+              { key: "outpatient", value: "OPD" },
+              { key: "procedure", value: "Procedure" },
+              { key: "activity", value: "Activity" },
+            ]}
+            setSelected={setSelectedType}
+            placeholder="Select case type"
+            defaultOption={selectedType}
+            search={false}
+            boxStyles={{
+              width: "auto",
+              backgroundColor: "#FEF0E6",
+              borderColor: "#FEF0E6",
+              borderWidth: 1,
+              borderRadius: 10,
+              marginLeft: 15,
+            }}
+            dropdownStyles={{ backgroundColor: "#FEF0E6" }}
+          />
+          </View>
       </View>
-      <View
+
+
+    <View
         style={{
           marginVertical: 10,
           flexDirection: "row",
-          alignItems: "center",
+          alignContent: 'space-between',
+          alignItems: "center",  
         }}
       >
-
-        <TextInput
-          style={{
-            flex: 1,
-            backgroundColor: "#FEF0E6",
-            borderColor: "#FEF0E6",
-            borderWidth: 1,
-            borderRadius: 10,
-            padding: 12,
-            marginLeft: isMobile ? 0 : 15,
-            textAlign: "center",
-          }}
-          placeholder="Search by hn"
-          value={hnSearch}
-          onChangeText={(text) => {
-            setHnSearch(text);
-          }}
-        />
-
-      </View>
-      <View
-        style={{
-          marginVertical: 10,
-          flexDirection: "row",
-          alignItems: "center",
-        }}
-      >
+     <View> <Text style={{ textAlign: 'center', marginBottom: 10}}>Filter by instructor name : </Text>
      <SelectList
               setSelected={onSelectTeacher}
               data={teachers}
@@ -961,17 +976,22 @@ function UserCaseScreen({ navigation }) {
               dropdownStyles={{ backgroundColor: "#FEF0E6" }}
             />
       </View>
+    </View>
 
       <View
         style={{
           marginVertical: 10,
           flexDirection: "row",
-          alignItems: "center",
+          alignContent: 'space-between',
+          alignItems: "center",  
         }}
       >
-        <StartDateInput />
-        <EndDateInput />
-
+        <View> <Text style={{ textAlign: 'center', marginBottom: 10}}>Start Date : </Text>
+          <StartDateInput />
+        </View>
+        <View style={{ marginLeft: 20 }}> <Text style={{ textAlign: 'center', marginBottom: 10}}>End Date : </Text>
+          <EndDateInput />
+        </View>
       </View>
 
       <View style={styles.boxCard}>

@@ -239,18 +239,26 @@ const DashBoardScreen = ({ navigation }) => {
         <SelectList
             placeholder="Select subjects"
             defaultValue={selectedSubject}
-            setSelected={setSelectedSubject}
+            setSelected={setSelectedSubject} // 4. เมื่อมีการเลือก Subject ใหม่ ให้เรียกใช้ handleSelectSubject เพื่อเปลี่ยนค่า selectedSubject
             data={subjectsByYear}
             search={false}
             boxStyles={{
-              width: "auto",
+              width: "50%",
               backgroundColor: "#FEF0E6",
               borderColor: "#FEF0E6",
               borderWidth: 1,
               borderRadius: 10,
               marginLeft: 10,
+              justifyContent: 'center',
+              alignItems: 'center',
+              alignSelf: 'center'
             }}
-            dropdownStyles={{ backgroundColor: "#FEF0E6" }}
+            dropdownStyles={{ 
+              backgroundColor: "#FEF0E6", 
+              width: "50%",              
+              justifyContent: 'center',
+              alignItems: 'center',
+              alignSelf: 'center' }}
           />
       </ScrollView>
     </View>
