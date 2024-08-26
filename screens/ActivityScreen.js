@@ -1694,8 +1694,10 @@ function ActivityScreen({ navigation }) {
                             <Text style={styles.checkboxLabel}>
                               Unsatisfied
                             </Text>
-                          </View>{" "}
-                          (ไม่สามารถเลือก Approve หรือ Recheck ได้)
+                          </View>
+                          {rating === "Unsatisfied" && ( 
+                            <Text>(ไม่สามารถเลือก Approve หรือ Recheck ได้)</Text>
+                          )}
                           <Text
                             style={{
                               marginBottom: 10,

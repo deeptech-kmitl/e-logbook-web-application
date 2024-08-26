@@ -357,6 +357,7 @@ function AddProcedureScreen({ navigation }) {
       setSelectedMinute("");
 
       alert("บันทึกข้อมูลสำเร็จ");
+      navigation.navigate('หัตถการ')
     } catch (error) {
       console.error("Error adding document: ", error);
       alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล");

@@ -39,7 +39,7 @@ function UserCaseScreen({ navigation }) {
     useState(false);
   const [changeModalVisible, setChangeModalVisible] = useState(false);
   const [imageModalVisible, setImageModalVisible] = useState(false);
-  const [selectedType, setSelectedType] = useState(null); // เพิ่ม selectedType เข้าไปใน state
+  const [selectedType, setSelectedType] = useState("all"); // เพิ่ม selectedType เข้าไปใน state
 
   const [CaseData, setCaseData] = useState([]);
   const [patientData, setPatientData] = useState([]);
@@ -673,7 +673,8 @@ function UserCaseScreen({ navigation }) {
 
   const renderCards = () => {
     const allCases = filterCasesByType(selectedType)
-    .filter((caseData) => caseData.status === selectedStatus)
+    .filter((caseData) => 
+      caseData.status === selectedStatus)
     .filter((caseData) => {
       // Filter by hnSearch
       const hnMatch = hnSearch
@@ -844,7 +845,7 @@ function UserCaseScreen({ navigation }) {
         return activityData.filter(
           (caseData) => caseData.status === selectedStatus
         );
-      default:
+      case "all":
         return [
           ...patientData.filter(
             (caseData) => caseData.status === selectedStatus
@@ -859,6 +860,8 @@ function UserCaseScreen({ navigation }) {
             (caseData) => caseData.status === selectedStatus
           ),
         ];
+      default:
+        return [];
     }
   };
 
@@ -929,13 +932,14 @@ function UserCaseScreen({ navigation }) {
         <View style={{ marginLeft: 20}}> <Text style={{ textAlign: 'center', marginBottom: 10}}>Filter by case type : </Text>
           <SelectList
             data={[
+              { key: "all", value: "All Cases" },
               { key: "inpatient", value: "IPD" },
               { key: "outpatient", value: "OPD" },
               { key: "procedure", value: "Procedure" },
               { key: "activity", value: "Activity" },
             ]}
             setSelected={setSelectedType}
-            placeholder="Select case type"
+            placeholder="All Cases"
             defaultOption={selectedType}
             search={false}
             boxStyles={{

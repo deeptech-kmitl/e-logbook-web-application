@@ -68,8 +68,9 @@ const HomeScreen = ({ navigation }) => {
   const [dimensions, setDimensions] = useState(Dimensions.get("window"));
   const [caseData, setCaseData] = useState([]);
   const [selectedCollection, setSelectedCollection] = useState("all");
-  const [selectedSubject, setSelectedSubject] = useState("All"); // เพิ่ม state สำหรับเก็บรายวิชาที่ถูกเลือก
-
+  const [selectedSubject, setSelectedSubject] = useState(
+    role === "teacher" ? "All" : subject
+  ); 
   useEffect(() => {
     const onChange = ({ window }) => {
       setDimensions(window);
@@ -316,6 +317,7 @@ const HomeScreen = ({ navigation }) => {
             dropdownStyles={{ backgroundColor: "#FEF0E6" }}
           />
         </View>
+        {role === "teacher" && (
         <SelectList
             placeholder="Select subjects"
             defaultValue={selectedSubject}
@@ -340,14 +342,8 @@ const HomeScreen = ({ navigation }) => {
               alignItems: 'center',
               alignSelf: 'center' }}
           />
-        {/* <TouchableOpacity
-            style={[styles.button, styles.subjectButton]}
-            onPress={handleClearSubject}
-          >
-            <Text style={[styles.buttonText, { fontSize: buttonNewTextSize }]}>
-            ◄ Back to select subject
-            </Text>
-          </TouchableOpacity> */}
+        )}
+          {role === "student" && (
           <Text
               style={[
                 styles.passwordResetLink,
@@ -357,6 +353,7 @@ const HomeScreen = ({ navigation }) => {
             >
               ◄ Back to select subject
             </Text>
+          )}
       </ScrollView>
     </View>
   );

@@ -109,7 +109,7 @@ const LoginScreen = ({ route, navigation }) => {
   } else if (role === "teacher") {
     roleText = "Instructor/Staff";
   } else if (role === "staff") {
-    roleText = "Staff";
+    roleText = "Admin";
   }
 
   const emailFontSize = screenWidth < 768 ? 20 : 28;

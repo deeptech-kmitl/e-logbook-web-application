@@ -328,6 +328,8 @@ function AddIpdScreen({ navigation }) {
 
         // Display a success message or perform any other action
         alert("บันทึกข้อมูลสำเร็จ");
+        navigation.navigate('ผู้ป่วยใน')
+
       } else {
         // Handle the case when no user is authenticated
         alert("ไม่พบข้อมูลผู้ใช้");
