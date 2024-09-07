@@ -284,6 +284,7 @@ const getSelectedDataForExport = () => {
       approvalTimestamp: formatTimestamp(item.approvalTimestamp),
       rejectionTimestamp: formatTimestamp(item.rejectionTimestamp),
       reApprovalTimestamp: formatTimestamp(item.reApprovalTimestamp),
+      Time: formatTime(item.hours, item.minutes),
       // professionalismScores: translateProfessionalismScores(item.professionalismScores)
     }));
     setPreviewData(formattedPreviewData);
@@ -354,7 +355,19 @@ const getSelectedDataForExport = () => {
     setShowEndDatePicker(false);
     setEndDate(currentDate);
   };
-
+  
+  const formatTime = (hours, minutes) => {
+    if (hours === undefined || hours === null || hours === '' || minutes === undefined || minutes === null || minutes === '') {
+      return "ไม่พบข้อมูล";
+    }
+    
+    // Ensure both hours and minutes are two digits
+    const paddedHours = hours.toString().padStart(2, '0');
+    const paddedMinutes = minutes.toString().padStart(2, '0');
+  
+    return `${paddedHours}:${paddedMinutes}`;
+  };
+  
   const translateProfessionalismScores = (scores) => {
     if (scores) {
       const translationMap = {
@@ -380,8 +393,7 @@ const getSelectedDataForExport = () => {
   const formatPatientsDataForExport = (data) => {
     return data.map((patient) => ({
       "Admission Date": formatTimestamp(patient.admissionDate),
-      Hours: patient.hours,
-      Minutes: patient.minutes,
+      "Time": formatTime(patient.hours, patient.minutes),
       "Display Name": patient.displayName,
       "Creator ID": patient.createBy_id,
       HN: patient.hn,
@@ -409,8 +421,7 @@ const getSelectedDataForExport = () => {
   const formatProceduresDataForExport = (data) => {
     return data.map((procedure) => ({
       "Admission Date": formatTimestamp(procedure.admissionDate),
-      Hours: procedure.hours,
-      Minutes: procedure.minutes,
+      "Time": formatTime(procedure.hours, procedure.minutes),
       "Display Name": procedure.displayName,
       "Creator ID": procedure.createBy_id,
       HN: procedure.hn,
@@ -438,8 +449,7 @@ const getSelectedDataForExport = () => {
   const formatActivityDataForExport = (data) => {
     return data.map((activity) => ({
       "Admission Date": formatTimestamp(activity.admissionDate),
-      Hours: activity.hours,
-      Minutes: activity.minutes,
+      "Time": formatTime(activity.hours, activity.minutes),
       "Display Name": activity.displayName,
       "Creator ID": activity.createBy_id,
       "Topic": activity.topic,
@@ -549,8 +559,7 @@ const getSelectedDataForExport = () => {
                 {selectedData === "patients" ? (
                   <>
                     <Text style={styles.columnHeader}>Admission Date</Text>
-                    <Text style={styles.columnHeader}>Hours</Text>
-                    <Text style={styles.columnHeader}>Minutes</Text>
+                    <Text style={styles.columnHeader}>Time</Text>
                     <Text style={styles.columnHeader}>Display Name</Text>
                     <Text style={styles.columnHeader}>Creator ID</Text>
                     <Text style={styles.columnHeader}>HN</Text>
@@ -575,8 +584,7 @@ const getSelectedDataForExport = () => {
                 ) : selectedData === "procedures" ? (
                   <>
                     <Text style={styles.columnHeader}>Admission Date</Text>
-                    <Text style={styles.columnHeader}>Hours</Text>
-                    <Text style={styles.columnHeader}>Minutes</Text>
+                    <Text style={styles.columnHeader}>Time</Text>
                     <Text style={styles.columnHeader}>Display Name</Text>
                     <Text style={styles.columnHeader}>Creator ID</Text>
                     <Text style={styles.columnHeader}>HN</Text>
@@ -597,8 +605,7 @@ const getSelectedDataForExport = () => {
                 ) : selectedData === "activity" ? (
                   <>
                     <Text style={styles.columnHeader}>Activity Date</Text>
-                    <Text style={styles.columnHeader}>Hours</Text>
-                    <Text style={styles.columnHeader}>Minutes</Text>
+                    <Text style={styles.columnHeader}>Time</Text>
                     <Text style={styles.columnHeader}>Display Name</Text>
                     <Text style={styles.columnHeader}>Creator ID</Text>
                     <Text style={styles.columnHeader}>Topic</Text>
@@ -621,8 +628,7 @@ const getSelectedDataForExport = () => {
                   {selectedData === "patients" ? (
                     <>
                       <Text style={styles.tableCell}>{item.admissionDate}</Text>
-                      <Text style={styles.tableCell}>{item.hours}</Text>
-                      <Text style={styles.tableCell}>{item.minutes}</Text>
+                      <Text style={styles.tableCell}>{item.Time}</Text>
                       <Text style={styles.tableCell}>{item.displayName}</Text>
                       <Text style={styles.tableCell}>{item.createBy_id}</Text>
                       <Text style={styles.tableCell}>{item.hn}</Text>
@@ -655,8 +661,7 @@ const getSelectedDataForExport = () => {
                   ) : selectedData === "procedures" ? (
                     <>
                       <Text style={styles.tableCell}>{item.admissionDate}</Text>
-                      <Text style={styles.tableCell}>{item.hours}</Text>
-                      <Text style={styles.tableCell}>{item.minutes}</Text>
+                      <Text style={styles.tableCell}>{item.Time}</Text>
                       <Text style={styles.tableCell}>{item.displayName}</Text>
                       <Text style={styles.tableCell}>{item.createBy_id}</Text>
                       <Text style={styles.tableCell}>{item.hn}</Text>
@@ -687,8 +692,7 @@ const getSelectedDataForExport = () => {
                   ) : selectedData === "activity" ? (
                     <>
                       <Text style={styles.tableCell}>{item.admissionDate}</Text>
-                      <Text style={styles.tableCell}>{item.hours}</Text>
-                      <Text style={styles.tableCell}>{item.minutes}</Text>
+                      <Text style={styles.tableCell}>{item.Time}</Text>
                       <Text style={styles.tableCell}>{item.displayName}</Text>
                       <Text style={styles.tableCell}>{item.createBy_id}</Text>
                       <Text style={styles.tableCell}>{item.topic}</Text>

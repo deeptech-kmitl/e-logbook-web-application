@@ -59,6 +59,10 @@ const SelectSubjectScreen = ({ navigation }) => {
         id: "17676006",
         name: "Practicum in orthopedics and emergency medicine",
       },
+      {
+        id: "17676007",
+        name: "Practicum in community hospital",
+      },
     ],
   };
 

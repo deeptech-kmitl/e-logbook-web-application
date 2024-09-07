@@ -48,7 +48,8 @@ function UserCaseScreen({ navigation }) {
   const [activityData, setActivityData] = useState([]);
 
   const [selectedCase, setSelectedCase] = useState(null);
-
+  const [selectedSubject, setSelectedSubject] = useState("All"); 
+  
   const [hnSearch, setHnSearch] = useState("");
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(new Date());
@@ -70,6 +71,55 @@ function UserCaseScreen({ navigation }) {
     { key: "approved", value: "Approved" },
     { key: "rejected", value: "Rejected" },
     { key: "recheck", value: "Recheck" },
+  ];
+
+  const subjectsByYear = [
+    { key: "All", value: "All" },
+    { key: "Family medicine clerkship", value: "Family medicine clerkship" },
+    { key: "Internal medicine clerkship", value: "Internal medicine clerkship" },
+    { key: "Surgery clerkship", value: "Surgery clerkship" },
+    {
+      key: "Anesthesiology, cardiology and critical care medicine clerkship",
+      value: "Anesthesiology, cardiology and critical care medicine clerkship",
+    },
+    {
+      key: "Obstetrics and gynecology clerkship",
+      value: "Obstetrics and gynecology clerkship",
+    },
+    {
+      key: "Pediatric clerkship",
+      value: "Pediatric clerkship",
+    },
+    {
+      key: "Ambulatory medicine clerkship",
+      value: "Ambulatory medicine clerkship",
+    },
+    {
+      key: "Accident and emergency medicine clerkship",
+      value: "Accident and emergency medicine clerkship",
+    },
+    {
+      key: "Oncology and palliative medicine clerkship",
+      value: "Oncology and palliative medicine clerkship",
+    },
+    {
+      key: "Practicum in internal medicine",
+      value: "Practicum in internal medicine",
+    },
+    { key: "Practicum in surgery", value: "Practicum in surgery" },
+    { key: "Practicum in Pediatrics", value: "Practicum in Pediatrics" },
+    {
+      key: "Practicum in Obstetrics and gynecology",
+      value: "Practicum in Obstetrics and gynecology",
+    },
+    {
+      key: "Practicum in orthopedics and emergency medicine",
+      value: "Practicum in orthopedics and emergency medicine",
+    },
+    {
+      key: "Practicum in community hospital",
+      value: "Practicum in community hospital",
+    },
   ];
 
   const [professors, setProfessors] = useState([]);
@@ -675,6 +725,11 @@ function UserCaseScreen({ navigation }) {
     const allCases = filterCasesByType(selectedType)
     .filter((caseData) => 
       caseData.status === selectedStatus)
+    .filter(
+      (caseData) =>
+        selectedSubject === "All" ||
+        (caseData.subject && caseData.subject === selectedSubject)
+    )
     .filter((caseData) => {
       // Filter by hnSearch
       const hnMatch = hnSearch
@@ -698,7 +753,11 @@ function UserCaseScreen({ navigation }) {
     });
 
     return allCases
-      .sort((a, b) => b.admissionDate.toDate() - a.admissionDate.toDate())
+    .sort((a, b) => {
+      const aRejectionTime = a.rejectionTimestamp ? a.rejectionTimestamp.toDate() : a.admissionDate.toDate();
+      const bRejectionTime = b.rejectionTimestamp ? b.rejectionTimestamp.toDate() : b.admissionDate.toDate();
+      return bRejectionTime - aRejectionTime;
+    })
       .map((caseData, index) => (
         <TouchableOpacity
           style={styles.cardContainer}
@@ -979,6 +1038,42 @@ function UserCaseScreen({ navigation }) {
               }}
               dropdownStyles={{ backgroundColor: "#FEF0E6" }}
             />
+      </View>
+    </View>
+
+    <View
+        style={{
+          marginVertical: 10,
+          flexDirection: "row",
+          alignContent: 'space-between',
+          alignItems: "center",  
+        }}
+      >
+     <View> <Text style={{ textAlign: 'center', marginBottom: 10}}>Filter by subject : </Text>
+     <SelectList
+            placeholder="All"
+            defaultValue={selectedSubject}
+            setSelected={setSelectedSubject} // 4. เมื่อมีการเลือก Subject ใหม่ ให้เรียกใช้ handleSelectSubject เพื่อเปลี่ยนค่า selectedSubject
+            data={subjectsByYear}
+            search={false}
+            boxStyles={{
+              width: "50%",
+              backgroundColor: "#FEF0E6",
+              borderColor: "#FEF0E6",
+              borderWidth: 1,
+              borderRadius: 10,
+              marginLeft: 10,
+              justifyContent: 'center',
+              alignItems: 'center',
+              alignSelf: 'center'
+            }}
+            dropdownStyles={{ 
+              backgroundColor: "#FEF0E6", 
+              width: "50%" ,             
+              justifyContent: 'center',
+              alignItems: 'center',
+              alignSelf: 'center' }}
+          />
       </View>
     </View>
 

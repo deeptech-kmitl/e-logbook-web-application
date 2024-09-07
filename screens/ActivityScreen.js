@@ -50,6 +50,11 @@ function ActivityScreen({ navigation }) {
   const [isLoading, setIsLoading] = useState(true);
   const subject = useSelector((state) => state.subject);
 
+  const [students, setStudents] = useState([]); // สถานะสำหรับเก็บรายการอาจารย์ทั้งหมด
+  const [studentId, setStudentId] = useState(null); // สถานะสำหรับเก็บ id ของอาจารย์ที่ถูกเลือก
+  const [studentName, setStudentName] = useState(null); // สถานะสำหรับเก็บชื่ออาจารย์ที่ถูกเลือก
+  const [selectedStudent, setSelectedStudent] = useState(null);
+
   const [windowWidth, setWindowWidth] = useState(
     Dimensions.get("window").width
   );
@@ -645,6 +650,42 @@ function ActivityScreen({ navigation }) {
     setImageModalVisible(true);
   };
 
+  useEffect(() => {
+    async function fetchStudents() {
+      try {
+        const studentRef = collection(db, "users");
+        const q = query(studentRef, where("role", "==", "student")); // ใช้ query และ where ในการ filter
+
+        const querySnapshot = await getDocs(q); // ใช้ query ที่ถูก filter ในการ getDocs
+
+        const studentArray = [];
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          studentArray.push({ key: doc.id, value: data.displayName });
+        });
+
+        setStudents(studentArray); // ตั้งค่ารายการอาจารย์
+      } catch (error) {
+        console.error("Error fetching students:", error);
+      }
+    }
+
+    fetchStudents(); // เรียกฟังก์ชันเพื่อดึงข้อมูลอาจารย์
+  }, []);
+
+  const onSelectStudent = (selectedStudentId) => {
+    const selectedStudent = students.find(
+      (student) => student.key === selectedStudentId
+    );
+    // console.log(selectedTeacher)
+    if (selectedStudent) {
+      setStudentName(selectedStudent.value);
+      setStudentId(selectedStudent.key);
+    } else {
+      console.error("Student not found:", selectedStudentId);
+    }
+  };
+
   const loadActivityData = async () => {
     try {
       setIsLoading(true);
@@ -919,6 +960,9 @@ function ActivityScreen({ navigation }) {
       )
       .filter((activity) =>
         role === "student" ? activity.subject === subject : true
+      )
+      .filter((activity) =>
+        studentId ? activity.createBy_id === studentId : true // Show all students if studentId is not selected
       )
       .sort((a, b) => {
         if (sortOrder === 'newest') {
@@ -1199,33 +1243,48 @@ function ActivityScreen({ navigation }) {
       }}
     />
     </View>
-    {role !== "student" && (
-    <View style={{ marginLeft: 20 }}> <Text style={{ textAlign: 'center', marginBottom: 10}}>Filter by subject : </Text>
-      <SelectList
-        data={subjectsByYear}
-        setSelected={setSelectedSubject}
-        placeholder="Select subjects"
-        defaultOption={selectedSubject}
-        search={false}
-        boxStyles={{
-          width: "100%",
-          backgroundColor: "#FEF0E6",
-          borderColor: "#FEF0E6",
-          borderWidth: 1,
-          borderRadius: 10,
-          // marginLeft: 10,
-          justifyContent: 'center',
-          alignItems: 'center',
-        }}
-        dropdownStyles={{ 
-          backgroundColor: "#FEF0E6",     
-          width: "100%",      
-        }}
-      />
-      </View>
-    )}
+
   </View>
 
+  {role !== "student" && (
+  <View
+        style={{
+          marginVertical: 10,
+          flexDirection: "row",
+          alignContent: 'space-between',
+          alignItems: "center",  
+        }}
+      >
+      
+        <View> <Text style={{ textAlign: 'center', marginBottom: 10}}>Filter by subject : </Text>
+          <SelectList
+            data={subjectsByYear}
+            setSelected={setSelectedSubject}
+            placeholder="Select subjects"
+            defaultOption={selectedSubject}
+            search={false}
+            boxStyles={{
+              width: "auto",
+              backgroundColor: "#FEF0E6",
+              borderColor: "#FEF0E6",
+              borderWidth: 1,
+              borderRadius: 10,
+              marginLeft: 10,
+              justifyContent: 'center',
+              alignItems: 'center',
+              alignSelf: 'center'
+            }}
+            dropdownStyles={{ 
+              backgroundColor: "#FEF0E6", 
+              width: "50%",              
+              justifyContent: 'center',
+              alignItems: 'center',
+              alignSelf: 'center' }}
+          />
+          </View>
+    </View>
+    )}
+    
       <View
         style={{
           marginVertical: 10,
@@ -1297,6 +1356,32 @@ function ActivityScreen({ navigation }) {
         </View>
         <View style={{ marginLeft: 20 }}> <Text style={{ textAlign: 'center', marginBottom: 10}}>End Date : </Text>
           <EndDateInput />
+        </View>
+      </View>
+
+      <View
+        style={{
+          marginVertical: 10,
+          flexDirection: "row",
+          alignContent: 'space-between',
+          alignItems: "center",  
+        }}
+      >
+        <View> <Text style={{ textAlign: 'center', marginBottom: 10}}>Filter by medical student name : </Text>
+          <SelectList
+              setSelected={onSelectStudent}
+              data={students}
+              placeholder={"Select the Medical student name"}
+              placeholderTextColor="grey"
+              boxStyles={{
+                width: "auto",
+                backgroundColor: "#FEF0E6",
+                borderColor: "#FEF0E6",
+                borderWidth: 1,
+                borderRadius: 10,
+              }}
+              dropdownStyles={{ backgroundColor: "#FEF0E6" }}
+            />
         </View>
       </View>
 

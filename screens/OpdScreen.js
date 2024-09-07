@@ -1211,33 +1211,45 @@ function OpdScreen({ navigation }) {
       }}
     />
     </View>
-    {role !== "student" && (
-    <View style={{ marginLeft: 20 }}> <Text style={{ textAlign: 'center', marginBottom: 10}}>Filter by subject : </Text>
-      <SelectList
-        data={subjectsByYear}
-        setSelected={setSelectedSubject}
-        placeholder="Select subjects"
-        defaultOption={selectedSubject}
-        search={false}
-        boxStyles={{
-          width: "100%",
-          backgroundColor: "#FEF0E6",
-          borderColor: "#FEF0E6",
-          borderWidth: 1,
-          borderRadius: 10,
-          // marginLeft: 10,
-          justifyContent: 'center',
-          alignItems: 'center',
-        }}
-        dropdownStyles={{ 
-          backgroundColor: "#FEF0E6",     
-          width: "100%",      
-        }}
-      />
-      </View>
-    )}
   </View>
-
+  {role !== "student" && (
+  <View
+        style={{
+          marginVertical: 10,
+          flexDirection: "row",
+          alignContent: 'space-between',
+          alignItems: "center",  
+        }}
+      >
+      
+        <View> <Text style={{ textAlign: 'center', marginBottom: 10}}>Filter by subject : </Text>
+          <SelectList
+            data={subjectsByYear}
+            setSelected={setSelectedSubject}
+            placeholder="Select subjects"
+            defaultOption={selectedSubject}
+            search={false}
+            boxStyles={{
+              width: "auto",
+              backgroundColor: "#FEF0E6",
+              borderColor: "#FEF0E6",
+              borderWidth: 1,
+              borderRadius: 10,
+              marginLeft: 10,
+              justifyContent: 'center',
+              alignItems: 'center',
+              alignSelf: 'center'
+            }}
+            dropdownStyles={{ 
+              backgroundColor: "#FEF0E6", 
+              width: "50%",              
+              justifyContent: 'center',
+              alignItems: 'center',
+              alignSelf: 'center' }}
+          />
+          </View>
+    </View>
+    )}
       <View
         style={{
           marginVertical: 10,

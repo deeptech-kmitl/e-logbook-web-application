@@ -245,10 +245,10 @@ function AddIpdScreen({ navigation }) {
 
   const saveDataToFirestore = async () => {
     try {
-      // if (!selectedDiagnosis || selectedDiagnosis.some(diagnosis => !diagnosis.value)) {
-      //   alert("โปรดกรอก Main Diagnosis ในทุกแถว");
-      //   return;
-      // }
+      if (selectedDiagnosis.length === 0 || selectedDiagnosis.some(diagnosis => !diagnosis.value)) {
+        alert("โปรดเลือก Co-Morbid Diagnosis");
+        return;
+      }
 
       if (!mainDiagnosis && !otherDiagnosis) {
         alert("โปรดกรอก Main Diagnosis หรือใส่โรคอื่นๆ");
@@ -527,38 +527,11 @@ function AddIpdScreen({ navigation }) {
           </Text>
         </View>
 
-        {isOtherSelected ? (
-          <View
-            style={{
-              height: 48,
-              borderColor: "#FEF0E6",
-              borderWidth: 1,
-              borderRadius: 10,
-              alignItems: "left",
-              justifyContent: "left",
-              marginVertical: 8,
-            }}
-          >
-            <TextInput
-              placeholder="Fill the main diagnosis"
-              placeholderTextColor="grey"
-              value={otherDiagnosis}
-              onChangeText={setOtherDiagnosis}
-              style={{
-                width: "100%",
-                textAlign: "center",
-                height: "100%",
-                fontSize: 20,
-                backgroundColor: "#FEF0E6",
-              }}
-            />
-          </View>
-        ) : (
-          <SelectList
+        <SelectList
             setSelected={(value) => {
               if (value === "Other") {
                 setIsOtherSelected(true);
-                setMainDiagnosis("");
+                setMainDiagnosis(""); // Clear the selected diagnosis when "Other" is selected
               } else {
                 setIsOtherSelected(false);
                 setMainDiagnosis(value);
@@ -575,7 +548,33 @@ function AddIpdScreen({ navigation }) {
             }}
             dropdownStyles={{ backgroundColor: "#FEF0E6" }}
           />
-        )}
+          {isOtherSelected && (
+            <View
+              style={{
+                height: 48,
+                borderColor: "#FEF0E6",
+                borderWidth: 1,
+                borderRadius: 10,
+                alignItems: "left",
+                justifyContent: "left",
+                marginVertical: 8,
+              }}
+            >
+              <TextInput
+                placeholder="Fill the main diagnosis"
+                placeholderTextColor="grey"
+                value={otherDiagnosis}
+                onChangeText={setOtherDiagnosis}
+                style={{
+                  width: "100%",
+                  textAlign: "center",
+                  height: "100%",
+                  fontSize: 20,
+                  backgroundColor: "#FEF0E6",
+                }}
+              />
+            </View>
+          )}
 
         <View>
           <Text

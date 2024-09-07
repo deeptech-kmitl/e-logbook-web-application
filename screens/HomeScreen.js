@@ -32,6 +32,10 @@ const subjectsByYear = [
     value: "Obstetrics and gynecology clerkship",
   },
   {
+    key: "Pediatric clerkship",
+    value: "Pediatric clerkship",
+  },
+  {
     key: "Ambulatory medicine clerkship",
     value: "Ambulatory medicine clerkship",
   },
@@ -56,6 +60,10 @@ const subjectsByYear = [
   {
     key: "Practicum in orthopedics and emergency medicine",
     value: "Practicum in orthopedics and emergency medicine",
+  },
+  {
+    key: "Practicum in community hospital",
+    value: "Practicum in community hospital",
   },
 ];
 
