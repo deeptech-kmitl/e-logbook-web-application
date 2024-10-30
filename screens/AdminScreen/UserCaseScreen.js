@@ -26,7 +26,8 @@ import {
   TextInput,
   CheckBox,
   Image,
-  Platform
+  Platform,
+  Button
 } from "react-native";
 import { SelectList } from "react-native-dropdown-select-list";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -55,6 +56,8 @@ function UserCaseScreen({ navigation }) {
   const [endDate, setEndDate] = useState(new Date());
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+
+  const [isVisible, setIsVisible] = useState(false);
 
   const [windowWidth, setWindowWidth] = useState(
     Dimensions.get("window").width
@@ -926,6 +929,13 @@ function UserCaseScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
+      <Button
+          title={isVisible ? "Hide Filters" : "Show Filters"}
+          onPress={() => setIsVisible(!isVisible)}
+        />
+
+      {isVisible && (
+        <>
       <View
         style={{
           marginVertical: 10,
@@ -1092,7 +1102,9 @@ function UserCaseScreen({ navigation }) {
           <EndDateInput />
         </View>
       </View>
-
+      </>
+      )}
+      
       <View style={styles.boxCard}>
         <ScrollView>{renderCards()}</ScrollView>
       </View>

@@ -26,7 +26,8 @@ import {
   TextInput,
   CheckBox,
   ActivityIndicator,
-  Platform
+  Platform,
+  Button
 } from "react-native";
 import { SelectList } from "react-native-dropdown-select-list";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -47,6 +48,12 @@ function IpdScreen({ navigation }) {
   const currentUserUid = useSelector((state) => state.user.uid); // สมมติว่า uid เก็บอยู่ใน userUid ของ state
   const role = useSelector((state) => state.role);
   const subject = useSelector((state) => state.subject);
+  const [isVisible, setIsVisible] = useState(false);
+
+  const [students, setStudents] = useState([]); 
+  const [studentId, setStudentId] = useState(null); 
+  const [studentName, setStudentName] = useState(null); 
+  const [selectedStudent, setSelectedStudent] = useState(null);
 
   const [windowWidth, setWindowWidth] = useState(
     Dimensions.get("window").width
@@ -83,10 +90,7 @@ function IpdScreen({ navigation }) {
   const subjectsByYear = [
     { key: "All", value: "All" },
     { key: "Family medicine clerkship", value: "Family medicine clerkship" },
-    {
-      key: "Internal medicine clerkship",
-      value: "Internal medicine clerkship",
-    },
+    { key: "Internal medicine clerkship", value: "Internal medicine clerkship" },
     { key: "Surgery clerkship", value: "Surgery clerkship" },
     {
       key: "Anesthesiology, cardiology and critical care medicine clerkship",
@@ -95,6 +99,10 @@ function IpdScreen({ navigation }) {
     {
       key: "Obstetrics and gynecology clerkship",
       value: "Obstetrics and gynecology clerkship",
+    },
+    {
+      key: "Pediatric clerkship",
+      value: "Pediatric clerkship",
     },
     {
       key: "Ambulatory medicine clerkship",
@@ -121,6 +129,10 @@ function IpdScreen({ navigation }) {
     {
       key: "Practicum in orthopedics and emergency medicine",
       value: "Practicum in orthopedics and emergency medicine",
+    },
+    {
+      key: "Practicum in community hospital",
+      value: "Practicum in community hospital",
     },
   ];
 
@@ -413,7 +425,7 @@ function IpdScreen({ navigation }) {
       width: "100%",
     },
     boxCard: {
-      height: "60%", // ปรับแต่งความสูงของ boxCard ตามอุปกรณ์
+      height: "70%", // ปรับแต่งความสูงของ boxCard ตามอุปกรณ์
       width: isMobile ? "90%" : "90%", // ปรับแต่งความกว้างของ boxCard ตามอุปกรณ์
       marginLeft: isMobile ? "50" : "50",
       marginRight: isMobile ? "50" : "50",
@@ -672,6 +684,43 @@ function IpdScreen({ navigation }) {
     const year = date.getFullYear();
     return `${day} ${thaiMonths[month]} ${year}`;
   };
+
+  useEffect(() => {
+    async function fetchStudents() {
+      try {
+        const studentRef = collection(db, "users");
+        const q = query(studentRef, where("role", "==", "student")); // ใช้ query และ where ในการ filter
+
+        const querySnapshot = await getDocs(q); // ใช้ query ที่ถูก filter ในการ getDocs
+
+        const studentArray = [];
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          studentArray.push({ key: doc.id, value: data.displayName });
+        });
+
+        setStudents(studentArray); // ตั้งค่ารายการอาจารย์
+      } catch (error) {
+        console.error("Error fetching students:", error);
+      }
+    }
+
+    fetchStudents(); // เรียกฟังก์ชันเพื่อดึงข้อมูลอาจารย์
+  }, []);
+
+  const onSelectStudent = (selectedStudentId) => {
+    const selectedStudent = students.find(
+      (student) => student.key === selectedStudentId
+    );
+    // console.log(selectedTeacher)
+    if (selectedStudent) {
+      setStudentName(selectedStudent.value);
+      setStudentId(selectedStudent.key);
+    } else {
+      console.error("Student not found:", selectedStudentId);
+    }
+  };
+
 
   const loadPatientData = async () => {
     try {
@@ -964,7 +1013,10 @@ function IpdScreen({ navigation }) {
           )
       .filter((patient) =>
         role === "student" ? patient.subject === subject : true
-      ) // เพิ่มเงื่อนไขกรองข้อมูลตามวิชาเฉพาะสำหรับนักศึกษา
+      )
+      .filter((patient) =>
+        studentId ? patient.createBy_id === studentId : true // Show all students if studentId is not selected
+      )
       .sort((a, b) => {
         if (sortOrder === 'newest') {
           return b.admissionDate.toDate() - a.admissionDate.toDate();
@@ -1217,6 +1269,14 @@ function IpdScreen({ navigation }) {
       </View>
 
       {/* {renderApprovedButton()} */}
+
+      <Button
+          title={isVisible ? "Hide Filters" : "Show Filters"}
+          onPress={() => setIsVisible(!isVisible)}
+        />
+
+      {isVisible && (
+        <>
       <View
         style={{
           marginVertical: 10,
@@ -1358,6 +1418,36 @@ function IpdScreen({ navigation }) {
           <EndDateInput />
         </View>
       </View>
+      
+      {role !== "student" && (
+      <View
+        style={{
+          marginVertical: 10,
+          flexDirection: "row",
+          alignContent: 'space-between',
+          alignItems: "center",  
+        }}
+      >
+        <View> <Text style={{ textAlign: 'center', marginBottom: 10}}>Filter by medical student name : </Text>
+          <SelectList
+              setSelected={onSelectStudent}
+              data={students}
+              placeholder={"Select the Medical student name"}
+              placeholderTextColor="grey"
+              boxStyles={{
+                width: "auto",
+                backgroundColor: "#FEF0E6",
+                borderColor: "#FEF0E6",
+                borderWidth: 1,
+                borderRadius: 10,
+              }}
+              dropdownStyles={{ backgroundColor: "#FEF0E6" }}
+            />
+        </View>
+      </View>
+    )}
+        </>
+      )}
 
       {/* Modal สำหรับยืนยัน ApproveAll */}
       <Modal

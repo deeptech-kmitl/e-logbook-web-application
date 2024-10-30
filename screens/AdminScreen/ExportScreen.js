@@ -277,7 +277,8 @@ const getSelectedDataForExport = () => {
 
   const handlePreview = () => {
     setPreviewData([]);
-    const dataForPreview = getSelectedDataForExport().slice(0, 5);
+    // const dataForPreview = getSelectedDataForExport().slice(0, 5);
+    const dataForPreview = getSelectedDataForExport();
     const formattedPreviewData = dataForPreview.map((item) => ({
       ...item,
       admissionDate: formatTimestamp(item.admissionDate),

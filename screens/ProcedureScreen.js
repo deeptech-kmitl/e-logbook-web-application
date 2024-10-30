@@ -8,7 +8,7 @@ import {
   Timestamp,
   deleteDoc,
   query,
-  where
+  where,
 } from "firebase/firestore";
 import { db } from "../data/firebaseDB";
 import {
@@ -26,7 +26,8 @@ import {
   TextInput,
   CheckBox,
   ActivityIndicator,
-  Platform
+  Platform,
+  Button,
 } from "react-native";
 import { SelectList } from "react-native-dropdown-select-list";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -47,6 +48,12 @@ function ProcedureScreen({ navigation }) {
   const currentUserUid = useSelector((state) => state.user.uid); // สมมติว่า uid เก็บอยู่ใน userUid ของ state
   const role = useSelector((state) => state.role);
   const subject = useSelector((state) => state.subject);
+  const [isVisible, setIsVisible] = useState(false);
+
+  const [students, setStudents] = useState([]);
+  const [studentId, setStudentId] = useState(null);
+  const [studentName, setStudentName] = useState(null);
+  const [selectedStudent, setSelectedStudent] = useState(null);
 
   const [windowWidth, setWindowWidth] = useState(
     Dimensions.get("window").width
@@ -56,7 +63,7 @@ function ProcedureScreen({ navigation }) {
   );
   const [isLandscape, setIsLandscape] = useState(false);
 
-  const [sortOrder, setSortOrder] = useState('newest');
+  const [sortOrder, setSortOrder] = useState("newest");
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(new Date());
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
@@ -72,21 +79,18 @@ function ProcedureScreen({ navigation }) {
     { key: "approved", value: "Approved" },
     { key: "rejected", value: "Rejected" },
     { key: "recheck", value: "Recheck" },
-];
+  ];
 
-const dateOptions = [
-  { key: 'newest', value: 'Newest to Oldest' },
-  { key: 'oldest', value: 'Oldest to Newest' }
-];
+  const dateOptions = [
+    { key: "newest", value: "Newest to Oldest" },
+    { key: "oldest", value: "Oldest to Newest" },
+  ];
 
   const [selectedSubject, setSelectedSubject] = useState("All");
   const subjectsByYear = [
     { key: "All", value: "All" },
     { key: "Family medicine clerkship", value: "Family medicine clerkship" },
-    {
-      key: "Internal medicine clerkship",
-      value: "Internal medicine clerkship",
-    },
+    { key: "Internal medicine clerkship", value: "Internal medicine clerkship" },
     { key: "Surgery clerkship", value: "Surgery clerkship" },
     {
       key: "Anesthesiology, cardiology and critical care medicine clerkship",
@@ -95,6 +99,10 @@ const dateOptions = [
     {
       key: "Obstetrics and gynecology clerkship",
       value: "Obstetrics and gynecology clerkship",
+    },
+    {
+      key: "Pediatric clerkship",
+      value: "Pediatric clerkship",
     },
     {
       key: "Ambulatory medicine clerkship",
@@ -122,6 +130,10 @@ const dateOptions = [
       key: "Practicum in orthopedics and emergency medicine",
       value: "Practicum in orthopedics and emergency medicine",
     },
+    {
+      key: "Practicum in community hospital",
+      value: "Practicum in community hospital",
+    },
   ];
 
   const [searchText, setSearchText] = useState("");
@@ -140,7 +152,7 @@ const dateOptions = [
     managementProblem: false,
     patientEducation: false,
     evidenceBase: false,
-    ethicalManner: false
+    ethicalManner: false,
   });
 
   // ประกาศ State สำหรับการเก็บค่าการให้คะแนน
@@ -194,12 +206,28 @@ const dateOptions = [
   const filterByDateRange = (procedures) => {
     return procedures.filter((procedure) => {
       const admissionDate = procedure.admissionDate.toDate();
-      const admissionDateOnly = new Date(admissionDate.getFullYear(), admissionDate.getMonth(), admissionDate.getDate());
-      const startDateOnly = startDate ? new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()) : null;
-      const endDateOnly = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
-  
+      const admissionDateOnly = new Date(
+        admissionDate.getFullYear(),
+        admissionDate.getMonth(),
+        admissionDate.getDate()
+      );
+      const startDateOnly = startDate
+        ? new Date(
+            startDate.getFullYear(),
+            startDate.getMonth(),
+            startDate.getDate()
+          )
+        : null;
+      const endDateOnly = new Date(
+        endDate.getFullYear(),
+        endDate.getMonth(),
+        endDate.getDate()
+      );
+
       if (startDateOnly && endDateOnly) {
-        return admissionDateOnly >= startDateOnly && admissionDateOnly <= endDateOnly;
+        return (
+          admissionDateOnly >= startDateOnly && admissionDateOnly <= endDateOnly
+        );
       } else if (startDateOnly) {
         return admissionDateOnly >= startDateOnly;
       } else if (endDateOnly) {
@@ -224,7 +252,11 @@ const dateOptions = [
             borderRadius: 10,
           }}
           value={startDate ? startDate.toISOString().substr(0, 10) : ""}
-          onChange={(event) => setStartDate(event.target.value ? new Date(event.target.value) : null)}
+          onChange={(event) =>
+            setStartDate(
+              event.target.value ? new Date(event.target.value) : null
+            )
+          }
         />
       );
     } else {
@@ -322,7 +354,7 @@ const dateOptions = [
             managementProblem: false,
             patientEducation: false,
             evidenceBase: false,
-            ethicalManner: false
+            ethicalManner: false,
           }
         );
       } else if (selectedStatus === "all") {
@@ -336,8 +368,9 @@ const dateOptions = [
             managementProblem: false,
             patientEducation: false,
             evidenceBase: false,
-            ethicalManner: false
-        });
+            ethicalManner: false,
+          }
+        );
       } else if (selectedStatus === "pending") {
         setComment("");
         setRating("");
@@ -348,7 +381,7 @@ const dateOptions = [
           managementProblem: false,
           patientEducation: false,
           evidenceBase: false,
-          ethicalManner: false
+          ethicalManner: false,
         });
       }
     }
@@ -357,7 +390,7 @@ const dateOptions = [
   const isEditable = () => {
     if (selectedStatus === "pending") {
       return true;
-    } else if (selectedStatus === "recheck") { 
+    } else if (selectedStatus === "recheck") {
       return selectedProcedure ? selectedProcedure.isEdited : false;
     } else if (selectedStatus === "all") {
       if (selectedProcedure && selectedProcedure.isEdited === false) {
@@ -381,7 +414,7 @@ const dateOptions = [
       alignItems: "center",
     },
     boxCard: {
-      height: "60%", // ปรับแต่งความสูงของ boxCard ตามอุปกรณ์
+      height: "70%", // ปรับแต่งความสูงของ boxCard ตามอุปกรณ์
       width: isMobile ? "90%" : "90%", // ปรับแต่งความกว้างของ boxCard ตามอุปกรณ์
       marginLeft: isMobile ? "50" : "50",
       marginRight: isMobile ? "50" : "50",
@@ -643,31 +676,73 @@ const dateOptions = [
     setImageModalVisible(true);
   };
 
+  useEffect(() => {
+    async function fetchStudents() {
+      try {
+        const studentRef = collection(db, "users");
+        const q = query(studentRef, where("role", "==", "student")); // ใช้ query และ where ในการ filter
+
+        const querySnapshot = await getDocs(q); // ใช้ query ที่ถูก filter ในการ getDocs
+
+        const studentArray = [];
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          studentArray.push({ key: doc.id, value: data.displayName });
+        });
+
+        setStudents(studentArray); // ตั้งค่ารายการอาจารย์
+      } catch (error) {
+        console.error("Error fetching students:", error);
+      }
+    }
+
+    fetchStudents(); // เรียกฟังก์ชันเพื่อดึงข้อมูลอาจารย์
+  }, []);
+
+  const onSelectStudent = (selectedStudentId) => {
+    const selectedStudent = students.find(
+      (student) => student.key === selectedStudentId
+    );
+    // console.log(selectedTeacher)
+    if (selectedStudent) {
+      setStudentName(selectedStudent.value);
+      setStudentId(selectedStudent.key);
+    } else {
+      console.error("Student not found:", selectedStudentId);
+    }
+  };
+
   const loadProcedureData = async () => {
     try {
       setIsLoading(true);
-  
+
       const procedureCollectionRef = collection(db, "procedures");
       let q;
-  
+
       if (role === "student") {
         // Fetch procedures created by the current student
-        q = query(procedureCollectionRef, where("createBy_id", "==", currentUserUid));
+        q = query(
+          procedureCollectionRef,
+          where("createBy_id", "==", currentUserUid)
+        );
       } else if (role === "teacher") {
         // Fetch procedures related to the current teacher
-        q = query(procedureCollectionRef, where("professorId", "==", currentUserUid));
+        q = query(
+          procedureCollectionRef,
+          where("professorId", "==", currentUserUid)
+        );
       }
-  
+
       const querySnapshot = await getDocs(q);
       const procedures = [];
-  
+
       for (const docSnapshot of querySnapshot.docs) {
         const data = docSnapshot.data();
         data.id = docSnapshot.id;
-  
+
         let studentName = "";
         let displayData = data;
-  
+
         if (role === "teacher" && data.createBy_id) {
           const userDocRef = doc(db, "users", data.createBy_id);
           const userDocSnapshot = await getDoc(userDocRef);
@@ -677,10 +752,10 @@ const dateOptions = [
             displayData = { ...data, studentName };
           }
         }
-  
+
         procedures.push(displayData);
       }
-  
+
       setProcedureData(procedures);
       setIsLoading(false);
     } catch (error) {
@@ -737,7 +812,7 @@ const dateOptions = [
         comment: comment,
         rating: rating,
         approvalTimestamp: Timestamp.now(),
-        // professionalismScores: professionalismScores, 
+        // professionalismScores: professionalismScores,
       });
       resetScoresAndComment();
       setModalVisible(false);
@@ -760,7 +835,7 @@ const dateOptions = [
         comment: comment,
         rating: rating,
         reApprovalTimestamp: Timestamp.now(),
-        // professionalismScores: professionalismScores, 
+        // professionalismScores: professionalismScores,
         isRecheck: true,
         isEdited: false,
       });
@@ -781,7 +856,7 @@ const dateOptions = [
         comment: comment,
         rating: rating,
         rejectionTimestamp: Timestamp.now(),
-        // professionalismScores: professionalismScores, 
+        // professionalismScores: professionalismScores,
       });
       resetScoresAndComment();
       setModalVisible(false);
@@ -801,7 +876,7 @@ const dateOptions = [
       managementProblem: false,
       patientEducation: false,
       evidenceBase: false,
-      ethicalManner: false
+      ethicalManner: false,
     });
   };
 
@@ -830,7 +905,9 @@ const dateOptions = [
             elevation: 5,
           }}
         >
-          <Text style={{ fontSize: isLandscape ? 22 : 18, color: "white" }}>Add</Text>
+          <Text style={{ fontSize: isLandscape ? 22 : 18, color: "white" }}>
+            Add
+          </Text>
         </TouchableOpacity>
       );
     }
@@ -938,8 +1015,11 @@ const dateOptions = [
       .filter((procedure) =>
         role === "student" ? procedure.subject === subject : true
       )
+      .filter(
+        (procedure) => (studentId ? procedure.createBy_id === studentId : true) // Show all students if studentId is not selected
+      )
       .sort((a, b) => {
-        if (sortOrder === 'newest') {
+        if (sortOrder === "newest") {
           return b.admissionDate.toDate() - a.admissionDate.toDate();
         } else {
           return a.admissionDate.toDate() - b.admissionDate.toDate();
@@ -1038,9 +1118,11 @@ const dateOptions = [
                     </Text>
                   )}
 
-                  { 
-                    (selectedStatus === "all" || selectedStatus === "pending" || selectedStatus === "recheck") &&
-                      (procedure.status === "pending" || procedure.status === "recheck") && (
+                  {(selectedStatus === "all" ||
+                    selectedStatus === "pending" ||
+                    selectedStatus === "recheck") &&
+                    (procedure.status === "pending" ||
+                      procedure.status === "recheck") && (
                       <>
                         <TouchableOpacity
                           style={{ position: "absolute", top: 10, right: 10 }}
@@ -1206,148 +1288,211 @@ const dateOptions = [
 
       {/* {renderApprovedButton()} */}
 
-      <View
-        style={{
-          marginVertical: 10,
-          flexDirection: "row",
-          alignContent: 'space-between',
-          alignItems: "center",             // Center items vertically                 // Full width of the parent container
-        }}
-      >
-     <View> <Text style={{ marginBottom: 10, textAlign: 'center'}}>Filter by hn : </Text>
-    <TextInput
-      style={{
-        width: '100%',
-        backgroundColor: "#FEF0E6",
-        borderColor: "#FEF0E6",
-        borderWidth: 1,
-        borderRadius: 10,
-        padding: 12,
-        textAlign: "center",
-        marginRight: role !== "student" ? 10 : 0, // Add margin between TextInput and SelectList
-      }}
-      placeholder="Search by hn"
-      value={searchText}
-      onChangeText={(text) => {
-        setSearchText(text);
-      }}
-    />
-    </View>
+      <Button
+        title={isVisible ? "Hide Filters" : "Show Filters"}
+        onPress={() => setIsVisible(!isVisible)}
+      />
 
-  </View>
-
-  {role !== "student" && (
-  <View
-        style={{
-          marginVertical: 10,
-          flexDirection: "row",
-          alignContent: 'space-between',
-          alignItems: "center",  
-        }}
-      >
-      
-        <View> <Text style={{ textAlign: 'center', marginBottom: 10}}>Filter by subject : </Text>
-          <SelectList
-            data={subjectsByYear}
-            setSelected={setSelectedSubject}
-            placeholder="Select subjects"
-            defaultOption={selectedSubject}
-            search={false}
-            boxStyles={{
-              width: "auto",
-              backgroundColor: "#FEF0E6",
-              borderColor: "#FEF0E6",
-              borderWidth: 1,
-              borderRadius: 10,
-              marginLeft: 10,
-              justifyContent: 'center',
-              alignItems: 'center',
-              alignSelf: 'center'
+      {isVisible && (
+        <>
+          <View
+            style={{
+              marginVertical: 10,
+              flexDirection: "row",
+              alignContent: "space-between",
+              alignItems: "center", // Center items vertically                 // Full width of the parent container
             }}
-            dropdownStyles={{ 
-              backgroundColor: "#FEF0E6", 
-              width: "50%",              
-              justifyContent: 'center',
-              alignItems: 'center',
-              alignSelf: 'center' }}
-          />
+          >
+            <View>
+              {" "}
+              <Text style={{ marginBottom: 10, textAlign: "center" }}>
+                Filter by hn :{" "}
+              </Text>
+              <TextInput
+                style={{
+                  width: "100%",
+                  backgroundColor: "#FEF0E6",
+                  borderColor: "#FEF0E6",
+                  borderWidth: 1,
+                  borderRadius: 10,
+                  padding: 12,
+                  textAlign: "center",
+                  marginRight: role !== "student" ? 10 : 0, // Add margin between TextInput and SelectList
+                }}
+                placeholder="Search by hn"
+                value={searchText}
+                onChangeText={(text) => {
+                  setSearchText(text);
+                }}
+              />
+            </View>
           </View>
-    </View>
-    )}
 
-      <View
-        style={{
-          marginVertical: 10,
-          flexDirection: "row",
-          alignContent: 'space-between',
-          alignItems: "center",  
-        }}
-      >
-        <View> <Text style={{ textAlign: 'center', marginBottom: 10}}>Sort by date : </Text>
-        <SelectList
-          data={dateOptions}
-          setSelected={setSortOrder}
-          placeholder="Sort by date"
-          defaultOption={sortOrder}
-          search={false}
-          boxStyles={{
-            width: '100%',
-            backgroundColor: "#FEF0E6",
-            borderColor: "#FEF0E6",
-            borderWidth: 1,
-            borderRadius: 10,
-            justifyContent: 'center',
-            alignItems: 'center',
-          }}
-          dropdownStyles={{ 
-            backgroundColor: "#FEF0E6",
-            width: "100%",
-           }}
-        />
-        </View>
+          {role !== "student" && (
+            <View
+              style={{
+                marginVertical: 10,
+                flexDirection: "row",
+                alignContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <View>
+                {" "}
+                <Text style={{ textAlign: "center", marginBottom: 10 }}>
+                  Filter by subject :{" "}
+                </Text>
+                <SelectList
+                  data={subjectsByYear}
+                  setSelected={setSelectedSubject}
+                  placeholder="Select subjects"
+                  defaultOption={selectedSubject}
+                  search={false}
+                  boxStyles={{
+                    width: "auto",
+                    backgroundColor: "#FEF0E6",
+                    borderColor: "#FEF0E6",
+                    borderWidth: 1,
+                    borderRadius: 10,
+                    marginLeft: 10,
+                    justifyContent: "center",
+                    alignItems: "center",
+                    alignSelf: "center",
+                  }}
+                  dropdownStyles={{
+                    backgroundColor: "#FEF0E6",
+                    width: "50%",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    alignSelf: "center",
+                  }}
+                />
+              </View>
+            </View>
+          )}
 
-        <View style={{ marginLeft: 20}}> <Text style={{ textAlign: 'center', marginBottom: 10}}>Filter by status : </Text>
-        <SelectList
-          data={statusOptions}
-          setSelected={setSelectedStatus}
-          placeholder="Pending"
-          defaultOption={selectedStatus}
-          search={false}
-          boxStyles={{
-            width: '100%',
-            backgroundColor: "#FEF0E6",
-            borderColor: "#FEF0E6",
-            borderWidth: 1,
-            borderRadius: 10,
-            // marginLeft: 20,
-            justifyContent: 'center',
-            alignItems: 'center',
-          }}
-          dropdownStyles={{ 
-            backgroundColor: "#FEF0E6" ,
-            // marginLeft: 20,
-            width: "100%",
-          }}
-        />
-        </View>
+          <View
+            style={{
+              marginVertical: 10,
+              flexDirection: "row",
+              alignContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <View>
+              {" "}
+              <Text style={{ textAlign: "center", marginBottom: 10 }}>
+                Sort by date :{" "}
+              </Text>
+              <SelectList
+                data={dateOptions}
+                setSelected={setSortOrder}
+                placeholder="Sort by date"
+                defaultOption={sortOrder}
+                search={false}
+                boxStyles={{
+                  width: "100%",
+                  backgroundColor: "#FEF0E6",
+                  borderColor: "#FEF0E6",
+                  borderWidth: 1,
+                  borderRadius: 10,
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+                dropdownStyles={{
+                  backgroundColor: "#FEF0E6",
+                  width: "100%",
+                }}
+              />
+            </View>
 
-      </View>
+            <View style={{ marginLeft: 20 }}>
+              {" "}
+              <Text style={{ textAlign: "center", marginBottom: 10 }}>
+                Filter by status :{" "}
+              </Text>
+              <SelectList
+                data={statusOptions}
+                setSelected={setSelectedStatus}
+                placeholder="Pending"
+                defaultOption={selectedStatus}
+                search={false}
+                boxStyles={{
+                  width: "100%",
+                  backgroundColor: "#FEF0E6",
+                  borderColor: "#FEF0E6",
+                  borderWidth: 1,
+                  borderRadius: 10,
+                  // marginLeft: 20,
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+                dropdownStyles={{
+                  backgroundColor: "#FEF0E6",
+                  // marginLeft: 20,
+                  width: "100%",
+                }}
+              />
+            </View>
+          </View>
 
-        <View
-        style={{
-          marginVertical: 10,
-          flexDirection: "row",
-          alignContent: 'space-between',
-          alignItems: "center",  
-        }}
-      >
-        <View> <Text style={{ textAlign: 'center', marginBottom: 10}}>Start Date : </Text>
-          <StartDateInput />
-        </View>
-        <View style={{ marginLeft: 20 }}> <Text style={{ textAlign: 'center', marginBottom: 10}}>End Date : </Text>
-          <EndDateInput />
-        </View>
-      </View>
+          <View
+            style={{
+              marginVertical: 10,
+              flexDirection: "row",
+              alignContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <View>
+              {" "}
+              <Text style={{ textAlign: "center", marginBottom: 10 }}>
+                Start Date :{" "}
+              </Text>
+              <StartDateInput />
+            </View>
+            <View style={{ marginLeft: 20 }}>
+              {" "}
+              <Text style={{ textAlign: "center", marginBottom: 10 }}>
+                End Date :{" "}
+              </Text>
+              <EndDateInput />
+            </View>
+          </View>
+
+          {role !== "student" && (
+            <View
+              style={{
+                marginVertical: 10,
+                flexDirection: "row",
+                alignContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <View>
+                {" "}
+                <Text style={{ textAlign: "center", marginBottom: 10 }}>
+                  Filter by medical student name :{" "}
+                </Text>
+                <SelectList
+                  setSelected={onSelectStudent}
+                  data={students}
+                  placeholder={"Select the Medical student name"}
+                  placeholderTextColor="grey"
+                  boxStyles={{
+                    width: "auto",
+                    backgroundColor: "#FEF0E6",
+                    borderColor: "#FEF0E6",
+                    borderWidth: 1,
+                    borderRadius: 10,
+                  }}
+                  dropdownStyles={{ backgroundColor: "#FEF0E6" }}
+                />
+              </View>
+            </View>
+          )}
+        </>
+      )}
 
       {/* Modal สำหรับยืนยัน Approve/Reject */}
       {/* <Modal
@@ -1480,11 +1625,17 @@ const dateOptions = [
 
       <View style={styles.boxCard}>
         {role === "student" && (
-          <View styles={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <View
+            styles={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
             <Text style={styles.modalText}>
               <Text style={{ fontWeight: "bold" }}>{subject}</Text>
             </Text>
-          {renderAddDataButton()}
+            {renderAddDataButton()}
           </View>
         )}
         <ScrollView>{renderCards()}</ScrollView>
@@ -1558,10 +1709,14 @@ const dateOptions = [
 
                   {(selectedStatus === "approved" ||
                     selectedStatus === "rejected" ||
-                    (selectedStatus === "all" && 
-                      (selectedProcedure.status !== "pending" && 
-                      (role === "student" || (role === "teacher" && selectedProcedure.status !== "recheck")) && 
-                      (selectedProcedure.status === "approved" || selectedProcedure.status === "rejected" || selectedProcedure.status === "recheck"))) ||
+                    (selectedStatus === "all" &&
+                      selectedProcedure.status !== "pending" &&
+                      (role === "student" ||
+                        (role === "teacher" &&
+                          selectedProcedure.status !== "recheck")) &&
+                      (selectedProcedure.status === "approved" ||
+                        selectedProcedure.status === "rejected" ||
+                        selectedProcedure.status === "recheck")) ||
                     (selectedStatus === "recheck" && role === "student")) && (
                     <Text style={styles.modalText}>
                       <Text style={{ fontWeight: "bold" }}>Rating : </Text>
@@ -1571,10 +1726,14 @@ const dateOptions = [
 
                   {(selectedStatus === "approved" ||
                     selectedStatus === "rejected" ||
-                    (selectedStatus === "all" && 
-                      (selectedProcedure.status !== "pending" && 
-                      (role === "student" || (role === "teacher" && selectedProcedure.status !== "recheck")) && 
-                      (selectedProcedure.status === "approved" || selectedProcedure.status === "rejected" || selectedProcedure.status === "recheck"))) ||
+                    (selectedStatus === "all" &&
+                      selectedProcedure.status !== "pending" &&
+                      (role === "student" ||
+                        (role === "teacher" &&
+                          selectedProcedure.status !== "recheck")) &&
+                      (selectedProcedure.status === "approved" ||
+                        selectedProcedure.status === "rejected" ||
+                        selectedProcedure.status === "recheck")) ||
                     (selectedStatus === "recheck" && role === "student")) && (
                     <Text style={styles.modalText}>
                       <Text style={{ fontWeight: "bold" }}>***Comment : </Text>
@@ -1583,7 +1742,7 @@ const dateOptions = [
                   )}
 
                   <View style={styles.buttonRow}>
-                  {/* {(selectedStatus === "approved" ||
+                    {/* {(selectedStatus === "approved" ||
                     selectedStatus === "rejected" ||
                     (selectedStatus === "all" && 
                       (selectedProcedure.status !== "pending" && 
@@ -1602,12 +1761,14 @@ const dateOptions = [
                       </Pressable>
                     )} */}
 
-
                     {role !== "student" &&
                       selectedStatus !== "approved" &&
                       selectedStatus !== "rejected" &&
-                      (selectedStatus === "all" || selectedStatus === "pending" || selectedStatus === "recheck") &&
-                      (selectedProcedure.status === "pending" || selectedProcedure.status === "recheck") &&  (
+                      (selectedStatus === "all" ||
+                        selectedStatus === "pending" ||
+                        selectedStatus === "recheck") &&
+                      (selectedProcedure.status === "pending" ||
+                        selectedProcedure.status === "recheck") && (
                         <View style={styles.centerView2}>
                           {/* <Text style={styles.professionalismHeader}>
                             Professionalism
@@ -1716,7 +1877,6 @@ const dateOptions = [
                               </Text>
                             </View>
                           )} */}
-                          
                           <Text
                             style={{
                               fontSize: 24,
@@ -1767,8 +1927,10 @@ const dateOptions = [
                               Unsatisfied
                             </Text>
                           </View>
-                          {rating === "Unsatisfied" && ( 
-                            <Text>(ไม่สามารถเลือก Approve หรือ Recheck ได้)</Text>
+                          {rating === "Unsatisfied" && (
+                            <Text>
+                              (ไม่สามารถเลือก Approve หรือ Recheck ได้)
+                            </Text>
                           )}
                           <Text
                             style={{
@@ -1809,20 +1971,27 @@ const dateOptions = [
                               </Pressable>
                             )}
                           <View style={styles.buttonContainer}>
-                          {((selectedProcedure.isEdited === undefined || selectedProcedure.isEdited === true) &&
-                              selectedStatus === "all" || selectedStatus === "pending" || (selectedStatus === "recheck" && selectedProcedure.isEdited === true)) &&
-                              (selectedProcedure.status === "pending" || selectedProcedure.status === "recheck") && (
-                              <Pressable
-                                style={[
-                                  styles.recheckModalButton,
-                                  styles.buttonApprove,
-                                ]}
-                                onPress={() => handleApprove()}
-                              >
-                                <Text style={styles.textStyle}>Approve</Text>
-                              </Pressable>
-                            )}
-                            {((selectedProcedure.isEdited === undefined && selectedProcedure.isRecheck === undefined) || selectedProcedure.isEdited === true) && (
+                            {(((selectedProcedure.isEdited === undefined ||
+                              selectedProcedure.isEdited === true) &&
+                              selectedStatus === "all") ||
+                              selectedStatus === "pending" ||
+                              (selectedStatus === "recheck" &&
+                                selectedProcedure.isEdited === true)) &&
+                              (selectedProcedure.status === "pending" ||
+                                selectedProcedure.status === "recheck") && (
+                                <Pressable
+                                  style={[
+                                    styles.recheckModalButton,
+                                    styles.buttonApprove,
+                                  ]}
+                                  onPress={() => handleApprove()}
+                                >
+                                  <Text style={styles.textStyle}>Approve</Text>
+                                </Pressable>
+                              )}
+                            {((selectedProcedure.isEdited === undefined &&
+                              selectedProcedure.isRecheck === undefined) ||
+                              selectedProcedure.isEdited === true) && (
                               <Pressable
                                 style={[
                                   styles.recheckModalButton,
@@ -1833,19 +2002,24 @@ const dateOptions = [
                                 <Text style={styles.textStyle}>Recheck</Text>
                               </Pressable>
                             )}
-                            {((selectedProcedure.isEdited === undefined || selectedProcedure.isEdited === true) &&
-                              selectedStatus === "all" || selectedStatus === "pending" || (selectedStatus === "recheck" && selectedProcedure.isEdited === true)) &&
-                              (selectedProcedure.status === "pending" || selectedProcedure.status === "recheck") && (
-                              <Pressable
-                                style={[
-                                  styles.recheckModalButton,
-                                  styles.buttonCancel,
-                                ]}
-                                onPress={() => handleReject()}
-                              >
-                                <Text style={styles.textStyle}>Reject</Text>
-                              </Pressable>
-                            )}
+                            {(((selectedProcedure.isEdited === undefined ||
+                              selectedProcedure.isEdited === true) &&
+                              selectedStatus === "all") ||
+                              selectedStatus === "pending" ||
+                              (selectedStatus === "recheck" &&
+                                selectedProcedure.isEdited === true)) &&
+                              (selectedProcedure.status === "pending" ||
+                                selectedProcedure.status === "recheck") && (
+                                <Pressable
+                                  style={[
+                                    styles.recheckModalButton,
+                                    styles.buttonCancel,
+                                  ]}
+                                  onPress={() => handleReject()}
+                                >
+                                  <Text style={styles.textStyle}>Reject</Text>
+                                </Pressable>
+                              )}
                           </View>
                           <Pressable
                             style={[styles.button, styles.buttonClose2]}
@@ -1860,7 +2034,9 @@ const dateOptions = [
                       (role === "teacher" &&
                         (selectedStatus === "approved" ||
                           selectedStatus === "rejected" ||
-                          (selectedStatus === "all" && (selectedProcedure.status !== "pending" && selectedProcedure.status !== "recheck"))))) &&
+                          (selectedStatus === "all" &&
+                            selectedProcedure.status !== "pending" &&
+                            selectedProcedure.status !== "recheck")))) &&
                       selectedProcedure.images &&
                       selectedProcedure.images.length > 0 && (
                         <Pressable
@@ -1875,7 +2051,9 @@ const dateOptions = [
                       (role === "teacher" &&
                         (selectedStatus === "approved" ||
                           selectedStatus === "rejected" ||
-                          (selectedStatus === "all" && (selectedProcedure.status !== "pending" && selectedProcedure.status !== "recheck"))))) && (
+                          (selectedStatus === "all" &&
+                            selectedProcedure.status !== "pending" &&
+                            selectedProcedure.status !== "recheck")))) && (
                       <Pressable
                         style={[styles.button, styles.buttonClose]}
                         onPress={() => setModalVisible(!modalVisible)}
@@ -1975,7 +2153,8 @@ const dateOptions = [
                       professionalismScoresModalVisible &&
                       (selectedProcedure.status === "approved" ||
                         selectedProcedure.status === "rejected" ||
-                        (selectedStatus === "all" && selectedProcedure.status !== "pending") ||
+                        (selectedStatus === "all" &&
+                          selectedProcedure.status !== "pending") ||
                         (selectedProcedure.status === "recheck" &&
                           role === "student"))
                     }
@@ -2004,7 +2183,8 @@ const dateOptions = [
                               >
                                 Basic knowledge/basic science :{" "}
                               </Text>
-                              {selectedProcedure.professionalismScores.basicKnowledge
+                              {selectedProcedure.professionalismScores
+                                .basicKnowledge
                                 ? "✔️"
                                 : "❌"}
                             </Text>
@@ -2012,7 +2192,8 @@ const dateOptions = [
                               <Text
                                 style={{ fontWeight: "bold", fontSize: 20 }}
                               >
-                                Clinical skills (history taking and physical examination) :{" "}
+                                Clinical skills (history taking and physical
+                                examination) :{" "}
                               </Text>
                               {selectedProcedure.professionalismScores
                                 .clinicalSkills

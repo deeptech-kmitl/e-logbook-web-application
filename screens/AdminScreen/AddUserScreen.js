@@ -14,6 +14,8 @@ import { SelectList } from "react-native-dropdown-select-list"; // Import Select
 
 const AddUserScreen = () => {
   const [email, setEmail] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [isResetSuccessful, setIsResetSuccessful] = useState(false);
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [role, setRole] = useState("student"); // Default role is 'student'
@@ -64,9 +66,13 @@ const AddUserScreen = () => {
       setDisplayName("");
       setRole("student");
 
+      setIsResetSuccessful(true);
+      setErrorMessage("");
       alert("User added successfully!");
     } catch (error) {
+      setIsResetSuccessful(false);
       console.error("Error adding user:", error.message);
+      setErrorMessage("Unable to adding user: " + error.message);
     }
   };
 
@@ -233,6 +239,14 @@ const AddUserScreen = () => {
         <TouchableOpacity style={styles.addButton} onPress={handleAddUser}>
           <Text style={styles.buttonText}>Add User</Text>
         </TouchableOpacity>
+        {errorMessage ? (
+        <Text style={styles.errorMessage}>{errorMessage}</Text>
+      ) : null}
+      {isResetSuccessful ? (
+        <Text style={styles.successMessage}>
+          Add user successfully!
+        </Text>
+      ) : null}
       </View>
     </View>
   );
@@ -267,6 +281,16 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "bold",
+  },
+  errorMessage: {
+    color: "red",
+    marginTop: 10,
+    textAlign: "center",
+  },
+  successMessage: {
+    color: "green",
+    marginTop: 10,
+    textAlign: "center",
   },
 });
 

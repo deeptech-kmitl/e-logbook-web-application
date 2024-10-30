@@ -26,7 +26,8 @@ import {
   TextInput,
   CheckBox,
   ActivityIndicator,
-  Platform
+  Platform,
+  Button
 } from "react-native";
 import { SelectList } from "react-native-dropdown-select-list";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -49,10 +50,11 @@ function ActivityScreen({ navigation }) {
   const role = useSelector((state) => state.role);
   const [isLoading, setIsLoading] = useState(true);
   const subject = useSelector((state) => state.subject);
+  const [isVisible, setIsVisible] = useState(false);
 
-  const [students, setStudents] = useState([]); // สถานะสำหรับเก็บรายการอาจารย์ทั้งหมด
-  const [studentId, setStudentId] = useState(null); // สถานะสำหรับเก็บ id ของอาจารย์ที่ถูกเลือก
-  const [studentName, setStudentName] = useState(null); // สถานะสำหรับเก็บชื่ออาจารย์ที่ถูกเลือก
+  const [students, setStudents] = useState([]); 
+  const [studentId, setStudentId] = useState(null); 
+  const [studentName, setStudentName] = useState(null); 
   const [selectedStudent, setSelectedStudent] = useState(null);
 
   const [windowWidth, setWindowWidth] = useState(
@@ -91,16 +93,9 @@ function ActivityScreen({ navigation }) {
 
   const [selectedSubject, setSelectedSubject] = useState("All");
   const subjectsByYear = [
-    { key: "All", 
-      value: "All" 
-    },
-    { key: "Family medicine clerkship", 
-      value: "Family medicine clerkship" 
-    },
-    {
-      key: "Internal medicine clerkship",
-      value: "Internal medicine clerkship",
-    },
+    { key: "All", value: "All" },
+    { key: "Family medicine clerkship", value: "Family medicine clerkship" },
+    { key: "Internal medicine clerkship", value: "Internal medicine clerkship" },
     { key: "Surgery clerkship", value: "Surgery clerkship" },
     {
       key: "Anesthesiology, cardiology and critical care medicine clerkship",
@@ -109,6 +104,10 @@ function ActivityScreen({ navigation }) {
     {
       key: "Obstetrics and gynecology clerkship",
       value: "Obstetrics and gynecology clerkship",
+    },
+    {
+      key: "Pediatric clerkship",
+      value: "Pediatric clerkship",
     },
     {
       key: "Ambulatory medicine clerkship",
@@ -135,6 +134,10 @@ function ActivityScreen({ navigation }) {
     {
       key: "Practicum in orthopedics and emergency medicine",
       value: "Practicum in orthopedics and emergency medicine",
+    },
+    {
+      key: "Practicum in community hospital",
+      value: "Practicum in community hospital",
     },
   ];
 
@@ -388,7 +391,7 @@ function ActivityScreen({ navigation }) {
       alignItems: "center",
     },
     boxCard: {
-      height: "60%", // ปรับแต่งความสูงของ boxCard ตามอุปกรณ์
+      height: "70%", // ปรับแต่งความสูงของ boxCard ตามอุปกรณ์
       width: isMobile ? "90%" : "90%", // ปรับแต่งความกว้างของ boxCard ตามอุปกรณ์
       marginLeft: isMobile ? "50" : "50",
       marginRight: isMobile ? "50" : "50",
@@ -1216,6 +1219,13 @@ function ActivityScreen({ navigation }) {
 
       {/* {renderApprovedButton()} */}
 
+      <Button
+          title={isVisible ? "Hide Filters" : "Show Filters"}
+          onPress={() => setIsVisible(!isVisible)}
+        />
+
+      {isVisible && (
+        <>
       <View
         style={{
           marginVertical: 10,
@@ -1359,6 +1369,7 @@ function ActivityScreen({ navigation }) {
         </View>
       </View>
 
+    {role !== "student" && (
       <View
         style={{
           marginVertical: 10,
@@ -1384,6 +1395,9 @@ function ActivityScreen({ navigation }) {
             />
         </View>
       </View>
+    )}
+        </>
+      )}
 
       {/* Modal สำหรับยืนยัน Approve/Reject */}
       {/* <Modal
