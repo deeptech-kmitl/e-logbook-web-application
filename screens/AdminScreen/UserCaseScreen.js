@@ -930,6 +930,7 @@ function UserCaseScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <Button
+          color="#FE810E"
           title={isVisible ? "Hide Filters" : "Show Filters"}
           onPress={() => setIsVisible(!isVisible)}
         />
@@ -939,13 +940,14 @@ function UserCaseScreen({ navigation }) {
       <View
         style={{
           marginVertical: 10,
-          flexDirection: "row",
-          alignContent: 'space-between',
-          alignItems: "center",
+          flexDirection: isPC ? 'row' : 'column', // Row only for wide screens
+          alignItems: isPC ? 'flex-start' : 'center',
+          justifyContent: isPC ? 'flex-start' : 'center',
+          flexWrap: isPC ? 'wrap' : 'nowrap', // Allow wrap on wide screens if needed
         }}
       >
-      <View> 
-        <Text style={{ marginBottom: 10, textAlign: 'center'}}>Filter by hn : </Text>
+      <View style={{ marginBottom: isPC ? 0 : 10, marginRight: isPC ? 20 : 0 }}>
+        <Text style={{ marginBottom: 10, textAlign: 'center' }}>Filter by hn:</Text>
           <TextInput
             style={{
               width: '100%',
@@ -963,17 +965,18 @@ function UserCaseScreen({ navigation }) {
             }}
           />
       </View>
-    </View>
 
-    <View
+    {!isPC ? (
+      <View
         style={{
-          marginVertical: 10,
+          // marginVertical: 10,
           flexDirection: "row",
           alignContent: 'space-between',
           alignItems: "center",  
         }}
       >
-        <View style={{ marginLeft: 20}}> <Text style={{ textAlign: 'center', marginBottom: 10}}>Filter by status : </Text>
+      <View style={{ marginBottom: 10, marginRight: 20 }}>
+        <Text style={{ marginBottom: 10, textAlign: 'center' }}>Filter by status:</Text>
         <SelectList
           data={statusOptions}
           setSelected={setSelectedStatus}
@@ -986,19 +989,16 @@ function UserCaseScreen({ navigation }) {
             borderColor: "#FEF0E6",
             borderWidth: 1,
             borderRadius: 10,
-            // marginLeft: 20,
-            justifyContent: 'center',
-            alignItems: 'center',
           }}
-          dropdownStyles={{ 
-            backgroundColor: "#FEF0E6" ,
-            // marginLeft: 20,
+          dropdownStyles={{
+            backgroundColor: "#FEF0E6",
             width: "100%",
           }}
         />
-        </View>
+      </View>
 
-        <View style={{ marginLeft: 20}}> <Text style={{ textAlign: 'center', marginBottom: 10}}>Filter by case type : </Text>
+      <View style={{ marginBottom: 10, marginRight: 20 }}> 
+        <Text style={{ textAlign: 'center', marginBottom: 10}}>Filter by case type : </Text>
           <SelectList
             data={[
               { key: "all", value: "All Cases" },
@@ -1012,96 +1012,158 @@ function UserCaseScreen({ navigation }) {
             defaultOption={selectedType}
             search={false}
             boxStyles={{
-              width: "auto",
+              width: "100%",
               backgroundColor: "#FEF0E6",
               borderColor: "#FEF0E6",
               borderWidth: 1,
               borderRadius: 10,
-              marginLeft: 15,
-            }}
-            dropdownStyles={{ backgroundColor: "#FEF0E6" }}
-          />
-          </View>
-      </View>
-
-
-    <View
-        style={{
-          marginVertical: 10,
-          flexDirection: "row",
-          alignContent: 'space-between',
-          alignItems: "center",  
-        }}
-      >
-     <View> <Text style={{ textAlign: 'center', marginBottom: 10}}>Filter by instructor name : </Text>
-     <SelectList
-              setSelected={onSelectTeacher}
-              data={teachers}
-              placeholder={"Select the instructor name"}
-              placeholderTextColor="grey"
-              boxStyles={{
-                width: "auto",
-                backgroundColor: "#FEF0E6",
-                borderColor: "#FEF0E6",
-                borderWidth: 1,
-                borderRadius: 10,
-              }}
-              dropdownStyles={{ backgroundColor: "#FEF0E6" }}
-            />
-      </View>
-    </View>
-
-    <View
-        style={{
-          marginVertical: 10,
-          flexDirection: "row",
-          alignContent: 'space-between',
-          alignItems: "center",  
-        }}
-      >
-     <View> <Text style={{ textAlign: 'center', marginBottom: 10}}>Filter by subject : </Text>
-     <SelectList
-            placeholder="All"
-            defaultValue={selectedSubject}
-            setSelected={setSelectedSubject} // 4. เมื่อมีการเลือก Subject ใหม่ ให้เรียกใช้ handleSelectSubject เพื่อเปลี่ยนค่า selectedSubject
-            data={subjectsByYear}
-            search={false}
-            boxStyles={{
-              width: "50%",
-              backgroundColor: "#FEF0E6",
-              borderColor: "#FEF0E6",
-              borderWidth: 1,
-              borderRadius: 10,
-              marginLeft: 10,
-              justifyContent: 'center',
-              alignItems: 'center',
-              alignSelf: 'center'
+              // marginLeft: 15,
             }}
             dropdownStyles={{ 
-              backgroundColor: "#FEF0E6", 
-              width: "50%" ,             
-              justifyContent: 'center',
-              alignItems: 'center',
-              alignSelf: 'center' }}
+              backgroundColor: "#FEF0E6",
+              width: "100%",
+             }}
           />
+          </View>
+        </View>
+        ) : (
+          <>
+      <View style={{ marginBottom: 10, marginRight: 20 }}>
+        <Text style={{ marginBottom: 10, textAlign: 'center' }}>Filter by status:</Text>
+        <SelectList
+          data={statusOptions}
+          setSelected={setSelectedStatus}
+          placeholder="Pending"
+          defaultOption={selectedStatus}
+          search={false}
+          boxStyles={{
+            width: '100%',
+            backgroundColor: "#FEF0E6",
+            borderColor: "#FEF0E6",
+            borderWidth: 1,
+            borderRadius: 10,
+          }}
+          dropdownStyles={{
+            backgroundColor: "#FEF0E6",
+            width: "100%",
+          }}
+        />
       </View>
+
+      <View style={{ marginBottom: 10, marginRight: 20 }}> 
+        <Text style={{ textAlign: 'center', marginBottom: 10}}>Filter by case type : </Text>
+          <SelectList
+            data={[
+              { key: "all", value: "All Cases" },
+              { key: "inpatient", value: "IPD" },
+              { key: "outpatient", value: "OPD" },
+              { key: "procedure", value: "Procedure" },
+              { key: "activity", value: "Activity" },
+            ]}
+            setSelected={setSelectedType}
+            placeholder="All Cases"
+            defaultOption={selectedType}
+            search={false}
+            boxStyles={{
+              width: "100%",
+              backgroundColor: "#FEF0E6",
+              borderColor: "#FEF0E6",
+              borderWidth: 1,
+              borderRadius: 10,
+              // marginLeft: 15,
+            }}
+            dropdownStyles={{ 
+              backgroundColor: "#FEF0E6",
+              width: "100%",
+             }}
+          />
+          </View>
+          </>
+        )}
+
+    <View style={{ marginBottom: isPC ? 0 : 10, marginRight: isPC ? 20 : 0 }}> 
+      <Text style={{ textAlign: 'center', marginBottom: 10}}>Filter by instructor name : </Text>
+      <SelectList
+                setSelected={onSelectTeacher}
+                data={teachers}
+                placeholder={"Select the instructor name"}
+                placeholderTextColor="grey"
+                boxStyles={{
+                  width: "100%",
+                  backgroundColor: "#FEF0E6",
+                  borderColor: "#FEF0E6",
+                  borderWidth: 1,
+                  borderRadius: 10,
+                }}
+                dropdownStyles={{ 
+                  backgroundColor: "#FEF0E6",
+                  width: '100%'
+                 }}
+              />
     </View>
 
-      <View
-        style={{
-          marginVertical: 10,
-          flexDirection: "row",
-          alignContent: 'space-between',
-          alignItems: "center",  
-        }}
-      >
-        <View> <Text style={{ textAlign: 'center', marginBottom: 10}}>Start Date : </Text>
-          <StartDateInput />
-        </View>
-        <View style={{ marginLeft: 20 }}> <Text style={{ textAlign: 'center', marginBottom: 10}}>End Date : </Text>
-          <EndDateInput />
-        </View>
+      <View style={{ marginBottom: isPC ? 0 : 10, marginRight: isPC ? 20 : 0 }}>
+        <Text style={{ textAlign: 'center', marginBottom: 10}}>Filter by subject : </Text>
+        <SelectList
+                placeholder="All"
+                defaultValue={selectedSubject}
+                setSelected={setSelectedSubject} // 4. เมื่อมีการเลือก Subject ใหม่ ให้เรียกใช้ handleSelectSubject เพื่อเปลี่ยนค่า selectedSubject
+                data={subjectsByYear}
+                search={false}
+                boxStyles={{
+                  width: "50%",
+                  backgroundColor: "#FEF0E6",
+                  borderColor: "#FEF0E6",
+                  borderWidth: 1,
+                  borderRadius: 10,
+                  marginLeft: 10,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  alignSelf: 'center'
+                }}
+                dropdownStyles={{ 
+                  backgroundColor: "#FEF0E6", 
+                  width: "50%" ,             
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  alignSelf: 'center' }}
+              />
       </View>
+
+    {!isPC ? (
+  <View
+    style={{
+      // marginVertical: 10,
+      flexDirection: "row",
+      alignContent: 'space-between',
+      alignItems: "center",  
+    }}
+  >
+      <View style={{ marginBottom: isPC ? 0 : 10, marginRight: 20 }}>
+        <Text style={{ marginBottom: 10, textAlign: 'center' }}>Start Date:</Text>
+        <StartDateInput />
+      </View>
+      
+      <View style={{ marginBottom: isPC ? 0 : 10, marginRight: isPC ? 20 : 0 }}>
+        <Text style={{ marginBottom: 10, textAlign: 'center' }}>End Date:</Text>
+        <EndDateInput />
+      </View>
+
+    </View>
+    ) : (
+      <>
+      <View style={{ marginBottom: isPC ? 0 : 10, marginRight: 20 }}>
+        <Text style={{ marginBottom: 10, textAlign: 'center' }}>Start Date:</Text>
+        <StartDateInput />
+      </View>
+      
+      <View style={{ marginBottom: isPC ? 0 : 10, marginRight: isPC ? 20 : 0 }}>
+        <Text style={{ marginBottom: 10, textAlign: 'center' }}>End Date:</Text>
+        <EndDateInput />
+      </View>
+      </>
+)}
+</View>
       </>
       )}
       

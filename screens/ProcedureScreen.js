@@ -680,35 +680,40 @@ function ProcedureScreen({ navigation }) {
     async function fetchStudents() {
       try {
         const studentRef = collection(db, "users");
-        const q = query(studentRef, where("role", "==", "student")); // ใช้ query และ where ในการ filter
-
-        const querySnapshot = await getDocs(q); // ใช้ query ที่ถูก filter ในการ getDocs
-
-        const studentArray = [];
+        const q = query(studentRef, where("role", "==", "student"));
+  
+        const querySnapshot = await getDocs(q);
+        const studentArray = [{ key: "", value: "All" }]; // Add 'All' option
+  
         querySnapshot.forEach((doc) => {
           const data = doc.data();
           studentArray.push({ key: doc.id, value: data.displayName });
         });
-
-        setStudents(studentArray); // ตั้งค่ารายการอาจารย์
+  
+        setStudents(studentArray);
       } catch (error) {
         console.error("Error fetching students:", error);
       }
     }
-
-    fetchStudents(); // เรียกฟังก์ชันเพื่อดึงข้อมูลอาจารย์
+  
+    fetchStudents();
   }, []);
-
+  
   const onSelectStudent = (selectedStudentId) => {
-    const selectedStudent = students.find(
-      (student) => student.key === selectedStudentId
-    );
-    // console.log(selectedTeacher)
-    if (selectedStudent) {
-      setStudentName(selectedStudent.value);
-      setStudentId(selectedStudent.key);
+    if (selectedStudentId === "") { // Check if 'All' is selected
+      setStudentName("All");
+      setStudentId("");
     } else {
-      console.error("Student not found:", selectedStudentId);
+      const selectedStudent = students.find(
+        (student) => student.key === selectedStudentId
+      );
+  
+      if (selectedStudent) {
+        setStudentName(selectedStudent.value);
+        setStudentId(selectedStudent.key);
+      } else {
+        console.error("Student not found:", selectedStudentId);
+      }
     }
   };
 
@@ -1289,210 +1294,221 @@ function ProcedureScreen({ navigation }) {
       {/* {renderApprovedButton()} */}
 
       <Button
-        title={isVisible ? "Hide Filters" : "Show Filters"}
-        onPress={() => setIsVisible(!isVisible)}
-      />
+          color="#FE810E"
+          title={isVisible ? "Hide Filters" : "Show Filters"}
+          onPress={() => setIsVisible(!isVisible)}
+        />
 
-      {isVisible && (
-        <>
-          <View
-            style={{
-              marginVertical: 10,
-              flexDirection: "row",
-              alignContent: "space-between",
-              alignItems: "center", // Center items vertically                 // Full width of the parent container
+{isVisible && (
+  <>
+    <View
+      style={{
+        marginVertical: 10,
+        flexDirection: isPC ? 'row' : 'column', // Row only for wide screens
+        alignItems: isPC ? 'flex-start' : 'center',
+        justifyContent: isPC ? 'flex-start' : 'center',
+        flexWrap: isPC ? 'wrap' : 'nowrap', // Allow wrap on wide screens if needed
+      }}
+    >
+      <View style={{ marginBottom: isPC ? 0 : 10, marginRight: isPC ? 20 : 0 }}>
+        <Text style={{ marginBottom: 10, textAlign: 'center' }}>Filter by hn:</Text>
+        <TextInput
+          style={{
+            width: '100%',
+            backgroundColor: "#FEF0E6",
+            borderColor: "#FEF0E6",
+            borderWidth: 1,
+            borderRadius: 10,
+            padding: 12,
+            textAlign: "center",
+          }}
+          placeholder="Search by hn"
+          value={searchText}
+          onChangeText={(text) => setSearchText(text)}
+        />
+      </View>
+
+      {role !== "student" && (
+        <View style={{ marginBottom: isPC ? 0 : 10, marginRight: isPC ? 20 : 0 }}>
+          <Text style={{ marginBottom: 10, textAlign: 'center' }}>Filter by subject:</Text>
+          <SelectList
+            data={subjectsByYear}
+            setSelected={setSelectedSubject}
+            placeholder="Select subjects"
+            defaultOption={selectedSubject}
+            search={false}
+            boxStyles={{
+              width: '100%',
+              backgroundColor: "#FEF0E6",
+              borderColor: "#FEF0E6",
+              borderWidth: 1,
+              borderRadius: 10,
             }}
-          >
-            <View>
-              {" "}
-              <Text style={{ marginBottom: 10, textAlign: "center" }}>
-                Filter by hn :{" "}
-              </Text>
-              <TextInput
-                style={{
-                  width: "100%",
-                  backgroundColor: "#FEF0E6",
-                  borderColor: "#FEF0E6",
-                  borderWidth: 1,
-                  borderRadius: 10,
-                  padding: 12,
-                  textAlign: "center",
-                  marginRight: role !== "student" ? 10 : 0, // Add margin between TextInput and SelectList
-                }}
-                placeholder="Search by hn"
-                value={searchText}
-                onChangeText={(text) => {
-                  setSearchText(text);
-                }}
-              />
-            </View>
-          </View>
-
-          {role !== "student" && (
-            <View
-              style={{
-                marginVertical: 10,
-                flexDirection: "row",
-                alignContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <View>
-                {" "}
-                <Text style={{ textAlign: "center", marginBottom: 10 }}>
-                  Filter by subject :{" "}
-                </Text>
-                <SelectList
-                  data={subjectsByYear}
-                  setSelected={setSelectedSubject}
-                  placeholder="Select subjects"
-                  defaultOption={selectedSubject}
-                  search={false}
-                  boxStyles={{
-                    width: "auto",
-                    backgroundColor: "#FEF0E6",
-                    borderColor: "#FEF0E6",
-                    borderWidth: 1,
-                    borderRadius: 10,
-                    marginLeft: 10,
-                    justifyContent: "center",
-                    alignItems: "center",
-                    alignSelf: "center",
-                  }}
-                  dropdownStyles={{
-                    backgroundColor: "#FEF0E6",
-                    width: "50%",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    alignSelf: "center",
-                  }}
-                />
-              </View>
-            </View>
-          )}
-
-          <View
-            style={{
-              marginVertical: 10,
-              flexDirection: "row",
-              alignContent: "space-between",
-              alignItems: "center",
+            dropdownStyles={{
+              backgroundColor: "#FEF0E6",
+              width: "100%",
             }}
-          >
-            <View>
-              {" "}
-              <Text style={{ textAlign: "center", marginBottom: 10 }}>
-                Sort by date :{" "}
-              </Text>
-              <SelectList
-                data={dateOptions}
-                setSelected={setSortOrder}
-                placeholder="Sort by date"
-                defaultOption={sortOrder}
-                search={false}
-                boxStyles={{
-                  width: "100%",
-                  backgroundColor: "#FEF0E6",
-                  borderColor: "#FEF0E6",
-                  borderWidth: 1,
-                  borderRadius: 10,
-                  justifyContent: "center",
-                  alignItems: "center",
-                }}
-                dropdownStyles={{
-                  backgroundColor: "#FEF0E6",
-                  width: "100%",
-                }}
-              />
-            </View>
-
-            <View style={{ marginLeft: 20 }}>
-              {" "}
-              <Text style={{ textAlign: "center", marginBottom: 10 }}>
-                Filter by status :{" "}
-              </Text>
-              <SelectList
-                data={statusOptions}
-                setSelected={setSelectedStatus}
-                placeholder="Pending"
-                defaultOption={selectedStatus}
-                search={false}
-                boxStyles={{
-                  width: "100%",
-                  backgroundColor: "#FEF0E6",
-                  borderColor: "#FEF0E6",
-                  borderWidth: 1,
-                  borderRadius: 10,
-                  // marginLeft: 20,
-                  justifyContent: "center",
-                  alignItems: "center",
-                }}
-                dropdownStyles={{
-                  backgroundColor: "#FEF0E6",
-                  // marginLeft: 20,
-                  width: "100%",
-                }}
-              />
-            </View>
-          </View>
-
-          <View
-            style={{
-              marginVertical: 10,
-              flexDirection: "row",
-              alignContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <View>
-              {" "}
-              <Text style={{ textAlign: "center", marginBottom: 10 }}>
-                Start Date :{" "}
-              </Text>
-              <StartDateInput />
-            </View>
-            <View style={{ marginLeft: 20 }}>
-              {" "}
-              <Text style={{ textAlign: "center", marginBottom: 10 }}>
-                End Date :{" "}
-              </Text>
-              <EndDateInput />
-            </View>
-          </View>
-
-          {role !== "student" && (
-            <View
-              style={{
-                marginVertical: 10,
-                flexDirection: "row",
-                alignContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <View>
-                {" "}
-                <Text style={{ textAlign: "center", marginBottom: 10 }}>
-                  Filter by medical student name :{" "}
-                </Text>
-                <SelectList
-                  setSelected={onSelectStudent}
-                  data={students}
-                  placeholder={"Select the Medical student name"}
-                  placeholderTextColor="grey"
-                  boxStyles={{
-                    width: "auto",
-                    backgroundColor: "#FEF0E6",
-                    borderColor: "#FEF0E6",
-                    borderWidth: 1,
-                    borderRadius: 10,
-                  }}
-                  dropdownStyles={{ backgroundColor: "#FEF0E6" }}
-                />
-              </View>
-            </View>
-          )}
-        </>
+          />
+        </View>
       )}
+
+{!isPC ? (
+  <View
+    style={{
+      // marginVertical: 10,
+      flexDirection: "row",
+      alignContent: 'space-between',
+      alignItems: "center",  
+    }}
+  >
+    <View style={{ marginBottom: 10 , marginRight: 20}}>
+      <Text style={{ marginBottom: 10, textAlign: 'center' }}>Sort by date:</Text>
+      <SelectList
+        data={dateOptions}
+        setSelected={setSortOrder}
+        placeholder="Sort by date"
+        defaultOption={sortOrder}
+        search={false}
+        boxStyles={{
+          width: '100%',
+          backgroundColor: "#FEF0E6",
+          borderColor: "#FEF0E6",
+          borderWidth: 1,
+          borderRadius: 10,
+        }}
+        dropdownStyles={{
+          backgroundColor: "#FEF0E6",
+          width: "100%",
+        }}
+      />
+    </View>
+
+    <View style={{ marginBottom: 10, marginRight: 20 }}>
+      <Text style={{ marginBottom: 10, textAlign: 'center' }}>Filter by status:</Text>
+      <SelectList
+        data={statusOptions}
+        setSelected={setSelectedStatus}
+        placeholder="Pending"
+        defaultOption={selectedStatus}
+        search={false}
+        boxStyles={{
+          width: '100%',
+          backgroundColor: "#FEF0E6",
+          borderColor: "#FEF0E6",
+          borderWidth: 1,
+          borderRadius: 10,
+        }}
+        dropdownStyles={{
+          backgroundColor: "#FEF0E6",
+          width: "100%",
+        }}
+      />
+    </View>
+  </View>
+) : (
+  <>
+    <View style={{ marginBottom: 10, marginRight: 20 }}>
+      <Text style={{ marginBottom: 10, textAlign: 'center' }}>Sort by date:</Text>
+      <SelectList
+        data={dateOptions}
+        setSelected={setSortOrder}
+        placeholder="Sort by date"
+        defaultOption={sortOrder}
+        search={false}
+        boxStyles={{
+          width: '100%',
+          backgroundColor: "#FEF0E6",
+          borderColor: "#FEF0E6",
+          borderWidth: 1,
+          borderRadius: 10,
+        }}
+        dropdownStyles={{
+          backgroundColor: "#FEF0E6",
+          width: "100%",
+        }}
+      />
+    </View>
+
+    <View style={{ marginBottom: 10, marginRight: 20 }}>
+      <Text style={{ marginBottom: 10, textAlign: 'center' }}>Filter by status:</Text>
+      <SelectList
+        data={statusOptions}
+        setSelected={setSelectedStatus}
+        placeholder="Pending"
+        defaultOption={selectedStatus}
+        search={false}
+        boxStyles={{
+          width: '100%',
+          backgroundColor: "#FEF0E6",
+          borderColor: "#FEF0E6",
+          borderWidth: 1,
+          borderRadius: 10,
+        }}
+        dropdownStyles={{
+          backgroundColor: "#FEF0E6",
+          width: "100%",
+        }}
+      />
+    </View>
+  </>
+)}
+
+{!isPC ? (
+  <View
+    style={{
+      // marginVertical: 10,
+      flexDirection: "row",
+      alignContent: 'space-between',
+      alignItems: "center",  
+    }}
+  >
+      <View style={{ marginBottom: isPC ? 0 : 10, marginRight: 20 }}>
+        <Text style={{ marginBottom: 10, textAlign: 'center' }}>Start Date:</Text>
+        <StartDateInput />
+      </View>
+      
+      <View style={{ marginBottom: isPC ? 0 : 10, marginRight: isPC ? 20 : 0 }}>
+        <Text style={{ marginBottom: 10, textAlign: 'center' }}>End Date:</Text>
+        <EndDateInput />
+      </View>
+
+    </View>
+    ) : (
+      <>
+      <View style={{ marginBottom: isPC ? 0 : 10, marginRight: 20 }}>
+        <Text style={{ marginBottom: 10, textAlign: 'center' }}>Start Date:</Text>
+        <StartDateInput />
+      </View>
+      
+      <View style={{ marginBottom: isPC ? 0 : 10, marginRight: isPC ? 20 : 0 }}>
+        <Text style={{ marginBottom: 10, textAlign: 'center' }}>End Date:</Text>
+        <EndDateInput />
+      </View>
+      </>
+)}
+
+      {role !== "student" && (
+        <View style={{ marginBottom: isPC ? 0 : 10, marginRight: isPC ? 20 : 0 }}>
+          <Text style={{ marginBottom: 10, textAlign: 'center' }}>Filter by medical student name:</Text>
+          <SelectList
+            setSelected={onSelectStudent}
+            data={students}
+            placeholder="Select the Medical student name"
+            placeholderTextColor="grey"
+            boxStyles={{
+              width: '100%',
+              backgroundColor: "#FEF0E6",
+              borderColor: "#FEF0E6",
+              borderWidth: 1,
+              borderRadius: 10,
+            }}
+            dropdownStyles={{ backgroundColor: "#FEF0E6" }}
+          />
+        </View>
+      )}
+    </View>
+  </>
+)}
 
       {/* Modal สำหรับยืนยัน Approve/Reject */}
       {/* <Modal
