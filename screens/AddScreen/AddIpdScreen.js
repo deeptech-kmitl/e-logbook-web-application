@@ -32,6 +32,9 @@ import SubHeader from "../../component/SubHeader";
 function AddIpdScreen({ navigation }) {
   const [selectedDate, setSelectedDate] = useState(new Date());
 
+  const [selectedDiagnostic, setSelectedDiagnostic] = useState("");
+  const [mainDiagnostic, setMainDiagnostic] = useState("");
+
   const [mainDiagnosis, setMainDiagnosis] = useState(""); // ใช้ TextInput สำหรับ Main Diagnosis
   const [selectedDiagnosis, setSelectedDiagnosis] = useState([{}]); // เก็บโรคที่เลือกทั้งหมด
   const [mainDiagnoses, setMainDiagnoses] = useState([]); // เก็บรายชื่อโรค
@@ -166,6 +169,29 @@ function AddIpdScreen({ navigation }) {
     }
   };
 
+  useEffect(() => {
+    async function fetchDiagnosticType() {
+      try {
+        const diagnosticTypeRef = collection(db, "diagnosis_type");
+        const querySnapshot = await getDocs(diagnosticTypeRef);
+
+        const Diagnostic = [];
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          data.diagnosisType.forEach((diagnostic) => {
+            Diagnostic.push({ key: diagnostic, value: diagnostic });
+          });
+        });
+
+        setMainDiagnostic(Diagnostic);
+      } catch (error) {
+        console.error("Error fetching main diagnosis:", error);
+      }
+    }
+
+    fetchDiagnosticType();
+  }, []);
+
   const onSelectTeacher = (selectedTeacherId) => {
     const selectedTeacher = teachers.find(
       (teacher) => teacher.key === selectedTeacherId
@@ -250,6 +276,11 @@ function AddIpdScreen({ navigation }) {
         return;
       }
 
+      if (!selectedDiagnostic && subject === "Practicum in internal medicine") {
+        alert("โปรดเลือกหมวดหมู่การวินิจฉัย");
+        return;
+      }
+
       if (!mainDiagnosis && !otherDiagnosis) {
         alert("โปรดกรอก Main Diagnosis หรือใส่โรคอื่นๆ");
         return;
@@ -296,6 +327,7 @@ function AddIpdScreen({ navigation }) {
           admissionDate: timestamp,
           coMorbid: selectedDiagnosis.length > 0 ? selectedDiagnosis : null,
           createBy_id: uid, // User ID
+          ...(subject === "Practicum in internal medicine" && { diagnosticType: selectedDiagnostic }), // Conditional diagnosticType
           hn: fullHN, // HN
           mainDiagnosis: isOtherSelected ? otherDiagnosis : mainDiagnosis,
           note: note, // Note
@@ -317,6 +349,7 @@ function AddIpdScreen({ navigation }) {
         setHNYear("");
         setSelectedDate(new Date());
         setSelectedDiagnosis([{}]);
+        setSelectedDiagnostic("");
         setCoMorbid("");
         setNote("");
         setPdfFile(null);
@@ -485,6 +518,7 @@ function AddIpdScreen({ navigation }) {
               />
             </View>
           </View>
+
           <View style={{ width: dimensions.width < 768 ? "100%" : "45%" }}>
             <Text
               style={{
@@ -512,6 +546,36 @@ function AddIpdScreen({ navigation }) {
               dropdownStyles={{ backgroundColor: "#FEF0E6" }}
             />
           </View>
+
+        {subject === "Practicum in internal medicine" && (
+          <View style={{ width: dimensions.width < 768 ? "100%" : "45%" }}>
+            <Text
+              style={{
+                fontSize: 20,
+                fontWeight: 400,
+                marginVertical: 8,
+                textAlign: "left",
+                alignItems: "flex-start",
+              }}
+            >
+              หมวดหมู่การวินิจฉัย
+            </Text>
+            <SelectList
+              setSelected={setSelectedDiagnostic}
+              data={mainDiagnostic}
+              placeholder={"Select the diagnostic type"}
+              placeholderTextColor="grey"
+              boxStyles={{
+                width: "auto",
+                backgroundColor: "#FEF0E6",
+                borderColor: "#FEF0E6",
+                borderWidth: 1,
+                borderRadius: 10,
+              }}
+              dropdownStyles={{ backgroundColor: "#FEF0E6" }}
+            />
+          </View>
+          )}
         </View>
 
         <View>

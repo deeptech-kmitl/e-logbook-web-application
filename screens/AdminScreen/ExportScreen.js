@@ -399,6 +399,7 @@ const getSelectedDataForExport = () => {
       "Creator ID": patient.createBy_id,
       HN: patient.hn,
       "Patient Type": patient.patientType,
+      "หมวดหมู่การวินิจฉัย": patient.diagnosticType,
       "Main Diagnosis": patient.mainDiagnosis,
       "Co-Morbid": patient.coMorbid
         ? patient.coMorbid.map((item) => item.value).join(", ")
@@ -565,6 +566,7 @@ const getSelectedDataForExport = () => {
                     <Text style={styles.columnHeader}>Creator ID</Text>
                     <Text style={styles.columnHeader}>HN</Text>
                     <Text style={styles.columnHeader}>Patient Type</Text>
+                    <Text style={styles.columnHeader}>หมวดหมู่การวินิจฉัย</Text>
                     <Text style={styles.columnHeader}>Main Diagnosis</Text>
                     {/* <Text style={styles.columnHeader}>Co-Morbid</Text> */}
                     <Text style={styles.columnHeader}>Instructor Name</Text>
@@ -634,6 +636,7 @@ const getSelectedDataForExport = () => {
                       <Text style={styles.tableCell}>{item.createBy_id}</Text>
                       <Text style={styles.tableCell}>{item.hn}</Text>
                       <Text style={styles.tableCell}>{item.patientType}</Text>
+                      <Text style={styles.tableCell}>{item.diagnosticType}</Text>
                       <Text style={styles.tableCell}>{item.mainDiagnosis}</Text>
                       {/* <Text style={styles.tableCell}>{item.coMorbid.map(cm => cm.value).join(', ')}</Text> */}
                       <Text style={styles.tableCell}>{item.professorName}</Text>

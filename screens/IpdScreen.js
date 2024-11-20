@@ -50,6 +50,9 @@ function IpdScreen({ navigation }) {
   const subject = useSelector((state) => state.subject);
   const [isVisible, setIsVisible] = useState(false);
 
+  // const [selectedDiagnosis, setSelectedDiagnosis] = useState([]);
+  // const [mainDiagnosis, setMainDiagnosis] = useState([]);
+
   const [students, setStudents] = useState([]); 
   const [studentId, setStudentId] = useState(null); 
   const [studentName, setStudentName] = useState(null); 
@@ -1621,11 +1624,19 @@ function IpdScreen({ navigation }) {
                     <Text style={{ fontWeight: "bold" }}>HN :</Text>{" "}
                     {selectedPatient.hn || "ไม่มี"}
                   </Text>
+                  {selectedPatient.diagnosticType && (
+                  <Text style={styles.modalText}>
+                    <Text style={{ fontWeight: "bold" }}>
+                      หมวดหมู่การวินิจฉัย :{" "}
+                    </Text>
+                    {selectedPatient.diagnosticType || "ไม่มี"}
+                  </Text>
+                  )}
                   <Text style={styles.modalText}>
                     <Text style={{ fontWeight: "bold" }}>
                       Main Diagnosis :{" "}
                     </Text>
-                    {selectedPatient.mainDiagnosis || "None"}
+                    {selectedPatient.mainDiagnosis || "ไม่มี"}
                   </Text>
                   <Text style={styles.modalText}>
                     <Text style={{ fontWeight: "bold" }}>

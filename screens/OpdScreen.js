@@ -50,6 +50,9 @@ function OpdScreen({ navigation }) {
   const subject = useSelector((state) => state.subject);
   const [isVisible, setIsVisible] = useState(false);
 
+  // const [selectedDiagnosis, setSelectedDiagnosis] = useState([]);
+  // const [mainDiagnosis, setMainDiagnosis] = useState([]);
+
   const [students, setStudents] = useState([]); 
   const [studentId, setStudentId] = useState(null); 
   const [studentName, setStudentName] = useState(null); 
@@ -391,6 +394,39 @@ function OpdScreen({ navigation }) {
       flexDirection: "column",
       alignItems: "center",
     },
+    label: {
+      fontSize: 16,
+      fontWeight: "bold",
+      marginBottom: 5,
+    },
+    inputRow: {
+      flexDirection: "row",
+      alignContent: "space-between",
+      alignItems: "center",
+    },
+    textInput: {
+      width: "100%",
+      backgroundColor: "#FEF0E6",
+      borderColor: "#FEF0E6",
+      borderWidth: 1,
+      borderRadius: 10,
+      padding: 12,
+      textAlign: "center",
+      marginRight: role !== "student" ? 10 : 0,
+    },
+    selectListBox: {
+      width: "100%",
+      backgroundColor: "#FEF0E6",
+      borderColor: "#FEF0E6",
+      borderWidth: 1,
+      borderRadius: 10,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    selectListDropdown: {
+      backgroundColor: "#FEF0E6",
+      width: "100%",
+    },
     boxCard: {
       height: "70%", // ปรับแต่งความสูงของ boxCard ตามอุปกรณ์
       width: isMobile ? "90%" : "90%", // ปรับแต่งความกว้างของ boxCard ตามอุปกรณ์
@@ -701,14 +737,14 @@ function OpdScreen({ navigation }) {
       let q;
   
       if (role === "student") {
-        // Fetch inpatients created by the current student
+        // Fetch outpatients created by the current student
         q = query(
           patientCollectionRef,
           where("patientType", "==", "outpatient"),
           where("createBy_id", "==", currentUserUid)
         );
       } else if (role === "teacher") {
-        // Fetch inpatients related to the current teacher
+        // Fetch outpatients related to the current teacher
         q = query(
           patientCollectionRef,
           where("patientType", "==", "outpatient"),
@@ -746,6 +782,7 @@ function OpdScreen({ navigation }) {
       console.error("Error fetching patient data:", error);
     }
   };
+
   useEffect(() => {
     const updateLayout = () => {
       const windowWidth = Dimensions.get("window").width;
@@ -1589,9 +1626,15 @@ function OpdScreen({ navigation }) {
                   </Text>
                   <Text style={styles.modalText}>
                     <Text style={{ fontWeight: "bold" }}>
+                      หมวดหมู่การวินิจฉัย :{" "}
+                    </Text>
+                    {selectedPatient.diagnosticType || "ไม่มี"}
+                  </Text>
+                  <Text style={styles.modalText}>
+                    <Text style={{ fontWeight: "bold" }}>
                       Main Diagnosis :{" "}
                     </Text>
-                    {selectedPatient.mainDiagnosis || "None"}
+                    {selectedPatient.mainDiagnosis || "ไม่มี"}
                   </Text>
                   <Text style={styles.modalText}>
                     <Text style={{ fontWeight: "bold" }}>
@@ -1880,7 +1923,7 @@ function OpdScreen({ navigation }) {
                               </Pressable>
                             )}
                             {/* {!selectedPatient.isrecheck && ( */}
-                          {((selectedPatient.isEdited === undefined && selectedPatient.isrecheck === undefined) || selectedPatient.isEdited === true) && (
+                          {((selectedPatient.isEdited === undefined && selectedPatient.isRecheck === undefined) || selectedPatient.isEdited === true) && (
                             <Pressable
                               style={[
                                 styles.recheckModalButton,

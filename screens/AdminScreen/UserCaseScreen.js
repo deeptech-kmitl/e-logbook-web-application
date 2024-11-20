@@ -396,7 +396,7 @@ function UserCaseScreen({ navigation }) {
       shadowRadius: 4,
       elevation: 5,
       width: isMobile ? "90%" : isTablet ? "70%" : "50%", // Responsive width
-      height: isMobile ? "auto" : "70%", // Auto height for mobile
+      height: isMobile ? "90%" : "70%", // Auto height for mobile
     },
     button: {
       backgroundColor: "#05AB9F",
@@ -1253,6 +1253,14 @@ function UserCaseScreen({ navigation }) {
                     <Text style={styles.modalText}>
                       <Text style={{ fontWeight: "bold" }}>Level :</Text>{" "}
                       {displayLevel(selectedCase.procedureLevel)}
+                    </Text>
+                  )}
+                  {selectedCase.diagnosticType && (
+                    <Text style={styles.modalText}>
+                      <Text style={{ fontWeight: "bold" }}>
+                        หมวดหมู่การวินิจฉัย :
+                      </Text>{" "}
+                      {selectedCase.diagnosticType}
                     </Text>
                   )}
                   {selectedCase.mainDiagnosis && (
