@@ -385,7 +385,7 @@ function AddIpdScreen({ navigation }) {
           style={{
             flexDirection: dimensions.width < 768 ? "column" : "row",
             alignItems: "left",
-            marginBottom: 16,
+            marginBottom: 8,
             justifyContent: "space-between",
           }}
         >
@@ -462,7 +462,7 @@ function AddIpdScreen({ navigation }) {
           style={{
             flexDirection: dimensions.width < 768 ? "column" : "row",
             justifyContent: "space-between",
-            marginBottom: 16,
+            marginBottom: 8,
           }}
         >
           <View style={{ width: dimensions.width < 768 ? "100%" : "45%" }}>
@@ -546,9 +546,10 @@ function AddIpdScreen({ navigation }) {
               dropdownStyles={{ backgroundColor: "#FEF0E6" }}
             />
           </View>
+        </View>
 
         {subject === "Practicum in internal medicine" && (
-          <View style={{ width: dimensions.width < 768 ? "100%" : "45%" }}>
+          <View>
             <Text
               style={{
                 fontSize: 20,
@@ -576,7 +577,6 @@ function AddIpdScreen({ navigation }) {
             />
           </View>
           )}
-        </View>
 
         <View>
           <Text
