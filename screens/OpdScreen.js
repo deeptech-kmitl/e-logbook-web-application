@@ -39,6 +39,12 @@ function OpdScreen({ navigation }) {
   const [modalVisible, setModalVisible] = useState(false);
   const [confirmationModalVisible, setConfirmationModalVisible] =
     useState(false);
+  const [approveConfirmationVisible, setApproveConfirmationVisible] = 
+    useState(false);
+  const [recheckConfirmationVisible, setRecheckConfirmationVisible] = 
+    useState(false);
+  const [rejectConfirmationVisible, setRejectConfirmationVisible] = 
+    useState(false);
   const [deleteConfirmationVisible, setDeleteConfirmationVisible] =
     useState(false);
   const [patientToDelete, setPatientToDelete] = useState(null);
@@ -1624,12 +1630,14 @@ function OpdScreen({ navigation }) {
                     <Text style={{ fontWeight: "bold" }}>HN :</Text>{" "}
                     {selectedPatient.hn || "ไม่มี"}
                   </Text>
+                  {selectedPatient.diagnosticType && (
                   <Text style={styles.modalText}>
                     <Text style={{ fontWeight: "bold" }}>
                       หมวดหมู่การวินิจฉัย :{" "}
                     </Text>
                     {selectedPatient.diagnosticType || "ไม่มี"}
                   </Text>
+                  )}
                   <Text style={styles.modalText}>
                     <Text style={{ fontWeight: "bold" }}>
                       Main Diagnosis :{" "}
@@ -1917,7 +1925,7 @@ function OpdScreen({ navigation }) {
                                   styles.recheckModalButton,
                                   styles.buttonApprove,
                                 ]}
-                                onPress={() => handleApprove()}
+                                onPress={() => setApproveConfirmationVisible(true)}
                               >
                                 <Text style={styles.textStyle}>Approve</Text>
                               </Pressable>
@@ -1929,7 +1937,7 @@ function OpdScreen({ navigation }) {
                                 styles.recheckModalButton,
                                 styles.buttonReApprove,
                               ]}
-                              onPress={() => handleReApprove()}
+                              onPress={() => setRecheckConfirmationVisible(true)}
                             >
                               <Text style={styles.textStyle}>Recheck</Text>
                             </Pressable>
@@ -1943,7 +1951,7 @@ function OpdScreen({ navigation }) {
                                   styles.recheckModalButton,
                                   styles.buttonCancel,
                                 ]}
-                                onPress={() => handleReject()}
+                                onPress={() => setRejectConfirmationVisible(true)}
                               >
                                 <Text style={styles.textStyle}>Reject</Text>
                               </Pressable>
@@ -1987,6 +1995,105 @@ function OpdScreen({ navigation }) {
                       </Pressable>
                     )}
                   </View>
+
+                {/* Modal สำหรับยืนยันการ Approve */}
+                <Modal
+                        animationType="fade"
+                        transparent={true}
+                        visible={approveConfirmationVisible}
+                        onRequestClose={() => setApproveConfirmationVisible(false)}
+                      >
+                        <View style={styles.centerView}>
+                          <View style={styles.modalView}>
+                            <Text style={styles.modalText}>
+                              Confirm approve this case?
+                            </Text>
+                            <View style={styles.buttonContainer}>
+                              <Pressable
+                                style={[styles.recheckModalButton, styles.buttonApprove]}
+                                onPress={() => {
+                                  handleApprove();
+                                  setApproveConfirmationVisible(false);
+                                }}
+                              >
+                                <Text style={styles.textStyle}>Confirm</Text>
+                              </Pressable>
+                              <Pressable
+                                style={[styles.recheckModalButton, styles.buttonCancel]}
+                                onPress={() => setApproveConfirmationVisible(false)}
+                              >
+                                <Text style={styles.textStyle}>Cancel</Text>
+                              </Pressable>
+                            </View>
+                          </View>
+                        </View>
+                      </Modal>
+
+                {/* Modal สำหรับยืนยันการ Recheck */}
+                <Modal
+                        animationType="fade"
+                        transparent={true}
+                        visible={recheckConfirmationVisible}
+                        onRequestClose={() => setRecheckConfirmationVisible(false)}
+                      >
+                        <View style={styles.centerView}>
+                          <View style={styles.modalView}>
+                            <Text style={styles.modalText}>
+                              Confirm recheck this case?
+                            </Text>
+                            <View style={styles.buttonContainer}>
+                              <Pressable
+                                style={[styles.recheckModalButton, styles.buttonApprove]}
+                                onPress={() => {
+                                  handleReApprove();
+                                  setRecheckConfirmationVisible(false);
+                                }}
+                              >
+                                <Text style={styles.textStyle}>Confirm</Text>
+                              </Pressable>
+                              <Pressable
+                                style={[styles.recheckModalButton, styles.buttonCancel]}
+                                onPress={() => setRecheckConfirmationVisible(false)}
+                              >
+                                <Text style={styles.textStyle}>Cancel</Text>
+                              </Pressable>
+                            </View>
+                          </View>
+                        </View>
+                      </Modal>
+
+                {/* Modal สำหรับยืนยันการ Reject */}
+                <Modal
+                        animationType="fade"
+                        transparent={true}
+                        visible={rejectConfirmationVisible}
+                        onRequestClose={() => setRejectConfirmationVisible(false)}
+                      >
+                        <View style={styles.centerView}>
+                          <View style={styles.modalView}>
+                            <Text style={styles.modalText}>
+                              Confirm reject this case?
+                            </Text>
+                            <View style={styles.buttonContainer}>
+                              <Pressable
+                                style={[styles.recheckModalButton, styles.buttonApprove]}
+                                onPress={() => {
+                                  handleReject();
+                                  setRejectConfirmationVisible(false);
+                                }}
+                              >
+                                <Text style={styles.textStyle}>Confirm</Text>
+                              </Pressable>
+                              <Pressable
+                                style={[styles.recheckModalButton, styles.buttonCancel]}
+                                onPress={() => setRejectConfirmationVisible(false)}
+                              >
+                                <Text style={styles.textStyle}>Cancel</Text>
+                              </Pressable>
+                            </View>
+                          </View>
+                        </View>
+                      </Modal>
 
                   {/* Modal สำหรับแสดงคะแนนความเป็นมืออาชีพ */}
                   <Modal
