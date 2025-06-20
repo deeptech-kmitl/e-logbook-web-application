@@ -50,7 +50,7 @@ function UserCaseScreen({ navigation }) {
 
   const [selectedCase, setSelectedCase] = useState(null);
   const [selectedSubject, setSelectedSubject] = useState("All"); 
-  
+
   const [hnSearch, setHnSearch] = useState("");
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(new Date());
@@ -126,11 +126,17 @@ function UserCaseScreen({ navigation }) {
   ];
 
   const [professors, setProfessors] = useState([]);
-  const [selectedProfessor, setSelectedProfessor] = useState(null);
   const [professorList, setProfessorList] = useState([]);
+
+  const [selectedProfessor, setSelectedProfessor] = useState(null);
   const [professorId, setProfessorId] = useState(null); // สถานะสำหรับเก็บ id ของอาจารย์ที่ถูกเลือก
   const [professorName, setProfessorName] = useState(null); // สถานะสำหรับเก็บชื่ออาจารย์ที่ถูกเลือก
   const [teachers, setTeachers] = useState([]); // สถานะสำหรับเก็บรายการอาจารย์ทั้งหมด
+
+  const [students, setStudents] = useState([]); 
+  const [studentId, setStudentId] = useState(null); 
+  const [studentName, setStudentName] = useState(null); 
+  const [selectedStudent, setSelectedStudent] = useState(null);
 
   // const loadProfessorData = async () => {
   //   try {
@@ -174,12 +180,50 @@ function UserCaseScreen({ navigation }) {
     fetchTeachers(); // เรียกฟังก์ชันเพื่อดึงข้อมูลอาจารย์
   }, []);
 
+  useEffect(() => {
+    async function fetchStudents() {
+      try {
+        const studentRef = collection(db, "users");
+        const q = query(studentRef, where("role", "==", "student"));
+  
+        const querySnapshot = await getDocs(q);
+
+        const studentArray = []; // Add 'All' option
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          studentArray.push({ key: doc.id, value: data.displayName });
+        });
+  
+        setStudents(studentArray);
+      } catch (error) {
+        console.error("Error fetching students:", error);
+      }
+    }
+  
+    fetchStudents();
+  }, []);
+  
+  const onSelectStudent = (selectedStudentId) => {
+      const selectedStudent = students.find(
+        (student) => student.key === selectedStudentId
+      );
+  
+      if (selectedStudent) {
+        console.log("🧑‍🎓 Selected student:", selectedStudent);
+        setStudentName(selectedStudent.value);
+        setStudentId(selectedStudent.key);
+      } else {
+        console.error("Student not found:", selectedStudentId);
+      }
+    };
+
   const onSelectTeacher = (selectedTeacherId) => {
     const selectedTeacher = teachers.find(
       (teacher) => teacher.key === selectedTeacherId
     );
-    // console.log(selectedTeacher)
+
     if (selectedTeacher) {
+      // console.log("🧑‍🎓 Selected teacher:", selectedTeacher);
       setProfessorName(selectedTeacher.value);
       setProfessorId(selectedTeacher.key);
     } else {
@@ -187,10 +231,20 @@ function UserCaseScreen({ navigation }) {
     }
   };
 
-  useEffect(() => {
-    // Trigger re-render when hnSearch, startDate, endDate, selectedType, or selectedProfessor change
-    renderCards();
-  }, [hnSearch, startDate, endDate, selectedType, selectedStatus, selectedProfessor]);
+useEffect(() => {
+  renderCards();
+}, [
+  hnSearch,
+  startDate,
+  endDate,
+  selectedType,
+  selectedStatus,
+  studentId,
+  studentName,
+  professorId,
+  professorName,
+]);
+
 
   // useEffect(() => {
   //   const unsubscribe = navigation.addListener("focus", () => {
@@ -348,7 +402,7 @@ function UserCaseScreen({ navigation }) {
     },
     card: {
       width: "95%",
-      height: isMobile ? 150 : 150, // ปรับแต่งความสูงของ card ตามอุปกรณ์
+      height: isMobile ? 200 : 200, // ปรับแต่งความสูงของ card ตามอุปกรณ์
       marginVertical: isMobile ? 10 : 20, // ปรับแต่งระยะห่างระหว่าง card ตามอุปกรณ์
       borderRadius: 8,
       backgroundColor: "white",
@@ -378,7 +432,7 @@ function UserCaseScreen({ navigation }) {
       shadowRadius: 4,
       elevation: 5,
       width: isMobile ? "90%" : isTablet ? "70%" : "50%", // Responsive width
-      height: isMobile ? "auto" : 400, // Auto height for mobile
+      height: isMobile ? "auto" : "auto", // Auto height for mobile
     },
     modalView2: {
       margin: 20,
@@ -396,7 +450,7 @@ function UserCaseScreen({ navigation }) {
       shadowRadius: 4,
       elevation: 5,
       width: isMobile ? "90%" : isTablet ? "70%" : "50%", // Responsive width
-      height: isMobile ? "90%" : "70%", // Auto height for mobile
+      height: isMobile ? "auto" : "auto", // Auto height for mobile
     },
     button: {
       backgroundColor: "#05AB9F",
@@ -561,7 +615,7 @@ function UserCaseScreen({ navigation }) {
       maxHeight: "80%",
     },
     buttonViewImages: {
-      backgroundColor: "blue", // สีที่คุณต้องการ
+      backgroundColor: "#1C4CA7", // สีที่คุณต้องการ
       padding: 10,
       borderRadius: 10,
       marginTop: 10,
@@ -604,58 +658,114 @@ function UserCaseScreen({ navigation }) {
 
   const formatTimeUnit = (unit) => (unit < 10 ? `0${unit}` : unit.toString());
 
-  const loadPatientData = async () => {
-    try {
-      const patientCollectionRef = collection(db, "patients");
-      const querySnapshot = await getDocs(patientCollectionRef);
-      const inpatient = [];
-      const outpatient = [];
+const loadPatientData = async () => {
+  try {
+    const patientCollectionRef = collection(db, "patients");
+    const querySnapshot = await getDocs(patientCollectionRef);
+    const inpatient = [];
+    const outpatient = [];
 
-      querySnapshot.forEach((docSnapshot) => {
+    const patientDataWithNames = await Promise.all(
+      querySnapshot.docs.map(async (docSnapshot) => {
         const data = docSnapshot.data();
         data.id = docSnapshot.id;
-        if (data.patientType === "inpatient") {
-          inpatient.push(data);
-        } else if (data.patientType === "outpatient") {
-          outpatient.push(data);
+
+        // ดึงชื่อ student จาก users collection โดยเทียบ uid กับ createBy_id
+        if (data.createBy_id) {
+          const userDocRef = doc(db, "users", data.createBy_id);
+          const userDocSnap = await getDoc(userDocRef);
+          if (userDocSnap.exists()) {
+            const userData = userDocSnap.data();
+            data.studentName = userData.displayName || "ไม่พบชื่อ";
+          } else {
+            data.studentName = "ไม่พบชื่อ";
+          }
+        } else {
+          data.studentName = "ไม่มีข้อมูลผู้สร้าง";
         }
-      });
 
-      setPatientData(inpatient);
-      setOutpatientData(outpatient);
-    } catch (error) {
-      console.error("Error fetching Case data:", error);
-    }
-  };
+        return data;
+      })
+    );
 
-  const loadActivityAndProcedureData = async () => {
-    try {
-      const activityCollectionRef = collection(db, "activity");
-      const activityQuerySnapshot = await getDocs(activityCollectionRef);
-      const activities = [];
+    // แยก inpatient และ outpatient ตามประเภท
+    patientDataWithNames.forEach((data) => {
+      if (data.patientType === "inpatient") {
+        inpatient.push(data);
+      } else if (data.patientType === "outpatient") {
+        outpatient.push(data);
+      }
+    });
 
-      activityQuerySnapshot.forEach((docSnapshot) => {
+    setPatientData(inpatient);
+    setOutpatientData(outpatient);
+  } catch (error) {
+    console.error("Error fetching Case data:", error);
+  }
+};
+
+const loadActivityAndProcedureData = async () => {
+  try {
+    // โหลด activity
+    const activityCollectionRef = collection(db, "activity");
+    const activityQuerySnapshot = await getDocs(activityCollectionRef);
+
+    const activities = await Promise.all(
+      activityQuerySnapshot.docs.map(async (docSnapshot) => {
         const data = docSnapshot.data();
         data.id = docSnapshot.id;
-        activities.push(data);
-      });
 
-      const procedureCollectionRef = collection(db, "procedures");
-      const procedureQuerySnapshot = await getDocs(procedureCollectionRef);
-      const procedures = [];
+        // ดึงชื่อ student จาก users โดยใช้ createBy_id
+        if (data.createBy_id) {
+          const userDocRef = doc(db, "users", data.createBy_id);
+          const userDocSnap = await getDoc(userDocRef);
+          if (userDocSnap.exists()) {
+            const userData = userDocSnap.data();
+            data.studentName = userData.displayName || "ไม่พบชื่อ";
+          } else {
+            data.studentName = "ไม่พบชื่อ";
+          }
+        } else {
+          data.studentName = "ไม่มีข้อมูลผู้สร้าง";
+        }
 
-      procedureQuerySnapshot.forEach((docSnapshot) => {
+        return data;
+      })
+    );
+
+    // โหลด procedures
+    const procedureCollectionRef = collection(db, "procedures");
+    const procedureQuerySnapshot = await getDocs(procedureCollectionRef);
+
+    const procedures = await Promise.all(
+      procedureQuerySnapshot.docs.map(async (docSnapshot) => {
         const data = docSnapshot.data();
         data.id = docSnapshot.id;
-        procedures.push(data);
-      });
 
-      setActivityData(activities);
-      setProcedureData(procedures);
-    } catch (error) {
-      console.error("Error fetching activity or procedure data:", error);
-    }
-  };
+        // ดึงชื่อ student จาก users โดยใช้ createBy_id
+        if (data.createBy_id) {
+          const userDocRef = doc(db, "users", data.createBy_id);
+          const userDocSnap = await getDoc(userDocRef);
+          if (userDocSnap.exists()) {
+            const userData = userDocSnap.data();
+            data.studentName = userData.displayName || "ไม่พบชื่อ";
+          } else {
+            data.studentName = "ไม่พบชื่อ";
+          }
+        } else {
+          data.studentName = "ไม่มีข้อมูลผู้สร้าง";
+        }
+
+        return data;
+      })
+    );
+
+    setActivityData(activities);
+    setProcedureData(procedures);
+  } catch (error) {
+    console.error("Error fetching activity or procedure data:", error);
+  }
+};
 
   useEffect(() => {
     const unsubscribe = navigation.addListener("focus", () => {
@@ -752,7 +862,25 @@ function UserCaseScreen({ navigation }) {
         ? caseData.professorName === professorName
         : true;
 
-      return hnMatch && dateInRange && professorMatch;
+      // Filter by student
+      const studentMatch = studentId
+        ? caseData.createBy_id === studentId
+        : studentName
+        ? caseData.studentName === studentName
+        : true;
+
+      // if (studentId && caseData.createBy_id === studentId) {
+      //   console.log("🎯 MATCHED CASE:", caseData);
+      // } else if (studentId) {
+      //   console.log("❌ Not matched:", {
+      //     caseStudentId: caseData.createBy_id,
+      //     selectedStudentId: studentId,
+      //     selectedStudentName: studentName,
+      //   });
+      // }
+
+      return hnMatch && dateInRange && professorMatch && studentMatch;
+
     });
 
     return allCases
@@ -780,7 +908,7 @@ function UserCaseScreen({ navigation }) {
                         lineHeight: 30,
                       }}
                     >
-                      HN : {caseData.hn} ({caseData.status})
+                      HN : {caseData.hn} ({caseData.status}) (Procedure)
                     </Text>
                   )}
                   {caseData.procedureType && (
@@ -799,20 +927,23 @@ function UserCaseScreen({ navigation }) {
                         lineHeight: 30,
                       }}
                     >
-                      {caseData.activityType} ({caseData.status})
+                      {caseData.activityType} ({caseData.status}) (Activity)
                     </Text>
                   )}
                   <Text
                     style={{ marginLeft: 20, lineHeight: 30, opacity: 0.4 }}
                   >
-                    {caseData.procedureType ? "Instructor Name" : "Instructor Name"}:{" "}
-                    {caseData.procedureType
-                      ? caseData.professorName
-                      : caseData.professorName}
+                    Instructor Name : {caseData.professorName}
+                  </Text>
+                  <Text
+                    style={{ marginLeft: 20, lineHeight: 30, opacity: 0.4 }}
+                  >
+                    Student Name : {caseData.studentName}
                   </Text>
                 </>
               ) : (
                 <>
+                {caseData.patientType === "inpatient" && (
                   <Text
                     style={{
                       fontSize: 20,
@@ -821,16 +952,38 @@ function UserCaseScreen({ navigation }) {
                       lineHeight: 30,
                     }}
                   >
-                    HN : {caseData.hn} ({caseData.status})
+                    HN : {caseData.hn} ({caseData.status}) (IPD)
+                  </Text>
+                )}
+
+                {caseData.patientType === "outpatient" && (
+                  <Text
+                    style={{
+                      fontSize: 20,
+                      fontWeight: "bold",
+                      marginLeft: 20,
+                      lineHeight: 30,
+                    }}
+                  >
+                    HN : {caseData.hn} ({caseData.status}) (OPD)
+                  </Text>
+                )}
+
+                  <Text
+                    style={{ marginLeft: 20, lineHeight: 30, opacity: 0.4 }}
+                  >
+                    Instructor Name : {caseData.professorName}
                   </Text>
                   <Text
                     style={{ marginLeft: 20, lineHeight: 30, opacity: 0.4 }}
                   >
-                    {caseData.procedureType ? "Instructor Name" : "Instructor Name"}:{" "}
-                    {caseData.procedureType
-                      ? caseData.professorName
-                      : caseData.professorName}
+                    Student Name : {caseData.studentName}
                   </Text>
+                  {caseData.patientName?.trim() && !caseData.activityType?.trim() && (
+                    <Text style={{ marginLeft: 20, lineHeight: 30, opacity: 0.4 }}>
+                      Patient Name : {caseData.patientName}
+                    </Text>
+                  )}
                   {caseData.procedureType && (
                     <Text
                       style={{ marginLeft: 20, lineHeight: 30, opacity: 0.4 }}
@@ -1102,6 +1255,27 @@ function UserCaseScreen({ navigation }) {
               />
     </View>
 
+    <View style={{ marginBottom: isPC ? 0 : 10, marginRight: isPC ? 20 : 0 }}> 
+      <Text style={{ textAlign: 'center', marginBottom: 10}}>Filter by student name : </Text>
+      <SelectList
+                setSelected={onSelectStudent}
+                data={students}
+                placeholder={"Select the student name"}
+                placeholderTextColor="grey"
+                boxStyles={{
+                  width: "100%",
+                  backgroundColor: "#FEF0E6",
+                  borderColor: "#FEF0E6",
+                  borderWidth: 1,
+                  borderRadius: 10,
+                }}
+                dropdownStyles={{ 
+                  backgroundColor: "#FEF0E6",
+                  width: '100%'
+                 }}
+              />
+    </View>
+
       <View style={{ marginBottom: isPC ? 0 : 10, marginRight: isPC ? 20 : 0 }}>
         <Text style={{ textAlign: 'center', marginBottom: 10}}>Filter by subject : </Text>
         <SelectList
@@ -1203,12 +1377,38 @@ function UserCaseScreen({ navigation }) {
                   </Text>
                 </View>
                 )}
+
+                  <Text style={styles.modalText}>
+                    <Text style={{ fontWeight: "bold" }}>Type cases : </Text>
+                    {selectedCase.patientType === "inpatient" && "ผู้ป่วยใน(IPD)"}
+                    {selectedCase.patientType === "outpatient" && "ผู้ป่วยนอก(OPD)"}
+                    {selectedCase.activityType && "กิจกรรม(Activity)"}
+                    {selectedCase.procedureType && "หัตถการ(Procedure)"}
+                  </Text>
+
+                  <Text style={styles.modalText}>
+                    <Text style={{ fontWeight: "bold" }}>
+                      วันที่บันทึกข้อมูล :{" "}
+                    </Text>
+                    {selectedCase.recordDate
+                      ? formatDate2(selectedCase.recordDate.toDate())
+                      : "ไม่มี"}
+                  </Text>
+
+                  <Text style={styles.modalText}>
+                      <Text style={{ fontWeight: "bold" }}>
+                        ชื่อนักศึกษาแพทย์ :{" "}
+                      </Text>{" "}
+                      {selectedCase.studentName}
+                  </Text>
+
                   <Text style={styles.modalText}>
                     <Text style={{ fontWeight: "bold" }}>
                       Admission Date :{" "}
                     </Text>
                     {formatDate2(selectedCase.admissionDate.toDate())}
                   </Text>
+
                   {selectedCase.hours !== "" && selectedCase.minutes !== "" && (
                     <>
                       <Text style={styles.modalText}>
@@ -1248,6 +1448,12 @@ function UserCaseScreen({ navigation }) {
                       <Text style={{ fontWeight: "bold" }}>HN :</Text>{" "}
                       {selectedCase.hn}
                     </Text>
+                  )}
+                  {selectedCase.patientName && (
+                  <Text style={styles.modalText}>
+                    <Text style={{ fontWeight: "bold" }}>Patient Name :</Text>{" "}
+                    {selectedCase.patientName || "ไม่มี"}
+                  </Text>
                   )}
                   {selectedCase.procedureLevel && (
                     <Text style={styles.modalText}>
@@ -1399,55 +1605,85 @@ function UserCaseScreen({ navigation }) {
                 Professionalism scores
               </Text>
               {selectedCase.professionalismScores && (
-                <>
-                  <Text style={styles.modalText}>
-                    <Text style={{ fontWeight: "bold", fontSize: 20 }}>
-                      Punctual :{" "}
-                    </Text>
-                    {selectedCase.professionalismScores.punctual ? "✔️" : "❌"}
-                  </Text>
-                  <Text style={styles.modalText}>
-                    <Text style={{ fontWeight: "bold", fontSize: 20 }}>
-                      Appropriately dressed:{" "}
-                    </Text>
-                    {selectedCase.professionalismScores.appropriatelyDressed
-                      ? "✔️"
-                      : "❌"}
-                  </Text>
-                  <Text style={styles.modalText}>
-                    <Text style={{ fontWeight: "bold", fontSize: 20 }}>
-                      Respect the Case :{" "}
-                    </Text>
-                    {selectedCase.professionalismScores.respectsCases
-                      ? "✔️"
-                      : "❌"}
-                  </Text>
-                  <Text style={styles.modalText}>
-                    <Text style={{ fontWeight: "bold", fontSize: 20 }}>
-                      Good listener :{" "}
-                    </Text>
-                    {selectedCase.professionalismScores.goodListener
-                      ? "✔️"
-                      : "❌"}
-                  </Text>
-                  <Text style={styles.modalText}>
-                    <Text style={{ fontWeight: "bold", fontSize: 20 }}>
-                      Respect colleagues :{" "}
-                    </Text>
-                    {selectedCase.professionalismScores.respectsColleagues
-                      ? "✔️"
-                      : "❌"}
-                  </Text>
-                  <Text style={styles.modalText}>
-                    <Text style={{ fontWeight: "bold", fontSize: 20 }}>
-                      Accurately record Case information :{" "}
-                    </Text>
-                    {selectedCase.professionalismScores.accurateRecordKeeping
-                      ? "✔️"
-                      : "❌"}
-                  </Text>
-                </>
-              )}
+                                        <>
+                                          <Text style={styles.modalText}>
+                                            <Text
+                                              style={{ fontWeight: "bold", fontSize: 20 }}
+                                            >
+                                              Basic knowledge/basic science :{" "}
+                                            </Text>
+                                            {selectedCase.professionalismScores.basicKnowledge
+                                              ? "✔️"
+                                              : "❌"}
+                                          </Text>
+                                          <Text style={styles.modalText}>
+                                            <Text
+                                              style={{ fontWeight: "bold", fontSize: 20 }}
+                                            >
+                                              Clinical skills (history taking and physical examination) :{" "}
+                                            </Text>
+                                            {selectedCase.professionalismScores
+                                              .clinicalSkills
+                                              ? "✔️"
+                                              : "❌"}
+                                          </Text>
+                                          <Text style={styles.modalText}>
+                                            <Text
+                                              style={{ fontWeight: "bold", fontSize: 20 }}
+                                            >
+                                              Problem identification and approaching :{" "}
+                                            </Text>
+                                            {selectedCase.professionalismScores
+                                              .problemIdentification
+                                              ? "✔️"
+                                              : "❌"}
+                                          </Text>
+                                          <Text style={styles.modalText}>
+                                            <Text
+                                              style={{ fontWeight: "bold", fontSize: 20 }}
+                                            >
+                                              Management/Problem solving :{" "}
+                                            </Text>
+                                            {selectedCase.professionalismScores
+                                              .managementProblem
+                                              ? "✔️"
+                                              : "❌"}
+                                          </Text>
+                                          <Text style={styles.modalText}>
+                                            <Text
+                                              style={{ fontWeight: "bold", fontSize: 20 }}
+                                            >
+                                              Patient education :{" "}
+                                            </Text>
+                                            {selectedCase.professionalismScores
+                                              .patientEducation
+                                              ? "✔️"
+                                              : "❌"}
+                                          </Text>
+                                          <Text style={styles.modalText}>
+                                            <Text
+                                              style={{ fontWeight: "bold", fontSize: 20 }}
+                                            >
+                                              Evidence-based medicine :{" "}
+                                            </Text>
+                                            {selectedCase.professionalismScores
+                                              .evidenceBase
+                                              ? "✔️"
+                                              : "❌"}
+                                          </Text>
+                                          <Text style={styles.modalText}>
+                                            <Text
+                                              style={{ fontWeight: "bold", fontSize: 20 }}
+                                            >
+                                              Ethical and manner issues :{" "}
+                                            </Text>
+                                            {selectedCase.professionalismScores
+                                              .ethicalManner
+                                              ? "✔️"
+                                              : "❌"}
+                                          </Text>
+                                        </>
+                                      )}
 
               <Pressable
                 style={[styles.button, styles.buttonClose]}
@@ -1483,10 +1719,20 @@ function UserCaseScreen({ navigation }) {
         >
           <View
             style={{
-              width: "70%",
-              height: "70%",
+              width: "80%",
+              height: "80%",
               backgroundColor: "white",
               borderRadius: 10,
+              margin: 10,
+              padding: 25,
+              shadowColor: "#000",
+              shadowOffset: {
+                width: 0,
+                height: 2,
+              },
+              shadowOpacity: 0.25,
+              shadowRadius: 4,
+              elevation: 5,
             }}
           >
             <ScrollView>

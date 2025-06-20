@@ -10,6 +10,8 @@ import {
   Platform,
   ScrollView,
   Dimensions,
+  Pressable,
+  Modal
 } from "react-native";
 import { SelectList } from "react-native-dropdown-select-list";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -35,6 +37,10 @@ function EditProcedureScreen({ route, navigation }) {
     procedureData.admissionDate.toDate()
   );
 
+  const [selectedDate2, setSelectedDate2] = useState(
+    procedureData?.recordDate ? procedureData.recordDate.toDate() : new Date()
+  );
+
   const [selectedProcedures, setSelectedProcedures] = useState(
     procedureData.procedureType
   ); // State for selected Procedures
@@ -43,6 +49,9 @@ function EditProcedureScreen({ route, navigation }) {
   const [hn, setHN] = useState(procedureData.hn); // HN
   const [hnYear, setHNYear] = useState(procedureData.hnYear);
   const [lastHN, setLastHN] = useState(procedureData.lastHN);
+
+  const [patientName, setPatientName] = useState(procedureData.patientName || "");
+  
   const [remarks, setRemarks] = useState(procedureData.remarks); // remarks
   const [professorId, setProfessorId] = useState(procedureData.professorId); // สถานะสำหรับเก็บ id ของอาจารย์ที่ถูกเลือก
   const [professorName, setProfessorName] = useState(
@@ -63,9 +72,44 @@ function EditProcedureScreen({ route, navigation }) {
     procedureData.minutes.toString()
   );
 
+  const [
+    professionalismScoresModalVisible,
+    setProfessionalismScoresModalVisible,
+  ] = useState(false);
+
+  const defaultScores = {
+    basicKnowledge: false,
+    clinicalSkills: false,
+    problemIdentification: false,
+    managementProblem: false,
+    patientEducation: false,
+    evidenceBase: false,
+    ethicalManner: false,
+  };
+
+  const [professionalismScores, setProfessionalismScores] = useState({
+    ...defaultScores,
+    ...(procedureData.professionalismScores || {}),
+  });
+
+    // ฟังก์ชันเพื่อจัดการการเปลี่ยนแปลงของ Checkbox
+  const handleCheckboxChange = (scoreName) => {
+    setProfessionalismScores((prevScores) => ({
+      ...prevScores,
+      [scoreName]: !prevScores[scoreName],
+    }));
+  };
+
   const [uploadedImages, setUploadedImages] = useState([]);
 
+  const [windowWidth, setWindowWidth] = useState(
+    Dimensions.get("window").width
+  );
   const [dimensions, setDimensions] = useState(Dimensions.get("window"));
+
+  const isMobile = windowWidth < 768; // ตรวจสอบว่าอุปกรณ์เป็น Mobile หรือไม่
+  const isTablet = windowWidth >= 768 && windowWidth < 1024; // ตรวจสอบว่าอุปกรณ์เป็น Tablet หรือไม่
+  const isPC = windowWidth >= 1024; // ตรวจสอบว่าอุปกรณ์เป็น PC หรือไม่
 
   const hours = Array.from({ length: 24 }, (_, i) => ({
     key: i.toString(),
@@ -156,6 +200,66 @@ function EditProcedureScreen({ route, navigation }) {
       textAlign: "center",
       color: "blue",
     },
+    professionalismHeader: {
+      fontWeight: "bold",
+      fontSize: 24,
+      marginBottom: 10,
+    },
+    checkboxContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      width: "100%", // Full width for checkbox row
+      justifyContent: "flex-start", // Align items to left
+      marginBottom: 10,
+    },
+    checkboxLabel: {
+      marginLeft: 10,
+      fontSize: 20,
+    },
+    centerView: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+      backgroundColor: "rgba(0, 0, 0, 0.6)",
+    },
+    modalView: {
+      margin: 20,
+      backgroundColor: "white",
+      borderRadius: 8,
+      padding: 35,
+      alignItems: "center",
+      justifyContent: "center",
+      shadowColor: "#000",
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.25,
+      shadowRadius: 4,
+      elevation: 5,
+      width: isMobile ? "90%" : isTablet ? "70%" : "50%", // Responsive width
+      height: "auto", // Auto height for mobile
+    },
+    textStyle: {
+      color: "white",
+      fontWeight: "bold",
+      textAlign: "center",
+    },
+    buttonClose: {
+      backgroundColor: "green",
+      padding: 10,
+      borderRadius: 10,
+      elevation: 2,
+      alignSelf: "center",
+      marginTop: 10,
+    },
+    buttonProfessional: {
+      backgroundColor: "blue", // สีที่คุณต้องการ
+      padding: 10,
+      borderRadius: 10,
+      marginTop: 10,
+      marginRight: 15,
+    },
   });
 
   const selectImages = (event) => {
@@ -220,6 +324,46 @@ function EditProcedureScreen({ route, navigation }) {
               is24Hour={true}
               display="default"
               onChange={onChange}
+            />
+          )}
+        </>
+      );
+    }
+  };
+
+  const DateInput2 = () => {
+    if (Platform.OS === "web") {
+      return (
+        <input
+          type="date"
+          disabled
+          style={{
+            marginTop: 5,
+            padding: 10,
+            fontSize: 16,
+            width: "95%",
+            backgroundColor: "#FEF0E6",
+            borderColor: "#FEF0E6",
+            borderWidth: 1,
+            borderRadius: 10,
+          }}
+          value={selectedDate2.toISOString().substr(0, 10)}
+          onChange={(event) => setSelectedDate2(new Date(event.target.value))}
+        />
+      );
+    } else {
+      return (
+        <>
+          <Button onPress={showDatepicker} title="Show date picker!" />
+          {show && (
+            <DateTimePicker
+              testID="dateTimePicker"
+              value={date}
+              mode={"date"}
+              is24Hour={true}
+              display="default"
+              onChange={onChange}
+              disabled
             />
           )}
         </>
@@ -317,6 +461,15 @@ function EditProcedureScreen({ route, navigation }) {
       //   return;
       // }
 
+      const hasProfessionalismScore =
+        professionalismScores &&
+        Object.values(professionalismScores).some(score => score !== null && score !== "");
+
+      if (!hasProfessionalismScore) {
+        alert("โปรดเลือก Professionalism");
+        return;
+      }
+
       const user = auth.currentUser;
       if (!user) {
         alert("ไม่พบข้อมูลผู้ใช้");
@@ -328,7 +481,7 @@ function EditProcedureScreen({ route, navigation }) {
       const formattedHNYear = hnYear.padStart(2, "0");
 
       // รวม HN และปีพ.ศ. เข้าด้วยกัน
-      const fullHN = formattedHNYear + formattedHN;
+      const fullHN = `${formattedHN}/${formattedHNYear}`;
 
       // Step 1: Save patient data (excluding images) and retrieve the Document ID
       const procedureDocRef = doc(db, "procedures", procedureData.id);
@@ -343,6 +496,7 @@ function EditProcedureScreen({ route, navigation }) {
             hn: fullHN,
             procedureType: selectedProcedures,
             remarks: remarks,
+            patientName: patientName,
             professorName: teachers.find((t) => t.key === professorId)?.value,
             professorId: professorId,
             procedureLevel: procedureLevel,
@@ -353,6 +507,9 @@ function EditProcedureScreen({ route, navigation }) {
             hours: parseInt(selectedHour),
             minutes: parseInt(selectedMinute),
             isEdited: true,
+            lastHN: formattedHN,
+            hnYear,
+            professionalismScores: professionalismScores,
           });
 
           alert("อัปเดตข้อมูลสำเร็จ");
@@ -365,6 +522,7 @@ function EditProcedureScreen({ route, navigation }) {
             hn: fullHN,
             procedureType: selectedProcedures,
             remarks: remarks,
+            patientName: patientName,
             professorName: teachers.find((t) => t.key === professorId)?.value,
             professorId: professorId,
             procedureLevel: procedureLevel,
@@ -376,6 +534,7 @@ function EditProcedureScreen({ route, navigation }) {
             minutes: parseInt(selectedMinute),
             lastHN: formattedHN,
             hnYear,
+            professionalismScores: professionalismScores,
           });
 
           alert("อัปเดตข้อมูลสำเร็จ");
@@ -396,6 +555,42 @@ function EditProcedureScreen({ route, navigation }) {
       <View style={styles.container}>
         <View style={{ marginVertical: dimensions.width < 768 ? 40 : 60 }}>
           <SubHeader text="EDIT PROCEDURE" />
+        </View>
+
+        <View
+          style={{
+            flexDirection: dimensions.width < 768 ? "column" : "row",
+            alignItems: "left",
+            marginBottom: 8,
+            justifyContent: "space-between",
+          }}
+        >
+          <View style={{ width: dimensions.width < 768 ? "100%" : "45%" }}>
+            <Text
+              style={{
+                fontSize: 20,
+                fontWeight: 400,
+                marginVertical: 8,
+                textAlign: "left",
+              }}
+            >
+              วันที่บันทึกข้อมูล
+            </Text>
+            <DateInput2 />
+          </View>
+          <View
+            style={{
+              width: dimensions.width < 768 ? "100%" : "45%",
+              flexDirection: "row",
+              justifyContent: "left",
+              alignItems: "left",
+            }}
+          >
+            
+          <View>
+              
+            </View>
+          </View>
         </View>
 
         <View
@@ -537,6 +732,52 @@ function EditProcedureScreen({ route, navigation }) {
               />
             </View>
           </View>
+
+          <View style={{ width: dimensions.width < 768 ? "100%" : "45%" }}>
+            <Text
+              style={{
+                fontSize: 20,
+                fontWeight: 400,
+                marginVertical: 8,
+                textAlign: "left",
+                alignItems: "flex-start",
+              }}
+            >
+              รายชื่อคนไข้
+            </Text>
+            <View
+              style={{
+                flexDirection: "row",
+                borderColor: "#FEF0E6",
+                borderWidth: 1,
+                borderRadius: 10,
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <TextInput
+                  placeholder="กรอกรายชื่อคนไข้"
+                  placeholderTextColor="grey"
+                  value={patientName}
+                  onChangeText={setPatientName}
+                  style={{
+                    flex: 1,
+                    textAlign: "center",
+                    fontSize: 20,
+                    backgroundColor: "#FEF0E6",
+                  }}
+                />
+            </View>
+          </View>
+        </View>
+
+        <View
+          style={{
+            flexDirection: dimensions.width < 768 ? "column" : "row",
+            justifyContent: "space-between",
+            marginBottom: 8,
+          }}
+        >
           <View style={{ width: dimensions.width < 768 ? "100%" : "45%" }}>
             <Text
               style={{
@@ -680,6 +921,24 @@ function EditProcedureScreen({ route, navigation }) {
           </View>
         </View>
 
+        <View style={{
+            flexDirection: "row",
+            justifyContent: "center",
+            alignItems: "center",
+            marginBottom: "10%",
+          }}>
+          <Pressable
+            style={[styles.button, styles.buttonProfessional]}
+            onPress={() =>
+              setProfessionalismScoresModalVisible(true)
+            }
+            >
+            <Text style={styles.textStyle}>
+              Professionalism Score
+            </Text>
+          </Pressable>
+        </View>
+
         {/* UI for image upload */}
         <View style={styles.uploadContainer}>
           <Text style={styles.uploadTitle}>
@@ -747,6 +1006,130 @@ function EditProcedureScreen({ route, navigation }) {
           >
             <Text style={{ fontSize: 20, color: "white" }}>Back</Text>
           </TouchableOpacity>
+
+          {/* Modal สำหรับแสดงคะแนนความเป็นมืออาชีพ */}
+                  <Modal
+                    animationType="slide"
+                    transparent={true}
+                    visible={
+                      professionalismScoresModalVisible 
+                    }
+                    onRequestClose={() => {
+                      setProfessionalismScoresModalVisible(
+                        !professionalismScoresModalVisible
+                      );
+                    }}
+                  >
+                    <View style={styles.centerView}>
+                      <View style={styles.modalView}>
+
+                        <Text style={styles.professionalismHeader}>
+                            Professionalism
+                          </Text>{" "}
+                          (เลือกได้หลายตัวเลือก)
+                          {/* แสดง Checkbox และ Label */}
+
+                            <View style={styles.checkboxContainer}>
+                              <CheckBox
+                                value={professionalismScores.basicKnowledge}
+                                onValueChange={() =>
+                                  handleCheckboxChange("basicKnowledge")
+                                }
+                              />
+                              <Text style={styles.checkboxLabel}>Basic knowledge/basic science</Text>
+                            </View>
+
+                            <View style={styles.checkboxContainer}>
+                              <CheckBox
+                                value={
+                                  professionalismScores.clinicalSkills
+                                }
+                                onValueChange={() =>
+                                  handleCheckboxChange("clinicalSkills")
+                                }
+                              />
+                              <Text style={styles.checkboxLabel}>
+                              Clinical skills (history taking and physical examination)
+                              </Text>
+                            </View>
+
+                            <View style={styles.checkboxContainer}>
+                              <CheckBox
+                                value={professionalismScores.problemIdentification}
+                                onValueChange={() =>
+                                  handleCheckboxChange("problemIdentification")
+                                }
+                              />
+                              <Text style={styles.checkboxLabel}>
+                              Problem identification and approaching
+                              </Text>
+                            </View>
+
+                            <View style={styles.checkboxContainer}>
+                              <CheckBox
+                                value={professionalismScores.managementProblem}
+                                onValueChange={() =>
+                                  handleCheckboxChange("managementProblem")
+                                }
+                              />
+                              <Text style={styles.checkboxLabel}>
+                              Management/Problem solving
+                              </Text>
+                            </View>
+
+                            <View style={styles.checkboxContainer}>
+                              <CheckBox
+                                value={professionalismScores.patientEducation}
+                                onValueChange={() =>
+                                  handleCheckboxChange("patientEducation")
+                                }
+                              />
+                              <Text style={styles.checkboxLabel}>
+                              Patient education
+                              </Text>
+                            </View>
+
+                            <View style={styles.checkboxContainer}>
+                              <CheckBox
+                                value={
+                                  professionalismScores.evidenceBase
+                                }
+                                onValueChange={() =>
+                                  handleCheckboxChange("evidenceBase")
+                                }
+                              />
+                              <Text style={styles.checkboxLabel}>
+                              Evidence-based medicine
+                              </Text>
+                            </View>
+
+                            <View style={styles.checkboxContainer}>
+                              <CheckBox
+                                value={
+                                  professionalismScores.ethicalManner
+                                }
+                                onValueChange={() =>
+                                  handleCheckboxChange("ethicalManner")
+                                }
+                              />
+                              <Text style={styles.checkboxLabel}>
+                              Ethical and manner issues
+                              </Text>
+                            </View>
+
+                        <Pressable
+                          style={[styles.button, styles.buttonClose]}
+                          onPress={() =>
+                            setProfessionalismScoresModalVisible(
+                              !professionalismScoresModalVisible
+                            )
+                          }
+                        >
+                          <Text style={styles.textStyle}>Confirm</Text>
+                        </Pressable>
+                      </View>
+                    </View>
+                  </Modal>
         </View>
       </View>
     </ScrollView>

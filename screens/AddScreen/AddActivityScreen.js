@@ -6,9 +6,12 @@ import {
   StyleSheet,
   TouchableOpacity,
   TextInput,
+  CheckBox,
   Platform,
   ScrollView,
   Dimensions,
+  Pressable,
+  Modal
 } from "react-native";
 import { SelectList } from "react-native-dropdown-select-list";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -30,16 +33,13 @@ import SubHeader from "../../component/SubHeader";
 
 function AddActivityScreen({ navigation }) {
   const [selectedDate, setSelectedDate] = useState(new Date());
-
-  // const [mainDiagnosis, setMainDiagnosis] = useState(""); // ใช้ TextInput สำหรับ Main Diagnosis
-  // const [selectedDiagnosis, setSelectedDiagnosis] = useState([{}]); // เก็บโรคที่เลือกทั้งหมด
-  // const [mainDiagnoses, setMainDiagnoses] = useState([]); // เก็บรายชื่อโรค
-  // const [otherDiagnosis, setOtherDiagnosis] = useState(""); // ใช้ TextInput สำหรับโรคอื่นๆ
-  // const [isOtherSelected, setIsOtherSelected] = useState(false); // ตัวแปรสำหรับตรวจสอบว่าเลือก Other หรือไม่
+  const [selectedDate2, setSelectedDate2] = useState(new Date());
 
   const [professorId, setProfessorId] = useState(null);
   const [professorName, setProfessorName] = useState(null); // สถานะสำหรับเก็บชื่ออาจารย์ที่ถูกเลือก
   const [teachers, setTeachers] = useState([]);
+
+  const [patientName, setPatientName] = useState("");
 
   const [activityType, setActivityType] = useState([]);
   const [selectedActivityType, setSelectedActivityType] = useState("");
@@ -52,6 +52,37 @@ function AddActivityScreen({ navigation }) {
   const [date, setDate] = useState(new Date());
   const [show, setShow] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+
+  const [
+    professionalismScoresModalVisible,
+    setProfessionalismScoresModalVisible,
+  ] = useState(false);
+
+  const [professionalismScores, setProfessionalismScores] = useState({
+    basicKnowledge: false,
+    clinicalSkills: false,
+    problemIdentification: false,
+    managementProblem: false,
+    patientEducation: false,
+    evidenceBase: false,
+    ethicalManner: false
+  });
+
+  // ฟังก์ชันเพื่อจัดการการเปลี่ยนแปลงของ Checkbox
+  const handleCheckboxChange = (scoreName) => {
+    setProfessionalismScores((prevScores) => ({
+      ...prevScores,
+      [scoreName]: !prevScores[scoreName],
+    }));
+  };
+
+  const [windowWidth, setWindowWidth] = useState(
+    Dimensions.get("window").width
+  );
+
+  const isMobile = windowWidth < 768; // ตรวจสอบว่าอุปกรณ์เป็น Mobile หรือไม่
+  const isTablet = windowWidth >= 768 && windowWidth < 1024; // ตรวจสอบว่าอุปกรณ์เป็น Tablet หรือไม่
+  const isPC = windowWidth >= 1024; // ตรวจสอบว่าอุปกรณ์เป็น PC หรือไม่
 
   const [selectedHour, setSelectedHour] = useState("");
   const [selectedMinute, setSelectedMinute] = useState("");
@@ -126,6 +157,66 @@ function AddActivityScreen({ navigation }) {
       textAlign: "center",
       color: "blue",
     },
+    professionalismHeader: {
+      fontWeight: "bold",
+      fontSize: 24,
+      marginBottom: 10,
+    },
+    checkboxContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      width: "100%", // Full width for checkbox row
+      justifyContent: "flex-start", // Align items to left
+      marginBottom: 10,
+    },
+    checkboxLabel: {
+      marginLeft: 10,
+      fontSize: 20,
+    },
+    centerView: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+      backgroundColor: "rgba(0, 0, 0, 0.6)",
+    },
+    modalView: {
+      margin: 20,
+      backgroundColor: "white",
+      borderRadius: 8,
+      padding: 35,
+      alignItems: "center",
+      justifyContent: "center",
+      shadowColor: "#000",
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.25,
+      shadowRadius: 4,
+      elevation: 5,
+      width: isMobile ? "90%" : isTablet ? "70%" : "50%", // Responsive width
+      height: "auto", // Auto height for mobile
+    },
+    textStyle: {
+      color: "white",
+      fontWeight: "bold",
+      textAlign: "center",
+    },
+    buttonClose: {
+      backgroundColor: "green",
+      padding: 10,
+      borderRadius: 10,
+      elevation: 2,
+      alignSelf: "center",
+      marginTop: 10,
+    },
+    buttonProfessional: {
+      backgroundColor: "blue", // สีที่คุณต้องการ
+      padding: 10,
+      borderRadius: 10,
+      marginTop: 10,
+      marginRight: 15,
+    },
   });
 
   const selectImages = (event) => {
@@ -197,6 +288,46 @@ function AddActivityScreen({ navigation }) {
     }
   };
 
+  const DateInput2 = () => {
+    if (Platform.OS === "web") {
+      return (
+        <input
+          type="date"
+          disabled
+          style={{
+            marginTop: 5,
+            padding: 10,
+            fontSize: 16,
+            width: "95%",
+            backgroundColor: "#FEF0E6",
+            borderColor: "#FEF0E6",
+            borderWidth: 1,
+            borderRadius: 10,
+          }}
+          value={selectedDate2.toISOString().substr(0, 10)}
+          onChange={(event) => setSelectedDate2(new Date(event.target.value))}
+        />
+      );
+    } else {
+      return (
+        <>
+          <Button onPress={showDatepicker} title="Show date picker!" />
+          {show && (
+            <DateTimePicker
+              testID="dateTimePicker"
+              value={date}
+              mode={"date"}
+              is24Hour={true}
+              display="default"
+              onChange={onChange}
+              disabled
+            />
+          )}
+        </>
+      );
+    }
+  };
+
   const onSelectTeacher = (selectedTeacherId) => {
     const selectedTeacher = teachers.find(
       (teacher) => teacher.key === selectedTeacherId
@@ -232,37 +363,6 @@ function AddActivityScreen({ navigation }) {
 
     fetchTeachers(); // เรียกฟังก์ชันเพื่อดึงข้อมูลอาจารย์
   }, []);
-
-  // const fetchMainDiagnoses = async () => {
-  //   try {
-  //     const mainDiagnosisDocRef = doc(
-  //       db,
-  //       "mainDiagnosis",
-  //       "LcvLDMSEraOH9zH4fbmS"
-  //     );
-  //     const docSnap = await getDoc(mainDiagnosisDocRef);
-
-  //     if (docSnap.exists()) {
-  //       const data = docSnap.data();
-  //       const diagnoses = data.diseases.map((disease, index) => ({
-  //         key: `${(index + 1).toString().padStart(3, "0")} | ${disease}`, // ปรับแก้ที่นี่เพื่อให้ key เป็นชื่อโรคด้วย
-  //         value: `${(index + 1).toString().padStart(3, "0")} | ${disease}`,
-  //       }));
-
-  //       diagnoses.sort((a, b) => a.value.localeCompare(b.value));
-
-  //       setMainDiagnoses(diagnoses);
-  //     } else {
-  //       console.log("No such document!");
-  //     }
-  //   } catch (error) {
-  //     console.error("Error fetching main diagnoses:", error);
-  //   }
-  // };
-
-  // useEffect(() => {
-  //   fetchMainDiagnoses();
-  // }, []);
 
   useEffect(() => {
     async function fetchActivityType() {
@@ -314,6 +414,16 @@ function AddActivityScreen({ navigation }) {
       //   return;
       // }
       // Get the currently authenticated user
+
+      // const hasProfessionalismScore =
+      //   professionalismScores &&
+      //   Object.values(professionalismScores).some(score => score !== null && score !== "");
+
+      // if (!hasProfessionalismScore) {
+      //   alert("โปรดเลือก Professionalism");
+      //   return;
+      // }
+
       const user = auth.currentUser;
       if (!user) {
         alert("ไม่พบข้อมูลผู้ใช้");
@@ -321,12 +431,15 @@ function AddActivityScreen({ navigation }) {
       }
 
       const timestamp = Timestamp.fromDate(selectedDate);
+      const timestamp2 = Timestamp.fromDate(selectedDate2);
 
       // Step 1: Save patient data (excluding images) and retrieve the Document ID
       const docRef = await addDoc(collection(db, "activity"), {
+        recordDate: timestamp2,
         admissionDate: timestamp,
         activityType: selectedActivityType, // Activity
         createBy_id: user.uid, // User ID
+        // patientName: patientName,
         topic: topic,
         note: note, // Note
         professorName: professorName,
@@ -336,6 +449,7 @@ function AddActivityScreen({ navigation }) {
         hours: selectedHour,
         minutes: selectedMinute,
         subject,
+        professionalismScores: professionalismScores,
       });
 
       // Step 2: Use the Document ID as a folder name for image uploads and then update image URLs in Firestore
@@ -363,6 +477,42 @@ function AddActivityScreen({ navigation }) {
       <View style={styles.container}>
         <View style={{ marginVertical: dimensions.width < 768 ? 40 : 60 }}>
           <SubHeader text="ADD ACTIVITY" />
+        </View>
+
+        <View
+          style={{
+            flexDirection: dimensions.width < 768 ? "column" : "row",
+            alignItems: "left",
+            marginBottom: 16,
+            justifyContent: "space-between",
+          }}
+        >
+          <View style={{ width: dimensions.width < 768 ? "100%" : "45%" }}>
+            <Text
+              style={{
+                fontSize: 20,
+                fontWeight: 400,
+                marginVertical: 8,
+                textAlign: "left",
+              }}
+            >
+              วันที่บันทึกข้อมูล
+            </Text>
+            <DateInput2 />
+          </View>
+          <View
+            style={{
+              width: dimensions.width < 768 ? "100%" : "45%",
+              flexDirection: "row",
+              justifyContent: "left",
+              alignItems: "left",
+            }}
+          >
+            
+          <View>
+              
+            </View>
+          </View>
         </View>
 
         <View
@@ -584,6 +734,24 @@ function AddActivityScreen({ navigation }) {
           </View>
         </View>
 
+        <View style={{
+            flexDirection: "row",
+            justifyContent: "center",
+            alignItems: "center",
+            marginBottom: "10%",
+          }}>
+          <Pressable
+            style={[styles.button, styles.buttonProfessional]}
+            onPress={() =>
+              setProfessionalismScoresModalVisible(true)
+            }
+            >
+            <Text style={styles.textStyle}>
+              Professionalism Score
+            </Text>
+          </Pressable>
+        </View>
+
         {/* UI for image upload */}
         <View style={styles.uploadContainer}>
           <Text style={styles.uploadTitle}>
@@ -651,6 +819,131 @@ function AddActivityScreen({ navigation }) {
           >
             <Text style={{ fontSize: 20, color: "white" }}>Back</Text>
           </TouchableOpacity>
+
+          {/* Modal สำหรับแสดงคะแนนความเป็นมืออาชีพ */}
+                  <Modal
+                    animationType="slide"
+                    transparent={true}
+                    visible={
+                      professionalismScoresModalVisible 
+                    }
+                    onRequestClose={() => {
+                      setProfessionalismScoresModalVisible(
+                        !professionalismScoresModalVisible
+                      );
+                    }}
+                  >
+                    <View style={styles.centerView}>
+                      <View style={styles.modalView}>
+
+                        <Text style={styles.professionalismHeader}>
+                            Professionalism
+                          </Text>{" "}
+                          (เลือกได้หลายตัวเลือก)
+                          {/* แสดง Checkbox และ Label */}
+
+                            <View style={styles.checkboxContainer}>
+                              <CheckBox
+                                value={professionalismScores.basicKnowledge}
+                                onValueChange={() =>
+                                  handleCheckboxChange("basicKnowledge")
+                                }
+                              />
+                              <Text style={styles.checkboxLabel}>Basic knowledge/basic science</Text>
+                            </View>
+
+                            <View style={styles.checkboxContainer}>
+                              <CheckBox
+                                value={
+                                  professionalismScores.clinicalSkills
+                                }
+                                onValueChange={() =>
+                                  handleCheckboxChange("clinicalSkills")
+                                }
+                              />
+                              <Text style={styles.checkboxLabel}>
+                              Clinical skills (history taking and physical examination)
+                              </Text>
+                            </View>
+
+                            <View style={styles.checkboxContainer}>
+                              <CheckBox
+                                value={professionalismScores.problemIdentification}
+                                onValueChange={() =>
+                                  handleCheckboxChange("problemIdentification")
+                                }
+                              />
+                              <Text style={styles.checkboxLabel}>
+                              Problem identification and approaching
+                              </Text>
+                            </View>
+
+                            <View style={styles.checkboxContainer}>
+                              <CheckBox
+                                value={professionalismScores.managementProblem}
+                                onValueChange={() =>
+                                  handleCheckboxChange("managementProblem")
+                                }
+                              />
+                              <Text style={styles.checkboxLabel}>
+                              Management/Problem solving
+                              </Text>
+                            </View>
+
+                            <View style={styles.checkboxContainer}>
+                              <CheckBox
+                                value={professionalismScores.patientEducation}
+                                onValueChange={() =>
+                                  handleCheckboxChange("patientEducation")
+                                }
+                              />
+                              <Text style={styles.checkboxLabel}>
+                              Patient education
+                              </Text>
+                            </View>
+
+                            <View style={styles.checkboxContainer}>
+                              <CheckBox
+                                value={
+                                  professionalismScores.evidenceBase
+                                }
+                                onValueChange={() =>
+                                  handleCheckboxChange("evidenceBase")
+                                }
+                              />
+                              <Text style={styles.checkboxLabel}>
+                              Evidence-based medicine
+                              </Text>
+                            </View>
+
+                            <View style={styles.checkboxContainer}>
+                              <CheckBox
+                                value={
+                                  professionalismScores.ethicalManner
+                                }
+                                onValueChange={() =>
+                                  handleCheckboxChange("ethicalManner")
+                                }
+                              />
+                              <Text style={styles.checkboxLabel}>
+                              Ethical and manner issues
+                              </Text>
+                            </View>
+
+                        <Pressable
+                          style={[styles.button, styles.buttonClose]}
+                          onPress={() =>
+                            setProfessionalismScoresModalVisible(
+                              !professionalismScoresModalVisible
+                            )
+                          }
+                        >
+                          <Text style={styles.textStyle}>Confirm</Text>
+                        </Pressable>
+                      </View>
+                    </View>
+                  </Modal>
+
         </View>
       </View>
     </ScrollView>

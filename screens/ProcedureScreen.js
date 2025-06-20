@@ -428,7 +428,7 @@ function ProcedureScreen({ navigation }) {
     },
     card: {
       width: "95%",
-      height: isMobile ? 150 : 150, // ปรับแต่งความสูงของ card ตามอุปกรณ์
+      height: isMobile ? 200 : 200, // ปรับแต่งความสูงของ card ตามอุปกรณ์
       marginVertical: isMobile ? 10 : 20, // ปรับแต่งระยะห่างระหว่าง card ตามอุปกรณ์
       borderRadius: 8,
       backgroundColor: "white",
@@ -458,7 +458,7 @@ function ProcedureScreen({ navigation }) {
       shadowRadius: 4,
       elevation: 5,
       width: isMobile ? "90%" : isTablet ? "70%" : "50%", // Responsive width
-      height: isMobile ? "auto" : 400, // Auto height for mobile
+      height: isMobile ? "auto" : "auto", // Auto height for mobile
     },
     modalView2: {
       margin: 20,
@@ -587,7 +587,7 @@ function ProcedureScreen({ navigation }) {
       maxHeight: "80%",
     },
     buttonViewImages: {
-      backgroundColor: "blue", // สีที่คุณต้องการ
+      backgroundColor: "#1C4CA7", // สีที่คุณต้องการ
       padding: 10,
       borderRadius: 10,
       marginTop: 10,
@@ -812,8 +812,14 @@ function ProcedureScreen({ navigation }) {
 
   const handleApprove = async () => {
     try {
+      // เช็คว่าให้ rating แล้วหรือยัง
+      if (!rating || rating === "") {
+        alert("โปรดเลือก Rating");
+        return;
+      }
+
       if (rating === "Unsatisfied") {
-        alert("ไม่สามารถ Recheck ได้(เนื่องจากคุณเลือก Unsatisfied)");
+        alert("ไม่สามารถ Approve ได้(เนื่องจากคุณเลือก Unsatisfied)");
         return; // หยุดการทำงานของฟังก์ชันที่นี่ถ้า rating เป็น unsatisfied
       }
 
@@ -880,15 +886,15 @@ function ProcedureScreen({ navigation }) {
   const resetScoresAndComment = () => {
     setComment("");
     setRating("");
-    setProfessionalismScores({
-      basicKnowledge: false,
-      clinicalSkills: false,
-      problemIdentification: false,
-      managementProblem: false,
-      patientEducation: false,
-      evidenceBase: false,
-      ethicalManner: false,
-    });
+    // setProfessionalismScores({
+    //   basicKnowledge: false,
+    //   clinicalSkills: false,
+    //   problemIdentification: false,
+    //   managementProblem: false,
+    //   patientEducation: false,
+    //   evidenceBase: false,
+    //   ethicalManner: false,
+    // });
   };
 
   const renderAddDataButton = () => {
@@ -1190,6 +1196,11 @@ function ProcedureScreen({ navigation }) {
                     style={{ marginLeft: 20, lineHeight: 30, opacity: 0.4 }}
                   >
                     Student Name : {procedure.studentName}
+                  </Text>
+                  <Text
+                    style={{ marginLeft: 20, lineHeight: 30, opacity: 0.4 }}
+                  >
+                    Patient Name : {procedure.patientName}
                   </Text>
                   <Text
                     style={{ marginLeft: 20, lineHeight: 30, opacity: 0.4 }}
@@ -1688,6 +1699,22 @@ function ProcedureScreen({ navigation }) {
                   ) : null}
                   <Text style={styles.modalText}>
                     <Text style={{ fontWeight: "bold" }}>
+                      วันที่บันทึกข้อมูล :{" "}
+                    </Text>
+                    {selectedProcedure.recordDate
+                      ? formatDate2(selectedProcedure.recordDate.toDate())
+                      : "ไม่มี"}
+                  </Text>
+                  {role !== "student" && selectedProcedure.studentName ? (
+                    <Text style={styles.modalText}>
+                      <Text style={{ fontWeight: "bold" }}>
+                        ชื่อนักศึกษาแพทย์ :{" "}
+                      </Text>{" "}
+                      {selectedProcedure.studentName}
+                    </Text>
+                  ) : null}
+                  <Text style={styles.modalText}>
+                    <Text style={{ fontWeight: "bold" }}>
                       Admission Date :{" "}
                     </Text>
                     {formatDate2(selectedProcedure.admissionDate.toDate())}
@@ -1717,6 +1744,10 @@ function ProcedureScreen({ navigation }) {
                   <Text style={styles.modalText}>
                     <Text style={{ fontWeight: "bold" }}>HN :</Text>{" "}
                     {selectedProcedure.hn || "None"}
+                  </Text>
+                  <Text style={styles.modalText}>
+                    <Text style={{ fontWeight: "bold" }}>Patient Name :</Text>{" "}
+                    {selectedProcedure.patientName || "ไม่มี"}
                   </Text>
                   <Text style={styles.modalText}>
                     <Text style={{ fontWeight: "bold" }}>Level : </Text>{" "}
@@ -1764,24 +1795,6 @@ function ProcedureScreen({ navigation }) {
                   )}
 
                   <View style={styles.buttonRow}>
-                    {/* {(selectedStatus === "approved" ||
-                    selectedStatus === "rejected" ||
-                    (selectedStatus === "all" && 
-                      (selectedProcedure.status !== "pending" && 
-                      (role === "student" || (role === "teacher" && selectedProcedure.status !== "recheck")) && 
-                      (selectedProcedure.status === "approved" || selectedProcedure.status === "rejected" || selectedProcedure.status === "recheck"))) ||
-                    (selectedStatus === "recheck" && role === "student")) && (
-                      <Pressable
-                        style={[styles.button, styles.buttonProfessional]}
-                        onPress={() =>
-                          setProfessionalismScoresModalVisible(true)
-                        }
-                      >
-                        <Text style={styles.textStyle}>
-                          View Professionalism Score
-                        </Text>
-                      </Pressable>
-                    )} */}
 
                     {role !== "student" &&
                       selectedStatus !== "approved" &&
@@ -1792,113 +1805,7 @@ function ProcedureScreen({ navigation }) {
                       (selectedProcedure.status === "pending" ||
                         selectedProcedure.status === "recheck") && (
                         <View style={styles.centerView2}>
-                          {/* <Text style={styles.professionalismHeader}>
-                            Professionalism
-                          </Text>{" "}
-                          (เลือกได้หลายตัวเลือก)
-
-                          {selectedProcedure && (
-                            <View style={styles.checkboxContainer}>
-                              <CheckBox
-                                value={professionalismScores.basicKnowledge}
-                                disabled={!isEditable()}
-                                onValueChange={() =>
-                                  handleCheckboxChange("basicKnowledge")
-                                }
-                              />
-                              <Text style={styles.checkboxLabel}>Basic knowledge/basic science</Text>
-                            </View>
-                          )}
-                          {selectedProcedure && (
-                            <View style={styles.checkboxContainer}>
-                              <CheckBox
-                                value={
-                                  professionalismScores.clinicalSkills
-                                }
-                                disabled={!isEditable()}
-                                onValueChange={() =>
-                                  handleCheckboxChange("clinicalSkills")
-                                }
-                              />
-                              <Text style={styles.checkboxLabel}>
-                              Clinical skills (history taking and physical examination)
-                              </Text>
-                            </View>
-                          )}
-                          {selectedProcedure && (
-                            <View style={styles.checkboxContainer}>
-                              <CheckBox
-                                value={professionalismScores.problemIdentification}
-                                disabled={!isEditable()}
-                                onValueChange={() =>
-                                  handleCheckboxChange("problemIdentification")
-                                }
-                              />
-                              <Text style={styles.checkboxLabel}>
-                              Problem identification and approaching
-                              </Text>
-                            </View>
-                          )}
-                          {selectedProcedure && (
-                            <View style={styles.checkboxContainer}>
-                              <CheckBox
-                                value={professionalismScores.managementProblem}
-                                disabled={!isEditable()}
-                                onValueChange={() =>
-                                  handleCheckboxChange("managementProblem")
-                                }
-                              />
-                              <Text style={styles.checkboxLabel}>
-                              Management/Problem solving
-                              </Text>
-                            </View>
-                          )}
-                          {selectedProcedure && (
-                            <View style={styles.checkboxContainer}>
-                              <CheckBox
-                                value={professionalismScores.patientEducation}
-                                disabled={!isEditable()}
-                                onValueChange={() =>
-                                  handleCheckboxChange("patientEducation")
-                                }
-                              />
-                              <Text style={styles.checkboxLabel}>
-                              Patient education
-                              </Text>
-                            </View>
-                          )}
-                          {selectedProcedure && (
-                            <View style={styles.checkboxContainer}>
-                              <CheckBox
-                                value={
-                                  professionalismScores.evidenceBase
-                                }
-                                disabled={!isEditable()}
-                                onValueChange={() =>
-                                  handleCheckboxChange("evidenceBase")
-                                }
-                              />
-                              <Text style={styles.checkboxLabel}>
-                              Evidence-based medicine
-                              </Text>
-                            </View>
-                          )}
-                          {selectedProcedure && (
-                            <View style={styles.checkboxContainer}>
-                              <CheckBox
-                                value={
-                                  professionalismScores.ethicalManner
-                                }
-                                disabled={!isEditable()}
-                                onValueChange={() =>
-                                  handleCheckboxChange("ethicalManner")
-                                }
-                              />
-                              <Text style={styles.checkboxLabel}>
-                              Ethical and manner issues
-                              </Text>
-                            </View>
-                          )} */}
+                          
                           <Text
                             style={{
                               fontSize: 24,
@@ -1981,6 +1888,16 @@ function ProcedureScreen({ navigation }) {
                               textAlignVertical: "top",
                             }}
                           />
+
+                        <Pressable
+                          style={[styles.button, styles.buttonProfessional]}
+                          onPress={() => setProfessionalismScoresModalVisible(true)}
+                        >
+                          <Text style={styles.textStyle}>
+                            View Professionalism Score
+                          </Text>
+                        </Pressable>
+
                           {selectedProcedure.images &&
                             selectedProcedure.images.length > 0 && (
                               <Pressable
@@ -2052,6 +1969,17 @@ function ProcedureScreen({ navigation }) {
                         </View>
                       )}
 
+                      {role === 'student' && (
+                        <Pressable
+                          style={[styles.button, styles.buttonProfessional]}
+                          onPress={() => setProfessionalismScoresModalVisible(true)}
+                        >
+                          <Text style={styles.textStyle}>
+                            View Professionalism Score
+                          </Text>
+                        </Pressable>
+                      )}
+
                     {(role !== "teacher" ||
                       (role === "teacher" &&
                         (selectedStatus === "approved" ||
@@ -2068,6 +1996,20 @@ function ProcedureScreen({ navigation }) {
                           <Text style={styles.textStyle}>View Picture</Text>
                         </Pressable>
                       )}
+
+                    {(role === "teacher" &&
+                        (selectedStatus === "approved" ||
+                          selectedStatus === "rejected" ||
+                          (selectedStatus === "all" && (selectedProcedure.status !== "pending" && selectedProcedure.status !== "recheck")))) && (
+                        <Pressable
+                          style={[styles.button, styles.buttonProfessional]}
+                          onPress={() => setProfessionalismScoresModalVisible(true)}
+                        >
+                          <Text style={styles.textStyle}>
+                            View Professionalism Score
+                          </Text>
+                        </Pressable>
+                    )}
 
                     {(role !== "teacher" ||
                       (role === "teacher" &&
@@ -2105,10 +2047,20 @@ function ProcedureScreen({ navigation }) {
                     >
                       <View
                         style={{
-                          width: "70%",
-                          height: "70%",
+                          width: "80%",
+                          height: "80%",
                           backgroundColor: "white",
                           borderRadius: 10,
+                          margin: 10,
+                          padding: 25,
+                          shadowColor: "#000",
+                          shadowOffset: {
+                            width: 0,
+                            height: 2,
+                          },
+                          shadowOpacity: 0.25,
+                          shadowRadius: 4,
+                          elevation: 5,
                         }}
                       >
                         <ScrollView>
@@ -2272,13 +2224,7 @@ function ProcedureScreen({ navigation }) {
                     animationType="slide"
                     transparent={true}
                     visible={
-                      professionalismScoresModalVisible &&
-                      (selectedProcedure.status === "approved" ||
-                        selectedProcedure.status === "rejected" ||
-                        (selectedStatus === "all" &&
-                          selectedProcedure.status !== "pending") ||
-                        (selectedProcedure.status === "recheck" &&
-                          role === "student"))
+                      professionalismScoresModalVisible 
                     }
                     onRequestClose={() => {
                       setProfessionalismScoresModalVisible(

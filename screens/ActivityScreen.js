@@ -153,12 +153,13 @@ function ActivityScreen({ navigation }) {
   ] = useState(false);
 
   const [professionalismScores, setProfessionalismScores] = useState({
-    punctual: false,
-    appropriatelyDressed: false,
-    respectsActivities: false,
-    goodListener: false,
-    respectsColleagues: false,
-    accurateRecordKeeping: false,
+    basicKnowledge: false,
+    clinicalSkills: false,
+    problemIdentification: false,
+    managementProblem: false,
+    patientEducation: false,
+    evidenceBase: false,
+    ethicalManner: false,
   });
 
   // ประกาศ State สำหรับการเก็บค่าการให้คะแนน
@@ -334,12 +335,13 @@ function ActivityScreen({ navigation }) {
         setRating(selectedActivity.rating || "");
         setProfessionalismScores(
           selectedActivity.professionalismScores || {
-            punctual: false,
-            appropriatelyDressed: false,
-            respectsActivities: false,
-            goodListener: false,
-            respectsColleagues: false,
-            accurateRecordKeeping: false,
+            basicKnowledge: false,
+            clinicalSkills: false,
+            problemIdentification: false,
+            managementProblem: false,
+            patientEducation: false,
+            evidenceBase: false,
+            ethicalManner: false,
           }
         );
       } else if (selectedStatus === "all") {
@@ -359,12 +361,13 @@ function ActivityScreen({ navigation }) {
         setComment("");
         setRating("");
         setProfessionalismScores({
-          punctual: false,
-          appropriatelyDressed: false,
-          respectsActivities: false,
-          goodListener: false,
-          respectsColleagues: false,
-          accurateRecordKeeping: false,
+            basicKnowledge: false,
+            clinicalSkills: false,
+            problemIdentification: false,
+            managementProblem: false,
+            patientEducation: false,
+            evidenceBase: false,
+            ethicalManner: false,
         });
       }
     }
@@ -435,7 +438,7 @@ function ActivityScreen({ navigation }) {
       shadowRadius: 4,
       elevation: 5,
       width: isMobile ? "90%" : isTablet ? "70%" : "50%", // Responsive width
-      height: isMobile ? "auto" : 400, // Auto height for mobile
+      height: isMobile ? "auto" : "auto", // Auto height for mobile
     },
     modalView2: {
       margin: 20,
@@ -564,7 +567,7 @@ function ActivityScreen({ navigation }) {
       maxHeight: "80%",
     },
     buttonViewImages: {
-      backgroundColor: "blue", // สีที่คุณต้องการ
+      backgroundColor: "#1C4CA7", // สีที่คุณต้องการ
       padding: 10,
       borderRadius: 10,
       marginTop: 10,
@@ -778,6 +781,12 @@ function ActivityScreen({ navigation }) {
 
   const handleApprove = async () => {
     try {
+
+      if (!rating || rating === "") {
+        alert("โปรดเลือก Rating");
+        return;
+      }
+
       if (rating === "Unsatisfied") {
         alert("ไม่สามารถ Approve ได้(เนื่องจากคุณเลือก Unsatisfied)");
         return; // หยุดการทำงานของฟังก์ชันที่นี่ถ้า rating เป็น unsatisfied
@@ -845,14 +854,14 @@ function ActivityScreen({ navigation }) {
   const resetScoresAndComment = () => {
     setComment("");
     setRating("");
-    setProfessionalismScores({
-      punctual: false,
-      appropriatelyDressed: false,
-      respectsActivities: false,
-      goodListener: false,
-      respectsColleagues: false,
-      accurateRecordKeeping: false,
-    });
+    // setProfessionalismScores({
+    //   punctual: false,
+    //   appropriatelyDressed: false,
+    //   respectsActivities: false,
+    //   goodListener: false,
+    //   respectsColleagues: false,
+    //   accurateRecordKeeping: false,
+    // });
   };
 
   const renderAddDataButton = () => {
@@ -1133,6 +1142,11 @@ function ActivityScreen({ navigation }) {
                   >
                     Student Name : {activity.studentName}
                   </Text>
+                  {/* <Text
+                    style={{ marginLeft: 20, lineHeight: 30, opacity: 0.4 }}
+                  >
+                    Patient Name : {activity.patientName}
+                  </Text> */}
                   {activity.status === "pending" ? (
                     <Text
                       style={{ marginLeft: 20, lineHeight: 30, opacity: 0.4 }}
@@ -1611,6 +1625,22 @@ function ActivityScreen({ navigation }) {
                   ) : null}
                   <Text style={styles.modalText}>
                     <Text style={{ fontWeight: "bold" }}>
+                      วันที่บันทึกข้อมูล :{" "}
+                    </Text>
+                    {selectedActivity.recordDate
+                      ? formatDate2(selectedActivity.recordDate.toDate())
+                      : "ไม่มี"}
+                  </Text>
+                  {role !== "student" && selectedActivity.studentName ? (
+                    <Text style={styles.modalText}>
+                      <Text style={{ fontWeight: "bold" }}>
+                        ชื่อนักศึกษาแพทย์ :{" "}
+                      </Text>{" "}
+                      {selectedActivity.studentName}
+                    </Text>
+                  ) : null}
+                  <Text style={styles.modalText}>
+                    <Text style={{ fontWeight: "bold" }}>
                       Admission Date :{" "}
                     </Text>
                     {formatDate2(selectedActivity.admissionDate.toDate())}
@@ -1634,6 +1664,10 @@ function ActivityScreen({ navigation }) {
                     </Text>{" "}
                     {selectedActivity.professorName}
                   </Text>
+                  {/* <Text style={styles.modalText}>
+                    <Text style={{ fontWeight: "bold" }}>Patient Name :</Text>{" "}
+                    {selectedActivity.patientName || "ไม่มี"}
+                  </Text> */}
                   <Text style={styles.modalText}>
                     <Text style={{ fontWeight: "bold" }}>Type :</Text>{" "}
                     {selectedActivity.activityType || "None"}
@@ -1676,24 +1710,6 @@ function ActivityScreen({ navigation }) {
                   )}
 
                   <View style={styles.buttonRow}>
-                  {/* {(selectedStatus === "approved" ||
-                    selectedStatus === "rejected" ||
-                    (selectedStatus === "all" && 
-                      (selectedActivity.status !== "pending" && 
-                      (role === "student" || (role === "teacher" && selectedActivity.status !== "recheck")) && 
-                      (selectedActivity.status === "approved" || selectedActivity.status === "rejected" || selectedActivity.status === "recheck"))) ||
-                    (selectedStatus === "recheck" && role === "student")) && (
-                      <Pressable
-                        style={[styles.button, styles.buttonProfessional]}
-                        onPress={() =>
-                          setProfessionalismScoresModalVisible(true)
-                        }
-                      >
-                        <Text style={styles.textStyle}>
-                          View Professionalism Score
-                        </Text>
-                      </Pressable>
-                    )} */}
 
                     {role !== "student" &&
                       selectedStatus !== "approved" &&
@@ -1872,6 +1888,16 @@ function ActivityScreen({ navigation }) {
                               textAlignVertical: "top",
                             }}
                           />
+
+                        <Pressable
+                          style={[styles.button, styles.buttonProfessional]}
+                          onPress={() => setProfessionalismScoresModalVisible(true)}
+                        >
+                          <Text style={styles.textStyle}>
+                            View Professionalism Score
+                          </Text>
+                        </Pressable>
+
                           {selectedActivity.images &&
                             selectedActivity.images.length > 0 && (
                               <Pressable
@@ -1931,6 +1957,17 @@ function ActivityScreen({ navigation }) {
                         </View>
                       )}
 
+                      {role === 'student' && (
+                        <Pressable
+                          style={[styles.button, styles.buttonProfessional]}
+                          onPress={() => setProfessionalismScoresModalVisible(true)}
+                        >
+                          <Text style={styles.textStyle}>
+                            View Professionalism Score
+                          </Text>
+                        </Pressable>
+                      )}
+
                     {(role !== "teacher" ||
                       (role === "teacher" &&
                         (selectedStatus === "approved" ||
@@ -1945,6 +1982,20 @@ function ActivityScreen({ navigation }) {
                           <Text style={styles.textStyle}>View Picture</Text>
                         </Pressable>
                       )}
+
+                    {(role === "teacher" &&
+                        (selectedStatus === "approved" ||
+                          selectedStatus === "rejected" ||
+                          (selectedStatus === "all" && (selectedActivity.status !== "pending" && selectedActivity.status !== "recheck")))) && (
+                        <Pressable
+                          style={[styles.button, styles.buttonProfessional]}
+                          onPress={() => setProfessionalismScoresModalVisible(true)}
+                        >
+                          <Text style={styles.textStyle}>
+                            View Professionalism Score
+                          </Text>
+                        </Pressable>
+                    )}
 
                     {(role !== "teacher" ||
                       (role === "teacher" &&
@@ -1980,10 +2031,20 @@ function ActivityScreen({ navigation }) {
                     >
                       <View
                         style={{
-                          width: "70%",
-                          height: "70%",
+                          width: "80%",
+                          height: "80%",
                           backgroundColor: "white",
                           borderRadius: 10,
+                          margin: 10,
+                          padding: 25,
+                          shadowColor: "#000",
+                          shadowOffset: {
+                            width: 0,
+                            height: 2,
+                          },
+                          shadowOpacity: 0.25,
+                          shadowRadius: 4,
+                          elevation: 5,
                         }}
                       >
                         <ScrollView>
@@ -2147,12 +2208,7 @@ function ActivityScreen({ navigation }) {
                     animationType="slide"
                     transparent={true}
                     visible={
-                      professionalismScoresModalVisible &&
-                      (selectedActivity.status === "approved" ||
-                        selectedActivity.status === "rejected" ||
-                        (selectedStatus === "all" && selectedActivity.status !== "pending") ||
-                        (selectedActivity.status === "recheck" &&
-                          role === "student"))
+                      professionalismScoresModalVisible 
                     }
                     onRequestClose={() => {
                       setProfessionalismScoresModalVisible(
@@ -2171,15 +2227,16 @@ function ActivityScreen({ navigation }) {
                         >
                           Professionalism scores
                         </Text>
-                        {selectedActivity.professionalismScores && (
+                          {selectedActivity.professionalismScores && (
                           <>
                             <Text style={styles.modalText}>
                               <Text
                                 style={{ fontWeight: "bold", fontSize: 20 }}
                               >
-                                Punctual :{" "}
+                                Basic knowledge/basic science :{" "}
                               </Text>
-                              {selectedActivity.professionalismScores.punctual
+                              {selectedActivity.professionalismScores
+                                .basicKnowledge
                                 ? "✔️"
                                 : "❌"}
                             </Text>
@@ -2187,10 +2244,11 @@ function ActivityScreen({ navigation }) {
                               <Text
                                 style={{ fontWeight: "bold", fontSize: 20 }}
                               >
-                                Appropriately dressed:{" "}
+                                Clinical skills (history taking and physical
+                                examination) :{" "}
                               </Text>
                               {selectedActivity.professionalismScores
-                                .appropriatelyDressed
+                                .clinicalSkills
                                 ? "✔️"
                                 : "❌"}
                             </Text>
@@ -2198,10 +2256,10 @@ function ActivityScreen({ navigation }) {
                               <Text
                                 style={{ fontWeight: "bold", fontSize: 20 }}
                               >
-                                Respect the Activities :{" "}
+                                Problem identification and approaching :{" "}
                               </Text>
                               {selectedActivity.professionalismScores
-                                .respectsActivities
+                                .problemIdentification
                                 ? "✔️"
                                 : "❌"}
                             </Text>
@@ -2209,10 +2267,10 @@ function ActivityScreen({ navigation }) {
                               <Text
                                 style={{ fontWeight: "bold", fontSize: 20 }}
                               >
-                                Good listener :{" "}
+                                Management/Problem solving :{" "}
                               </Text>
                               {selectedActivity.professionalismScores
-                                .goodListener
+                                .managementProblem
                                 ? "✔️"
                                 : "❌"}
                             </Text>
@@ -2220,10 +2278,10 @@ function ActivityScreen({ navigation }) {
                               <Text
                                 style={{ fontWeight: "bold", fontSize: 20 }}
                               >
-                                Respect colleagues :{" "}
+                                Patient education :{" "}
                               </Text>
                               {selectedActivity.professionalismScores
-                                .respectsColleagues
+                                .patientEducation
                                 ? "✔️"
                                 : "❌"}
                             </Text>
@@ -2231,10 +2289,21 @@ function ActivityScreen({ navigation }) {
                               <Text
                                 style={{ fontWeight: "bold", fontSize: 20 }}
                               >
-                                Accurately record activity information :{" "}
+                                Evidence-based medicine :{" "}
                               </Text>
                               {selectedActivity.professionalismScores
-                                .accurateRecordKeeping
+                                .evidenceBase
+                                ? "✔️"
+                                : "❌"}
+                            </Text>
+                            <Text style={styles.modalText}>
+                              <Text
+                                style={{ fontWeight: "bold", fontSize: 20 }}
+                              >
+                                Ethical and manner issues :{" "}
+                              </Text>
+                              {selectedActivity.professionalismScores
+                                .ethicalManner
                                 ? "✔️"
                                 : "❌"}
                             </Text>

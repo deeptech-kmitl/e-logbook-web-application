@@ -104,7 +104,7 @@ const AddUserScreen = () => {
         >
           <TextInput
             value={email}
-            onChangeText={setEmail}
+            onChangeText={(text) => setEmail(text.toLowerCase())}
             keyboardType="email-address"
             autoCapitalize="none"
             placeholder="Enter email"
@@ -211,8 +211,8 @@ const AddUserScreen = () => {
           style={{
             height: 48,
             borderColor: "#FEF0E6",
-            borderWidth: 1,
-            borderRadius: 10,
+            // borderWidth: 1,
+            // borderRadius: 10,
             alignItems: "center",
             justifyContent: "center",
             marginTop: 20,
@@ -229,8 +229,8 @@ const AddUserScreen = () => {
               width: "auto",
               backgroundColor: "#FEF0E6",
               borderColor: "#FEF0E6",
-              borderWidth: 1,
-              borderRadius: 10,
+              // borderWidth: 1,
+              // borderRadius: 10,
             }}
             dropdownStyles={{ backgroundColor: "#FEF0E6" }}
           />

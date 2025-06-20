@@ -7,6 +7,7 @@ import {
   Image,
   Dimensions,
   ScrollView,
+  Linking
 } from "react-native";
 import { useSelector, useDispatch } from "react-redux";
 import { clearSubject, clearUser } from "../redux/action";
@@ -263,6 +264,18 @@ const HomeScreen = ({ navigation }) => {
               </Text>
             )}
           </View>
+          {role === "teacher" && (
+            <TouchableOpacity
+              style={[styles.button, styles.estimateButton]}
+              onPress={() => {
+                Linking.openURL("https://script.google.com/macros/s/AKfycbxJ7vm1-nyIJan5mNKHvFQU8T2YiGVJo_sYjCxQJDB1ULrsqeSeaqr17TIumJG2A_o2/exec");
+              }}
+            >
+              <Text style={[styles.buttonText, { fontSize: buttonTextSize }]}>
+                ระบบประเมิน
+              </Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
             style={[styles.button, styles.logoutButton]}
             onPress={handleLogout}
@@ -392,6 +405,9 @@ const styles = StyleSheet.create({
   },
   logoutButton: {
     backgroundColor: "red",
+  },
+  estimateButton: {
+    backgroundColor: "blue",
   },
   subjectButton: {
     backgroundColor: "orange",

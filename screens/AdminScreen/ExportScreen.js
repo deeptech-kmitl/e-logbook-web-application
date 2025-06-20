@@ -12,10 +12,11 @@ import {
 } from "react-native";
 import { useSelector } from "react-redux";
 import { db } from "../../data/firebaseDB";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, query, where,} from "firebase/firestore";
 import * as XLSX from "xlsx";
 import { AntDesign } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { SelectList } from "react-native-dropdown-select-list";
 
 const ExportScreen = () => {
   const currentUserUid = useSelector((state) => state.user.uid);
@@ -35,15 +36,137 @@ const ExportScreen = () => {
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
 
+  const [students, setStudents] = useState([]); 
+  const [studentId, setStudentId] = useState(null); 
+  const [studentName, setStudentName] = useState(null); 
+  const [selectedStudent, setSelectedStudent] = useState("all");
+
+  const [isVisible, setIsVisible] = useState(false);
+
+  const [windowWidth, setWindowWidth] = useState(
+    Dimensions.get("window").width
+  );
+  const [windowHeight, setWindowHeight] = useState(
+    Dimensions.get("window").height
+  );
+  const [isLandscape, setIsLandscape] = useState(false);
   const [dimensions, setDimensions] = useState(Dimensions.get("window"));
+
+  const isMobile = windowWidth < 768; // ตรวจสอบว่าอุปกรณ์เป็น Mobile หรือไม่
+  const isTablet = windowWidth >= 768 && windowWidth < 1024; // ตรวจสอบว่าอุปกรณ์เป็น Tablet หรือไม่
+  const isPC = windowWidth >= 1024; // ตรวจสอบว่าอุปกรณ์เป็น PC หรือไม่
+
+  const [selectedSubject, setSelectedSubject] = useState("all");
+  const subjectsByYear = [
+    { key: "all", value: "All" },
+    { key: "Family medicine clerkship", value: "Family medicine clerkship" },
+    { key: "Internal medicine clerkship", value: "Internal medicine clerkship" },
+    { key: "Surgery clerkship", value: "Surgery clerkship" },
+    {
+      key: "Anesthesiology, cardiology and critical care medicine clerkship",
+      value: "Anesthesiology, cardiology and critical care medicine clerkship",
+    },
+    {
+      key: "Obstetrics and gynecology clerkship",
+      value: "Obstetrics and gynecology clerkship",
+    },
+    {
+      key: "Pediatric clerkship",
+      value: "Pediatric clerkship",
+    },
+    {
+      key: "Ambulatory medicine clerkship",
+      value: "Ambulatory medicine clerkship",
+    },
+    {
+      key: "Accident and emergency medicine clerkship",
+      value: "Accident and emergency medicine clerkship",
+    },
+    {
+      key: "Oncology and palliative medicine clerkship",
+      value: "Oncology and palliative medicine clerkship",
+    },
+    {
+      key: "Practicum in internal medicine",
+      value: "Practicum in internal medicine",
+    },
+    { key: "Practicum in surgery", value: "Practicum in surgery" },
+    { key: "Practicum in Pediatrics", value: "Practicum in Pediatrics" },
+    {
+      key: "Practicum in Obstetrics and gynecology",
+      value: "Practicum in Obstetrics and gynecology",
+    },
+    {
+      key: "Practicum in orthopedics and emergency medicine",
+      value: "Practicum in orthopedics and emergency medicine",
+    },
+    {
+      key: "Practicum in community hospital",
+      value: "Practicum in community hospital",
+    },
+  ];
+
+  const statusOptions = [
+    { key: "all", value: "All"},
+    { key: "pending", value: "Pending" },
+    { key: "approved", value: "Approved" },
+    { key: "rejected", value: "Rejected" },
+    { key: "recheck", value: "Recheck" },
+  ];
+
+  const formatFiles = [
+    { key: "csv", value: "CSV" },
+    { key: "xls", value: "XLS" },
+    { key: "xlsx", value: "XLSX" },
+  ];
+
+  // useEffect(() => {
+  //   const updateLayout = () => {
+  //     setDimensions(Dimensions.get("window"));
+  //   };
+
+  //   Dimensions.addEventListener("change", updateLayout);
+  //   return () => Dimensions.removeEventListener("change", updateLayout);
+  // }, []);
+
+    const updateWindowDimensions = () => {
+      setWindowWidth(Dimensions.get("window").width);
+      setWindowHeight(Dimensions.get("window").height);
+    };
+  
+    useEffect(() => {
+      updateWindowDimensions();
+      Dimensions.addEventListener("change", updateWindowDimensions);
+  
+      return () => {
+        Dimensions.removeEventListener("change", updateWindowDimensions);
+      };
+    }, []);
 
   useEffect(() => {
     const updateLayout = () => {
-      setDimensions(Dimensions.get("window"));
+      const windowWidth = Dimensions.get("window").width;
+      const windowHeight = Dimensions.get("window").height;
+      setIsLandscape(windowWidth > windowHeight);
+      
+      if (windowWidth >= 768 && windowWidth < 1024) {
+        setLayoutType("row");
+        setContainerHeight(150);  // ตั้งค่าความสูงตามที่ต้องการสำหรับหน้าจอกว้าง
+      } else if (windowWidth < 768) {
+        setLayoutType("column");
+        setContainerHeight(180);  // ตั้งค่าความสูงตามที่ต้องการสำหรับหน้าจอแคบ
+      } else {
+        setLayoutType("row");
+        setContainerHeight(121);  // ความสูงเริ่มต้นสำหรับหน้าจอใหญ่กว่า 1024
+      }
     };
-
+  
+    updateLayout();  // เรียกใช้งานเมื่อ component ถูก mount
+  
     Dimensions.addEventListener("change", updateLayout);
-    return () => Dimensions.removeEventListener("change", updateLayout);
+    return () => {
+      Dimensions.removeEventListener("change", updateLayout);
+    };
   }, []);
 
   useEffect(() => {
@@ -69,28 +192,49 @@ const ExportScreen = () => {
     fetchData();
   }, []);
 
+
   useEffect(() => {
-    const updateLayout = () => {
-      const windowWidth = Dimensions.get("window").width;
-      if (windowWidth >= 768 && windowWidth < 1024) {
-        setLayoutType("row");
-        setContainerHeight(150);  // ตั้งค่าความสูงตามที่ต้องการสำหรับหน้าจอกว้าง
-      } else if (windowWidth < 768) {
-        setLayoutType("column");
-        setContainerHeight(180);  // ตั้งค่าความสูงตามที่ต้องการสำหรับหน้าจอแคบ
-      } else {
-        setLayoutType("row");
-        setContainerHeight(121);  // ความสูงเริ่มต้นสำหรับหน้าจอใหญ่กว่า 1024
+    async function fetchStudents() {
+      try {
+        const studentRef = collection(db, "users");
+        const q = query(studentRef, where("role", "==", "student"));
+  
+        const querySnapshot = await getDocs(q);
+        const studentArray = [{ key: "", value: "All" }]; // Add 'All' option
+  
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          studentArray.push({ key: doc.id, value: data.displayName });
+        });
+  
+        setStudents(studentArray);
+      } catch (error) {
+        console.error("Error fetching students:", error);
       }
-    };
+    }
   
-    updateLayout();  // เรียกใช้งานเมื่อ component ถูก mount
-  
-    Dimensions.addEventListener("change", updateLayout);
-    return () => {
-      Dimensions.removeEventListener("change", updateLayout);
-    };
+    fetchStudents();
   }, []);
+  
+  const onSelectStudent = (selectedStudentId) => {
+    setSelectedStudent(selectedStudentId); // <= สำคัญมาก
+
+    if (selectedStudentId === "") {
+      setStudentName("All");
+      setStudentId("");
+    } else {
+      const selectedStudent = students.find(
+        (student) => student.key === selectedStudentId
+      );
+
+      if (selectedStudent) {
+        setStudentName(selectedStudent.value);
+        setStudentId(selectedStudent.key);
+      } else {
+        console.error("Student not found:", selectedStudentId);
+      }
+    }
+  };
 
   const getPatientsData = async (usersData) => {
     const patientsCollection = collection(db, "patients");
@@ -184,17 +328,23 @@ const getSelectedDataForExport = () => {
     dataForExport = filterByDateRange(patientsData).filter(
       (patient) =>
         (selectedStatus === "all" || patient.status === selectedStatus) &&
-        (selectedType === "all" || patient.patientType === selectedType)
+        (selectedType === "all" || patient.patientType === selectedType) &&
+        (selectedSubject === "all" || patient.subject === selectedSubject) &&
+        (selectedStudent === "all" || selectedStudent === "" || patient.createBy_id === studentId)
     );
   } else if (selectedData === "procedures") {
     dataForExport = filterByDateRange(proceduresData).filter(
       (procedure) =>
-        (selectedStatus === "all" || procedure.status === selectedStatus)
+        (selectedStatus === "all" || procedure.status === selectedStatus) &&
+        (selectedSubject === "all" || procedure.subject === selectedSubject) &&
+        (selectedStudent === "all" || selectedStudent === "" || procedure.createBy_id === studentId)
     );
   } else if (selectedData === "activity") {
     dataForExport = filterByDateRange(activityData).filter(
       (activity) =>
-        (selectedStatus === "all" || activity.status === selectedStatus)
+        (selectedStatus === "all" || activity.status === selectedStatus) &&
+        (selectedSubject === "all" || activity.subject === selectedSubject) &&
+        (selectedStudent === "all" || selectedStudent === "" || activity.createBy_id === studentId)
     );
   }
   
@@ -209,7 +359,7 @@ const getSelectedDataForExport = () => {
           style={{
             padding: 10,
             fontSize: 16,
-            width: "80%",
+            width: "90%",
             backgroundColor: "#FEF0E6",
             borderColor: "#FEF0E6",
             borderWidth: 1,
@@ -246,7 +396,7 @@ const getSelectedDataForExport = () => {
           style={{
             padding: 10,
             fontSize: 16,
-            width: "80%",
+            width: "90%",
             backgroundColor: "#FEF0E6",
             borderColor: "#FEF0E6",
             borderWidth: 1,
@@ -281,6 +431,7 @@ const getSelectedDataForExport = () => {
     const dataForPreview = getSelectedDataForExport();
     const formattedPreviewData = dataForPreview.map((item) => ({
       ...item,
+      recordDate: formatTimestamp(item.recordDate),
       admissionDate: formatTimestamp(item.admissionDate),
       approvalTimestamp: formatTimestamp(item.approvalTimestamp),
       rejectionTimestamp: formatTimestamp(item.rejectionTimestamp),
@@ -393,11 +544,13 @@ const getSelectedDataForExport = () => {
 
   const formatPatientsDataForExport = (data) => {
     return data.map((patient) => ({
+      "Record Date": formatTimestamp(patient.recordDate),
       "Admission Date": formatTimestamp(patient.admissionDate),
       "Time": formatTime(patient.hours, patient.minutes),
       "Display Name": patient.displayName,
       "Creator ID": patient.createBy_id,
       HN: patient.hn,
+      "Patient Name": patient.patientName,
       "Patient Type": patient.patientType,
       "หมวดหมู่การวินิจฉัย": patient.diagnosticType,
       "Main Diagnosis": patient.mainDiagnosis,
@@ -422,11 +575,13 @@ const getSelectedDataForExport = () => {
 
   const formatProceduresDataForExport = (data) => {
     return data.map((procedure) => ({
+      "Record Date": formatTimestamp(procedure.recordDate),
       "Admission Date": formatTimestamp(procedure.admissionDate),
       "Time": formatTime(procedure.hours, procedure.minutes),
       "Display Name": procedure.displayName,
       "Creator ID": procedure.createBy_id,
       HN: procedure.hn,
+      "Patient Name": procedure.patientName,
       "Procedure Level": procedure.procedureLevel,
       "Procedure Type": procedure.procedureType,
       "Instructor Name": procedure.professorName,
@@ -444,12 +599,16 @@ const getSelectedDataForExport = () => {
         procedure.reApprovalTimestamp || null
       ),
       Rating: procedure.rating || "",
+      "Professionalism Scores": translateProfessionalismScores(
+        procedure.professionalismScores || null
+      ),
       "Subject": procedure.subject
     }));
   };
 
   const formatActivityDataForExport = (data) => {
     return data.map((activity) => ({
+      "Record Date": formatTimestamp(activity.recordDate),
       "Admission Date": formatTimestamp(activity.admissionDate),
       "Time": formatTime(activity.hours, activity.minutes),
       "Display Name": activity.displayName,
@@ -465,74 +624,341 @@ const getSelectedDataForExport = () => {
       "Rejection Timestamp": formatTimestamp(activity.rejectionTimestamp) || null,
       "Recheck Timestamp": formatTimestamp(activity.reApprovalTimestamp) || null,
       Rating: activity.rating || "",
+      "Professionalism Scores": translateProfessionalismScores(
+        activity.professionalismScores || null
+      ),
       "Subject": activity.subject
     }));
   };
 
   return (
     <View style={styles.mainContainer}>
-      <View style={[styles.reportContainer, { height: containerHeight }]}>
-        {/* <Text style={{ fontSize: 16 }}>Export Data: </Text> */}
-        <View style={{flexDirection: "row", justifyContent: 'space-between'}}>
-          <View style={{flexDirection: "column"}}>
-            <Picker
-              selectedValue={selectedData}
-              style={styles.pickerStyle}
-              onValueChange={(itemValue, itemIndex) => setSelectedData(itemValue)}
-            >
-              <Picker.Item label="Patients" value="patients" />
-              <Picker.Item label="Procedures" value="procedures" />
-              <Picker.Item label="Activity" value="activity" />
-            </Picker>
 
-            {selectedData === "patients" && (
-              <Picker
-                selectedValue={selectedType}
-                style={styles.pickerStyle}
-                onValueChange={(itemValue, itemIndex) =>
-                  setSelectedType(itemValue)
-                }
-              >
-                <Picker.Item label="All Types" value="all" />
-                <Picker.Item label="Inpatient" value="inpatient" />
-                <Picker.Item label="Outpatient" value="outpatient" />
-              </Picker>
-            )}
-
-            <Picker
-              selectedValue={selectedStatus}
-              style={styles.pickerStyle}
-              onValueChange={(itemValue, itemIndex) =>
-                setSelectedStatus(itemValue)
-              }
+        <View style={{ marginVertical: 20 }}>
+          <Button
+            color="#FE810E"
+            title={isVisible ? "Hide Filters" : "Show Filters"}
+            onPress={() => setIsVisible(!isVisible)}
+          />
+        </View>
+      {isVisible && (
+        <>
+      <View
+              style={{
+                marginVertical: 10,
+                flexDirection: isPC ? 'row' : 'column', // Row only for wide screens
+                alignItems: isPC ? 'flex-start' : 'center',
+                justifyContent: isPC ? 'flex-start' : 'center',
+                flexWrap: isPC ? 'wrap' : 'nowrap', // Allow wrap on wide screens if needed
+              }}
             >
-              <Picker.Item label="All Status" value="all" />
-              <Picker.Item label="Pending" value="pending" />
-              <Picker.Item label="Approved" value="approved" />
-              <Picker.Item label="Rejected" value="rejected" />
-              <Picker.Item label="Recheck" value="recheck" />
-            </Picker>
 
-            <Picker
-              selectedValue={fileFormat}
-              style={styles.pickerStyle}
-              onValueChange={(itemValue, itemIndex) => setFileFormat(itemValue)}
+          {!isPC ? (
+            <View
+              style={{
+                // marginVertical: 10,
+                flexDirection: "row",
+                alignContent: 'space-between',
+                alignItems: "center",  
+              }}
             >
-              <Picker.Item label="CSV" value="csv" />
-              <Picker.Item label="XLS" value="xls" />
-              <Picker.Item label="XLSX" value="xlsx" />
-            </Picker>
-          </View>
+                <View style={{ marginBottom: isPC ? 0 : 10, marginRight: 20 }}>
+                  <Text style={{ marginBottom: 10, textAlign: 'center' }}>Start Date:</Text>
+                  <StartDateInput />
+                </View>
+                
+                <View style={{ marginBottom: isPC ? 0 : 10, marginRight: isPC ? 20 : 0 }}>
+                  <Text style={{ marginBottom: 10, textAlign: 'center' }}>End Date:</Text>
+                  <EndDateInput />
+                </View>
           
-          <View style={{flexDirection: "column", justifyContent: 'center', alignSelf: 'center'}}>
-            <View style={{marginVertical: 10}}>
-              <StartDateInput />
-            </View>
-              <EndDateInput />
+              </View>
+              ) : (
+                <>
+                <View style={{ marginBottom: isPC ? 0 : 10, marginRight: 20 }}>
+                  <Text style={{ marginBottom: 10, textAlign: 'center' }}>Start Date:</Text>
+                  <StartDateInput />
+                </View>
+                
+                <View style={{ marginBottom: isPC ? 0 : 10, marginRight: isPC ? 20 : 0 }}>
+                  <Text style={{ marginBottom: 10, textAlign: 'center' }}>End Date:</Text>
+                  <EndDateInput />
+                </View>
+                </>
+          )}
+{!isPC ? (
+      <View
+        style={{
+          // marginVertical: 10,
+          flexDirection: "row",
+          alignContent: 'space-between',
+          alignItems: "center",  
+        }}
+      >
+        
+        <View style={{ marginBottom: 10, marginRight: 20 }}>
+          <Text style={{ textAlign: 'center', marginBottom: 10 }}>Select data type :</Text>
+            <SelectList
+              data={[
+                { key: "patients", value: "Patients" },
+                { key: "procedures", value: "Procedures" },
+                { key: "activity", value: "Activity" },
+              ]}
+              setSelected={setSelectedData}
+              placeholder="Select Data"
+              defaultOption={{ key: selectedData, value: selectedData.charAt(0).toUpperCase() + selectedData.slice(1) }}
+              search={false}
+              boxStyles={{
+                width: "100%",
+                backgroundColor: "#FEF0E6",
+                borderColor: "#FEF0E6",
+                borderWidth: 1,
+                borderRadius: 10,
+                marginBottom: 10,
+              }}
+              dropdownStyles={{
+                backgroundColor: "#FEF0E6",
+                width: "100%",
+              }}
+            />
+        </View>
+
+        {selectedData === "patients" && (
+            <>
+          <View style={{ marginBottom: 10, marginRight: 20 }}> 
+              <Text style={{ textAlign: 'center', marginBottom: 10 }}>Select patient type :</Text>
+              <SelectList
+                data={[
+                  { key: "all", value: "All Types" },
+                  { key: "inpatient", value: "Inpatient" },
+                  { key: "outpatient", value: "Outpatient" },
+                ]}
+                setSelected={setSelectedType}
+                placeholder="All Types"
+                defaultOption={{ key: selectedType, value: selectedType.charAt(0).toUpperCase() + selectedType.slice(1) }}
+                search={false}
+                boxStyles={{
+                  width: "100%",
+                  backgroundColor: "#FEF0E6",
+                  borderColor: "#FEF0E6",
+                  borderWidth: 1,
+                  borderRadius: 10,
+                  marginBottom: 10,
+                }}
+                dropdownStyles={{
+                  backgroundColor: "#FEF0E6",
+                  width: "100%",
+                }}
+              />
+          </View>
+            </>
+          )}
+        </View>
+        ) : (
+        <>
+        <View style={{ marginBottom: 10, marginRight: 20 }}>
+          <Text style={{ textAlign: 'center', marginBottom: 10 }}>Select data type :</Text>
+            <SelectList
+              data={[
+                { key: "patients", value: "Patients" },
+                { key: "procedures", value: "Procedures" },
+                { key: "activity", value: "Activity" },
+              ]}
+              setSelected={setSelectedData}
+              placeholder="Select Data"
+              defaultOption={{ key: selectedData, value: selectedData.charAt(0).toUpperCase() + selectedData.slice(1) }}
+              search={false}
+              boxStyles={{
+                width: "100%",
+                backgroundColor: "#FEF0E6",
+                borderColor: "#FEF0E6",
+                borderWidth: 1,
+                borderRadius: 10,
+                marginBottom: 10,
+              }}
+              dropdownStyles={{
+                backgroundColor: "#FEF0E6",
+                width: "100%",
+              }}
+            />
+        </View>
+
+        {selectedData === "patients" && (
+            <>
+          <View style={{ marginBottom: 10, marginRight: 20 }}> 
+              <Text style={{ textAlign: 'center', marginBottom: 10 }}>Select patient type :</Text>
+              <SelectList
+                data={[
+                  { key: "all", value: "All Types" },
+                  { key: "inpatient", value: "Inpatient" },
+                  { key: "outpatient", value: "Outpatient" },
+                ]}
+                setSelected={setSelectedType}
+                placeholder="All Types"
+                defaultOption={{ key: selectedType, value: selectedType.charAt(0).toUpperCase() + selectedType.slice(1) }}
+                search={false}
+                boxStyles={{
+                  width: "100%",
+                  backgroundColor: "#FEF0E6",
+                  borderColor: "#FEF0E6",
+                  borderWidth: 1,
+                  borderRadius: 10,
+                  marginBottom: 10,
+                }}
+                dropdownStyles={{
+                  backgroundColor: "#FEF0E6",
+                  width: "100%",
+                }}
+              />
+          </View>
+            </>
+          )}
+           </>
+        )}
+
+          <View style={{ marginBottom: isPC ? 0 : 10, marginRight: isPC ? 20 : 0 }}>
+            <Text style={{ marginBottom: 10, textAlign: 'center' }}>Select subject:</Text>
+            <SelectList
+              data={subjectsByYear}
+              setSelected={setSelectedSubject}
+              placeholder="All"
+              defaultOption={selectedSubject}
+              search={false}
+              boxStyles={{
+                width: '100%',
+                backgroundColor: "#FEF0E6",
+                borderColor: "#FEF0E6",
+                borderWidth: 1,
+                borderRadius: 10,
+              }}
+              dropdownStyles={{
+                backgroundColor: "#FEF0E6",
+                width: "100%",
+              }}
+            />
           </View>
 
-          <View style={{flexDirection: "column", justifyContent: 'center', alignSelf: 'center'}}>
-              <TouchableOpacity
+          <View style={{ marginBottom: isPC ? 0 : 10, marginRight: isPC ? 20 : 0 }}>
+            <Text style={{ marginBottom: 10, textAlign: 'center' }}>Select medical student name:</Text>
+            <SelectList
+              setSelected={onSelectStudent}
+              data={students}
+              placeholder="All"
+              placeholderTextColor="grey"
+              boxStyles={{
+                width: '100%',
+                backgroundColor: "#FEF0E6",
+                borderColor: "#FEF0E6",
+                borderWidth: 1,
+                borderRadius: 10,
+              }}
+              dropdownStyles={{ backgroundColor: "#FEF0E6" }}
+            />
+          </View>
+
+    {!isPC ? (
+      <View
+        style={{
+          // marginVertical: 10,
+          flexDirection: "row",
+          alignContent: 'space-between',
+          alignItems: "center",  
+        }}
+      >
+          <View style={{ marginBottom: 10, marginRight: 20 }}>
+            <Text style={{ marginBottom: 10, textAlign: 'center' }}>Select status:</Text>
+              <SelectList
+                data={statusOptions}
+                setSelected={setSelectedStatus}
+                placeholder="All"
+                defaultOption={selectedStatus}
+                search={false}
+                boxStyles={{
+                  width: '100%',
+                  backgroundColor: "#FEF0E6",
+                  borderColor: "#FEF0E6",
+                  borderWidth: 1,
+                  borderRadius: 10,
+                }}
+                dropdownStyles={{
+                  backgroundColor: "#FEF0E6",
+                  width: "100%",
+                }}
+              />
+          </View>
+
+          <View style={{ marginBottom: isPC ? 0 : 10, marginRight: isPC ? 20 : 0 }}>
+            <Text style={{ marginBottom: 10, textAlign: 'center' }}>Select Format:</Text>
+              <SelectList
+                data={formatFiles}
+                // defaultOption={fileFormat}
+                setSelected={setFileFormat}
+                placeholder="Select format"
+                search={false}
+                boxStyles={{
+                  width: '100%',
+                  backgroundColor: "#FEF0E6",
+                  borderColor: "#FEF0E6",
+                  borderWidth: 1,
+                  borderRadius: 10,
+                }}
+                dropdownStyles={{
+                  backgroundColor: "#FEF0E6",
+                  width: "100%",
+                }}
+              />
+          </View>
+        </View>
+      ) : (
+          <>
+          <View style={{ marginBottom: 10, marginRight: 20 }}>
+            <Text style={{ marginBottom: 10, textAlign: 'center' }}>Select status:</Text>
+              <SelectList
+                data={statusOptions}
+                setSelected={setSelectedStatus}
+                placeholder="All"
+                defaultOption={selectedStatus}
+                search={false}
+                boxStyles={{
+                  width: '100%',
+                  backgroundColor: "#FEF0E6",
+                  borderColor: "#FEF0E6",
+                  borderWidth: 1,
+                  borderRadius: 10,
+                }}
+                dropdownStyles={{
+                  backgroundColor: "#FEF0E6",
+                  width: "100%",
+                }}
+              />
+          </View>
+
+          <View style={{ marginBottom: isPC ? 0 : 10, marginRight: isPC ? 20 : 0 }}>
+            <Text style={{ marginBottom: 10, textAlign: 'center' }}>Select Format:</Text>
+              <SelectList
+                data={formatFiles}
+                // defaultOption={fileFormat}
+                setSelected={setFileFormat}
+                placeholder="Select format"
+                search={false}
+                boxStyles={{
+                  width: '100%',
+                  backgroundColor: "#FEF0E6",
+                  borderColor: "#FEF0E6",
+                  borderWidth: 1,
+                  borderRadius: 10,
+                }}
+                dropdownStyles={{
+                  backgroundColor: "#FEF0E6",
+                  width: "100%",
+                }}
+              />
+          </View>
+          </>
+        )}
+
+        <View style={{ marginBottom: isPC ? 0 : 10, marginRight: isPC ? 20 : 0 }}>
+          <TouchableOpacity
                 style={styles.previewButton}
                 onPress={handlePreview}
               >
@@ -547,24 +973,27 @@ const getSelectedDataForExport = () => {
                 <AntDesign name="download" size={16} color="white" />
                 <Text style={styles.downloadText}>Download</Text>
               </TouchableOpacity>
-
-            </View>
-          </View>
         </View>
+
+      </View>
+      </>
+      )}
 
 
       <ScrollView>
-        <ScrollView horizontal={true} style={{ flex: 1 }}>
+        <ScrollView horizontal={true} style={{ flex: 1, marginTop: 20 }}>
           <View>
             <View style={styles.table}>
               <View style={[styles.tableRow, styles.tableHeader]}>
                 {selectedData === "patients" ? (
                   <>
+                    <Text style={styles.columnHeader}>Record Date</Text>
                     <Text style={styles.columnHeader}>Admission Date</Text>
                     <Text style={styles.columnHeader}>Time</Text>
                     <Text style={styles.columnHeader}>Display Name</Text>
                     <Text style={styles.columnHeader}>Creator ID</Text>
                     <Text style={styles.columnHeader}>HN</Text>
+                    <Text style={styles.columnHeader}>Patient Name</Text>
                     <Text style={styles.columnHeader}>Patient Type</Text>
                     <Text style={styles.columnHeader}>หมวดหมู่การวินิจฉัย</Text>
                     <Text style={styles.columnHeader}>Main Diagnosis</Text>
@@ -586,11 +1015,13 @@ const getSelectedDataForExport = () => {
                   </>
                 ) : selectedData === "procedures" ? (
                   <>
+                    <Text style={styles.columnHeader}>Record Date</Text>
                     <Text style={styles.columnHeader}>Admission Date</Text>
                     <Text style={styles.columnHeader}>Time</Text>
                     <Text style={styles.columnHeader}>Display Name</Text>
                     <Text style={styles.columnHeader}>Creator ID</Text>
                     <Text style={styles.columnHeader}>HN</Text>
+                    <Text style={styles.columnHeader}>Patient Name</Text>
                     <Text style={styles.columnHeader}>Procedure Level</Text>
                     <Text style={styles.columnHeader}>Procedure Type</Text>
                     <Text style={styles.columnHeader}>Instructor Name</Text>
@@ -603,10 +1034,14 @@ const getSelectedDataForExport = () => {
                     <Text style={styles.columnHeader}>Rejection Timestamp</Text>
                     <Text style={styles.columnHeader}>Recheck Timestamp</Text>
                     <Text style={styles.columnHeader}>Rating</Text>
+                    <Text style={styles.columnHeader}>
+                      Professionalism Scores
+                    </Text>
                     <Text style={styles.columnHeader}>Subject</Text>
                   </>
                 ) : selectedData === "activity" ? (
                   <>
+                    <Text style={styles.columnHeader}>Record Date</Text>
                     <Text style={styles.columnHeader}>Activity Date</Text>
                     <Text style={styles.columnHeader}>Time</Text>
                     <Text style={styles.columnHeader}>Display Name</Text>
@@ -622,6 +1057,9 @@ const getSelectedDataForExport = () => {
                     <Text style={styles.columnHeader}>Rejection Timestamp</Text>
                     <Text style={styles.columnHeader}>Recheck Timestamp</Text>
                     <Text style={styles.columnHeader}>Rating</Text>
+                    <Text style={styles.columnHeader}>
+                      Professionalism Scores
+                    </Text>
                     <Text style={styles.columnHeader}>Subject</Text>
                   </>
                 ) : null}
@@ -630,11 +1068,13 @@ const getSelectedDataForExport = () => {
                 <View key={index} style={styles.tableRow}>
                   {selectedData === "patients" ? (
                     <>
+                      <Text style={styles.tableCell}>{item.recordDate}</Text>
                       <Text style={styles.tableCell}>{item.admissionDate}</Text>
                       <Text style={styles.tableCell}>{item.Time}</Text>
                       <Text style={styles.tableCell}>{item.displayName}</Text>
                       <Text style={styles.tableCell}>{item.createBy_id}</Text>
                       <Text style={styles.tableCell}>{item.hn}</Text>
+                      <Text style={styles.tableCell}>{item.patientName}</Text>
                       <Text style={styles.tableCell}>{item.patientType}</Text>
                       <Text style={styles.tableCell}>{item.diagnosticType}</Text>
                       <Text style={styles.tableCell}>{item.mainDiagnosis}</Text>
@@ -664,11 +1104,13 @@ const getSelectedDataForExport = () => {
                     </>
                   ) : selectedData === "procedures" ? (
                     <>
+                      <Text style={styles.tableCell}>{item.recordDate}</Text>
                       <Text style={styles.tableCell}>{item.admissionDate}</Text>
                       <Text style={styles.tableCell}>{item.Time}</Text>
                       <Text style={styles.tableCell}>{item.displayName}</Text>
                       <Text style={styles.tableCell}>{item.createBy_id}</Text>
                       <Text style={styles.tableCell}>{item.hn}</Text>
+                      <Text style={styles.tableCell}>{item.patientName}</Text>
                       <Text style={styles.tableCell}>
                         {item.procedureLevel}
                       </Text>
@@ -691,10 +1133,16 @@ const getSelectedDataForExport = () => {
                         {item.reApprovalTimestamp}
                       </Text>
                       <Text style={styles.tableCell}>{item.rating}</Text>
+                      <Text style={styles.tableCell}>
+                        {translateProfessionalismScores(
+                          item.professionalismScores
+                        )}
+                      </Text>
                       <Text style={styles.tableCell}>{item.subject}</Text>
                     </>
                   ) : selectedData === "activity" ? (
                     <>
+                      <Text style={styles.tableCell}>{item.recordDate}</Text>
                       <Text style={styles.tableCell}>{item.admissionDate}</Text>
                       <Text style={styles.tableCell}>{item.Time}</Text>
                       <Text style={styles.tableCell}>{item.displayName}</Text>
@@ -717,6 +1165,11 @@ const getSelectedDataForExport = () => {
                         {item.reApprovalTimestamp}
                       </Text>
                       <Text style={styles.tableCell}>{item.rating}</Text>
+                      <Text style={styles.tableCell}>
+                        {translateProfessionalismScores(
+                          item.professionalismScores
+                        )}
+                      </Text>
                       <Text style={styles.tableCell}>{item.subject}</Text>
                     </>
                   ) : null}
@@ -734,7 +1187,8 @@ const styles = StyleSheet.create({
   reportContainer: {
     justifyContent: "center",
     alignItems: "center",
-    width: 766,
+    width: "100%",
+    height: "auto",
     backgroundColor: "white",
     borderWidth: 1,
     borderColor: "#e0e0e0",
@@ -780,7 +1234,7 @@ const styles = StyleSheet.create({
     marginVertical: 5,
     marginRight: 10,
     shadowColor: "#000",
-    width: 130,
+    width: "auto",
     shadowOffset: {
       width: 0,
       height: 2,
@@ -810,15 +1264,18 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     marginHorizontal: 10,
     marginBottom: 20,
+    backgroundColor: "white",
   },
   tableRow: {
     flexDirection: "row",
     flexWrap: "wrap",
+    backgroundColor: "white",
   },
   tableHeader: {
     backgroundColor: "#f2f2f2",
     flexDirection: "row",
     flexWrap: "wrap",
+    backgroundColor: "grey",
   },
   columnHeader: {
     width: 150,
@@ -830,8 +1287,10 @@ const styles = StyleSheet.create({
     borderRightWidth: 1,
     borderRightColor: "#ddd",
     fontWeight: "bold",
+    backgroundColor: "grey",
   },
   tableCell: {
+    backgroundColor: "white",
     width: 150,
     paddingVertical: 10,
     paddingHorizontal: 5,

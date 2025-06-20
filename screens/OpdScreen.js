@@ -472,7 +472,7 @@ function OpdScreen({ navigation }) {
       shadowRadius: 4,
       elevation: 5,
       width: isMobile ? "90%" : isTablet ? "70%" : "50%", // Responsive width
-      height: isMobile ? "auto" : 400, // Auto height for mobile
+      height: isMobile ? "auto" : "auto", // Auto height for mobile
     },
     modalView2: {
       margin: 20,
@@ -826,9 +826,26 @@ function OpdScreen({ navigation }) {
 
   const handleApprove = async () => {
     try {
+      // เช็คว่าให้ rating แล้วหรือยัง
+      if (!rating || rating === "") {
+        alert("โปรดเลือก Rating");
+        return;
+      }
+
+      // เช็คว่าให้คะแนน professionalism แล้วหรือยัง (สมมุติว่าเป็น object หรือ array)
+      // const hasProfessionalismScore =
+      //   professionalismScores &&
+      //   Object.values(professionalismScores).some(score => score !== null && score !== "");
+
+      // if (!hasProfessionalismScore) {
+      //   alert("โปรดเลือก Professionalism, Rating");
+      //   return;
+      // }
+
+      // เช็คกรณี rating ไม่ผ่าน
       if (rating === "Unsatisfied") {
-        alert("ไม่สามารถ Approve ได้(เนื่องจากคุณเลือก Unsatisfied)");
-        return; // หยุดการทำงานของฟังก์ชันที่นี่ถ้า rating เป็น unsatisfied
+        alert("ไม่สามารถ Approve ได้ (เนื่องจากคุณเลือก Unsatisfied)");
+        return;
       }
   
       const patientDocRef = doc(db, "patients", selectedPatient.id);
@@ -837,7 +854,7 @@ function OpdScreen({ navigation }) {
         comment: comment,
         rating: rating,
         approvalTimestamp: Timestamp.now(),
-        professionalismScores: professionalismScores, // บันทึกคะแนนความเป็นมืออาชีพ
+        // professionalismScores: professionalismScores, // บันทึกคะแนนความเป็นมืออาชีพ
       });
   
       // รีเซ็ตคะแนนและความคิดเห็น
@@ -862,7 +879,7 @@ function OpdScreen({ navigation }) {
         comment: comment,
         rating: rating,
         reApprovalTimestamp: Timestamp.now(),
-        professionalismScores: professionalismScores, // บันทึกคะแนนความเป็นมืออาชีพ
+        // professionalismScores: professionalismScores, // บันทึกคะแนนความเป็นมืออาชีพ
         isRecheck: true,
         isEdited: false,
       });
@@ -883,7 +900,7 @@ function OpdScreen({ navigation }) {
         comment: comment,
         rating: rating,
         rejectionTimestamp: Timestamp.now(),
-        professionalismScores: professionalismScores,
+        // professionalismScores: professionalismScores,
       });
       resetScoresAndComment();
       setModalVisible(false);
@@ -896,15 +913,15 @@ function OpdScreen({ navigation }) {
   const resetScoresAndComment = () => {
     setComment("");
     setRating("");
-    setProfessionalismScores({
-      basicKnowledge: false,
-      clinicalSkills: false,
-      problemIdentification: false,
-      managementProblem: false,
-      patientEducation: false,
-      evidenceBase: false,
-      ethicalManner: false
-    });
+    // setProfessionalismScores({
+    //   basicKnowledge: false,
+    //   clinicalSkills: false,
+    //   problemIdentification: false,
+    //   managementProblem: false,
+    //   patientEducation: false,
+    //   evidenceBase: false,
+    //   ethicalManner: false
+    // });
   };
 
   const renderAddDataButton = () => {
@@ -1181,6 +1198,11 @@ function OpdScreen({ navigation }) {
                     style={{ marginLeft: 20, lineHeight: 30, opacity: 0.4 }}
                   >
                     Student Name : {patient.studentName}
+                  </Text>
+                  <Text
+                    style={{ marginLeft: 20, lineHeight: 30, opacity: 0.4 }}
+                  >
+                    Patient Name : {patient.patientName}
                   </Text>
                   {patient.status === "pending" ? (
                     <Text
@@ -1604,6 +1626,22 @@ function OpdScreen({ navigation }) {
                   ) : null}
                   <Text style={styles.modalText}>
                     <Text style={{ fontWeight: "bold" }}>
+                      วันที่บันทึกข้อมูล :{" "}
+                    </Text>
+                    {selectedPatient.recordDate
+                      ? formatDate2(selectedPatient.recordDate.toDate())
+                      : "ไม่มี"}
+                  </Text>
+                  {role !== "student" && selectedPatient.studentName ? (
+                    <Text style={styles.modalText}>
+                      <Text style={{ fontWeight: "bold" }}>
+                        ชื่อนักศึกษาแพทย์ :{" "}
+                      </Text>{" "}
+                      {selectedPatient.studentName}
+                    </Text>
+                  ) : null}
+                  <Text style={styles.modalText}>
+                    <Text style={{ fontWeight: "bold" }}>
                       Admission Date :{" "}
                     </Text>
                     {formatDate2(selectedPatient.admissionDate.toDate())}
@@ -1629,6 +1667,10 @@ function OpdScreen({ navigation }) {
                   <Text style={styles.modalText}>
                     <Text style={{ fontWeight: "bold" }}>HN :</Text>{" "}
                     {selectedPatient.hn || "ไม่มี"}
+                  </Text>
+                  <Text style={styles.modalText}>
+                    <Text style={{ fontWeight: "bold" }}>Patient Name :</Text>{" "}
+                    {selectedPatient.patientName || "ไม่มี"}
                   </Text>
                   {selectedPatient.diagnosticType && (
                   <Text style={styles.modalText}>
@@ -1692,24 +1734,6 @@ function OpdScreen({ navigation }) {
                   )}
 
                   <View style={styles.buttonRow}>
-                  {(selectedStatus === "approved" ||
-                    selectedStatus === "rejected" ||
-                    (selectedStatus === "all" && 
-                      (selectedPatient.status !== "pending" && 
-                      (role === "student" || (role === "teacher" && selectedPatient.status !== "recheck")) && 
-                      (selectedPatient.status === "approved" || selectedPatient.status === "rejected" || selectedPatient.status === "recheck"))) ||
-                    (selectedStatus === "recheck" && role === "student")) && (
-                      <Pressable
-                        style={[styles.button, styles.buttonProfessional]}
-                        onPress={() =>
-                          setProfessionalismScoresModalVisible(true)
-                        }
-                      >
-                        <Text style={styles.textStyle}>
-                          View Professionalism Score
-                        </Text>
-                      </Pressable>
-                    )}
 
                     {role !== "student" &&
                       selectedStatus !== "approved" &&
@@ -1717,113 +1741,7 @@ function OpdScreen({ navigation }) {
                       (selectedStatus === "all" || selectedStatus === "pending" || selectedStatus === "recheck") &&
                       (selectedPatient.status === "pending" || selectedPatient.status === "recheck") &&  (
                         <View style={styles.centerView2}>
-                          <Text style={styles.professionalismHeader}>
-                            Professionalism
-                          </Text>{" "}
-                          (เลือกได้หลายตัวเลือก)
-                          {/* แสดง Checkbox และ Label */}
-                          {selectedPatient && (
-                            <View style={styles.checkboxContainer}>
-                              <CheckBox
-                                value={professionalismScores.basicKnowledge}
-                                disabled={!isEditable()}
-                                onValueChange={() =>
-                                  handleCheckboxChange("basicKnowledge")
-                                }
-                              />
-                              <Text style={styles.checkboxLabel}>Basic knowledge/basic science</Text>
-                            </View>
-                          )}
-                          {selectedPatient && (
-                            <View style={styles.checkboxContainer}>
-                              <CheckBox
-                                value={
-                                  professionalismScores.clinicalSkills
-                                }
-                                disabled={!isEditable()}
-                                onValueChange={() =>
-                                  handleCheckboxChange("clinicalSkills")
-                                }
-                              />
-                              <Text style={styles.checkboxLabel}>
-                              Clinical skills (history taking and physical examination)
-                              </Text>
-                            </View>
-                          )}
-                          {selectedPatient && (
-                            <View style={styles.checkboxContainer}>
-                              <CheckBox
-                                value={professionalismScores.problemIdentification}
-                                disabled={!isEditable()}
-                                onValueChange={() =>
-                                  handleCheckboxChange("problemIdentification")
-                                }
-                              />
-                              <Text style={styles.checkboxLabel}>
-                              Problem identification and approaching
-                              </Text>
-                            </View>
-                          )}
-                          {selectedPatient && (
-                            <View style={styles.checkboxContainer}>
-                              <CheckBox
-                                value={professionalismScores.managementProblem}
-                                disabled={!isEditable()}
-                                onValueChange={() =>
-                                  handleCheckboxChange("managementProblem")
-                                }
-                              />
-                              <Text style={styles.checkboxLabel}>
-                              Management/Problem solving
-                              </Text>
-                            </View>
-                          )}
-                          {selectedPatient && (
-                            <View style={styles.checkboxContainer}>
-                              <CheckBox
-                                value={professionalismScores.patientEducation}
-                                disabled={!isEditable()}
-                                onValueChange={() =>
-                                  handleCheckboxChange("patientEducation")
-                                }
-                              />
-                              <Text style={styles.checkboxLabel}>
-                              Patient education
-                              </Text>
-                            </View>
-                          )}
-                          {selectedPatient && (
-                            <View style={styles.checkboxContainer}>
-                              <CheckBox
-                                value={
-                                  professionalismScores.evidenceBase
-                                }
-                                disabled={!isEditable()}
-                                onValueChange={() =>
-                                  handleCheckboxChange("evidenceBase")
-                                }
-                              />
-                              <Text style={styles.checkboxLabel}>
-                              Evidence-based medicine
-                              </Text>
-                            </View>
-                          )}
-                          {selectedPatient && (
-                            <View style={styles.checkboxContainer}>
-                              <CheckBox
-                                value={
-                                  professionalismScores.ethicalManner
-                                }
-                                disabled={!isEditable()}
-                                onValueChange={() =>
-                                  handleCheckboxChange("ethicalManner")
-                                }
-                              />
-                              <Text style={styles.checkboxLabel}>
-                              Ethical and manner issues
-                              </Text>
-                            </View>
-                          )}
+
                           <Text
                             style={{
                               fontSize: 24,
@@ -1904,6 +1822,16 @@ function OpdScreen({ navigation }) {
                               textAlignVertical: "top",
                             }}
                           />
+
+                        <Pressable
+                          style={[styles.button, styles.buttonProfessional]}
+                          onPress={() => setProfessionalismScoresModalVisible(true)}
+                        >
+                          <Text style={styles.textStyle}>
+                            View Professionalism Score
+                          </Text>
+                        </Pressable>
+
                           {selectedPatient.pdfUrl && (
                             <Pressable
                               style={[styles.button, styles.buttonViewPDF]}
@@ -1957,6 +1885,7 @@ function OpdScreen({ navigation }) {
                               </Pressable>
                             )}
                           </View>
+
                           <Pressable
                             style={[styles.button, styles.buttonClose2]}
                             onPress={() => setModalVisible(false)}
@@ -1964,6 +1893,17 @@ function OpdScreen({ navigation }) {
                             <Text style={styles.textStyle}>Close</Text>
                           </Pressable>
                         </View>
+                      )}
+
+                      {role === 'student' && (
+                        <Pressable
+                          style={[styles.button, styles.buttonProfessional]}
+                          onPress={() => setProfessionalismScoresModalVisible(true)}
+                        >
+                          <Text style={styles.textStyle}>
+                            View Professionalism Score
+                          </Text>
+                        </Pressable>
                       )}
 
                     {(role !== "teacher" ||
@@ -1982,6 +1922,20 @@ function OpdScreen({ navigation }) {
                         </Pressable>
                       )}
 
+                    {(role === "teacher" &&
+                        (selectedStatus === "approved" ||
+                          selectedStatus === "rejected" ||
+                          (selectedStatus === "all" && (selectedPatient.status !== "pending" && selectedPatient.status !== "recheck")))) && (
+                        <Pressable
+                          style={[styles.button, styles.buttonProfessional]}
+                          onPress={() => setProfessionalismScoresModalVisible(true)}
+                        >
+                          <Text style={styles.textStyle}>
+                            View Professionalism Score
+                          </Text>
+                        </Pressable>
+                    )}
+                    
                     {(role !== "teacher" ||
                       (role === "teacher" &&
                         (selectedStatus === "approved" ||
@@ -2100,12 +2054,7 @@ function OpdScreen({ navigation }) {
                     animationType="slide"
                     transparent={true}
                     visible={
-                      professionalismScoresModalVisible &&
-                      (selectedPatient.status === "approved" ||
-                        selectedPatient.status === "rejected" ||
-                        (selectedStatus === "all" && selectedPatient.status !== "pending") ||
-                        (selectedPatient.status === "recheck" &&
-                          role === "student"))
+                      professionalismScoresModalVisible 
                     }
                     onRequestClose={() => {
                       setProfessionalismScoresModalVisible(
