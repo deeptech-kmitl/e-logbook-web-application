@@ -10,6 +10,8 @@ import {
   Platform,
   ScrollView,
   Dimensions,
+  Pressable,
+  Modal
 } from "react-native";
 import { SelectList } from "react-native-dropdown-select-list";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -29,22 +31,55 @@ import SubHeader from "../../component/SubHeader";
 
 function AddProcedureScreen({ navigation }) {
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate2, setSelectedDate2] = useState(new Date());
 
   const [selectedProcedures, setSelectedProcedures] = useState(""); // State for selected Procedures
   const [mainProcedure, setMainProcedure] = useState([]); // State to store main Procedure
 
   const [hn, setHN] = useState(""); // HN
   const [hnYear, setHNYear] = useState(""); // ปีพ.ศ.
+  const [patientName, setPatientName] = useState("");
   const [remarks, setRemarks] = useState(""); // remarks
   const status = "pending"; // Status
   const [createBy_id, setCreateById] = useState(null); // User ID
-  const [approvedById, setApprovedById] = useState(null); // สถานะสำหรับเก็บ id ของอาจารย์ที่ถูกเลือก
-  const [approvedByName, setApprovedByName] = useState(null); // สถานะสำหรับเก็บชื่ออาจารย์ที่ถูกเลือก
+  const [professorId, setProfessorId] = useState(null); // สถานะสำหรับเก็บ id ของอาจารย์ที่ถูกเลือก
+  const [professorName, setProfessorName] = useState(null); // สถานะสำหรับเก็บชื่ออาจารย์ที่ถูกเลือก
   const [teachers, setTeachers] = useState([]); // สถานะสำหรับเก็บรายการอาจารย์ทั้งหมด
   const [procedureLevel, setProcedureLevel] = useState(0);
   const [date, setDate] = useState(new Date());
   const [show, setShow] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+
+  const [
+    professionalismScoresModalVisible,
+    setProfessionalismScoresModalVisible,
+  ] = useState(false);
+
+  const [professionalismScores, setProfessionalismScores] = useState({
+    basicKnowledge: false,
+    clinicalSkills: false,
+    problemIdentification: false,
+    managementProblem: false,
+    patientEducation: false,
+    evidenceBase: false,
+    ethicalManner: false
+  });
+
+  // ฟังก์ชันเพื่อจัดการการเปลี่ยนแปลงของ Checkbox
+  const handleCheckboxChange = (scoreName) => {
+    setProfessionalismScores((prevScores) => ({
+      ...prevScores,
+      [scoreName]: !prevScores[scoreName],
+    }));
+  };
+
+  const [windowWidth, setWindowWidth] = useState(
+    Dimensions.get("window").width
+  );
+
+  const isMobile = windowWidth < 768; // ตรวจสอบว่าอุปกรณ์เป็น Mobile หรือไม่
+  const isTablet = windowWidth >= 768 && windowWidth < 1024; // ตรวจสอบว่าอุปกรณ์เป็น Tablet หรือไม่
+  const isPC = windowWidth >= 1024; // ตรวจสอบว่าอุปกรณ์เป็น PC หรือไม่
 
   const [selectedHour, setSelectedHour] = useState("");
   const [selectedMinute, setSelectedMinute] = useState("");
@@ -143,6 +178,66 @@ function AddProcedureScreen({ navigation }) {
       textAlign: "center",
       color: "blue",
     },
+    professionalismHeader: {
+      fontWeight: "bold",
+      fontSize: 24,
+      marginBottom: 10,
+    },
+    checkboxContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      width: "100%", // Full width for checkbox row
+      justifyContent: "flex-start", // Align items to left
+      marginBottom: 10,
+    },
+    checkboxLabel: {
+      marginLeft: 10,
+      fontSize: 20,
+    },
+    centerView: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+      backgroundColor: "rgba(0, 0, 0, 0.6)",
+    },
+    modalView: {
+      margin: 20,
+      backgroundColor: "white",
+      borderRadius: 8,
+      padding: 35,
+      alignItems: "center",
+      justifyContent: "center",
+      shadowColor: "#000",
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.25,
+      shadowRadius: 4,
+      elevation: 5,
+      width: isMobile ? "90%" : isTablet ? "70%" : "50%", // Responsive width
+      height: "auto", // Auto height for mobile
+    },
+    textStyle: {
+      color: "white",
+      fontWeight: "bold",
+      textAlign: "center",
+    },
+    buttonClose: {
+      backgroundColor: "green",
+      padding: 10,
+      borderRadius: 10,
+      elevation: 2,
+      alignSelf: "center",
+      marginTop: 10,
+    },
+    buttonProfessional: {
+      backgroundColor: "blue", // สีที่คุณต้องการ
+      padding: 10,
+      borderRadius: 10,
+      marginTop: 10,
+      marginRight: 15,
+    },
   });
 
   const selectImages = (event) => {
@@ -214,14 +309,54 @@ function AddProcedureScreen({ navigation }) {
     }
   };
 
+  const DateInput2 = () => {
+    if (Platform.OS === "web") {
+      return (
+        <input
+          type="date"
+          disabled
+          style={{
+            marginTop: 5,
+            padding: 10,
+            fontSize: 16,
+            width: "95%",
+            backgroundColor: "#FEF0E6",
+            borderColor: "#FEF0E6",
+            borderWidth: 1,
+            borderRadius: 10,
+          }}
+          value={selectedDate2.toISOString().substr(0, 10)}
+          onChange={(event) => setSelectedDate2(new Date(event.target.value))}
+        />
+      );
+    } else {
+      return (
+        <>
+          <Button onPress={showDatepicker} title="Show date picker!" />
+          {show && (
+            <DateTimePicker
+              testID="dateTimePicker"
+              value={date}
+              mode={"date"}
+              is24Hour={true}
+              display="default"
+              onChange={onChange}
+              disabled
+            />
+          )}
+        </>
+      );
+    }
+  };
+
   const onSelectTeacher = (selectedTeacherId) => {
     const selectedTeacher = teachers.find(
       (teacher) => teacher.key === selectedTeacherId
     );
     // console.log(selectedTeacher)
     if (selectedTeacher) {
-      setApprovedByName(selectedTeacher.value);
-      setApprovedById(selectedTeacher.key);
+      setProfessorName(selectedTeacher.value);
+      setProfessorId(selectedTeacher.key);
     } else {
       console.error("Teacher not found:", selectedTeacherId);
     }
@@ -296,7 +431,7 @@ function AddProcedureScreen({ navigation }) {
         return;
       }
 
-      if (!approvedByName) {
+      if (!professorName) {
         alert("โปรดเลือกอาจารย์");
         return;
       }
@@ -310,6 +445,15 @@ function AddProcedureScreen({ navigation }) {
       //   return;
       // }
 
+      const hasProfessionalismScore =
+        professionalismScores &&
+        Object.values(professionalismScores).some(score => score !== null && score !== "");
+
+      if (!hasProfessionalismScore) {
+        alert("โปรดเลือก Professionalism");
+        return;
+      }
+
       const user = auth.currentUser;
       if (!user) {
         alert("ไม่พบข้อมูลผู้ใช้");
@@ -320,19 +464,22 @@ function AddProcedureScreen({ navigation }) {
       const formattedHNYear = hnYear.padStart(2, "0");
 
       // รวม HN และปีพ.ศ. เข้าด้วยกัน
-      const fullHN = formattedHNYear + formattedHN;
+      const fullHN = `${formattedHN}/${formattedHNYear}`;
       const timestamp = Timestamp.fromDate(selectedDate);
+      const timestamp2 = Timestamp.fromDate(selectedDate2);
 
       // Step 1: Save patient data (excluding images) and retrieve the Document ID
       const docRef = await addDoc(collection(db, "procedures"), {
+        recordDate: timestamp2,
         admissionDate: timestamp,
         createBy_id: user.uid,
         hn: fullHN,
+        patientName: patientName,
         procedureType: selectedProcedures,
         remarks: remarks,
-        approvedByName: approvedByName,
+        professorName: professorName,
         status: status,
-        approvedById: approvedById,
+        professorId: professorId,
         procedureLevel: procedureLevel,
         images: [], // We'll store the image URLs in the next step
         hours: selectedHour,
@@ -340,6 +487,7 @@ function AddProcedureScreen({ navigation }) {
         subject,
         lastHN: formattedHN,
         hnYear,
+        professionalismScores: professionalismScores,
       });
 
       // Step 2: Use the Document ID as a folder name for image uploads and then update image URLs in Firestore
@@ -349,14 +497,17 @@ function AddProcedureScreen({ navigation }) {
       // Clear the input fields and states
       setHN("");
       setHNYear("");
+      setPatientName("");
       setSelectedDate(new Date());
       setSelectedProcedures("");
       setRemarks("");
       setProcedureLevel(null);
       setSelectedHour("");
       setSelectedMinute("");
+      // setProfessionalismScores
 
       alert("บันทึกข้อมูลสำเร็จ");
+      navigation.navigate('หัตถการ')
     } catch (error) {
       console.error("Error adding document: ", error);
       alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
@@ -368,6 +519,42 @@ function AddProcedureScreen({ navigation }) {
       <View style={styles.container}>
         <View style={{ marginVertical: dimensions.width < 768 ? 40 : 60 }}>
           <SubHeader text="ADD PROCEDURE" />
+        </View>
+
+        <View
+          style={{
+            flexDirection: dimensions.width < 768 ? "column" : "row",
+            alignItems: "left",
+            marginBottom: 8,
+            justifyContent: "space-between",
+          }}
+        >
+          <View style={{ width: dimensions.width < 768 ? "100%" : "45%" }}>
+            <Text
+              style={{
+                fontSize: 20,
+                fontWeight: 400,
+                marginVertical: 8,
+                textAlign: "left",
+              }}
+            >
+              วันที่บันทึกข้อมูล
+            </Text>
+            <DateInput2 />
+          </View>
+          <View
+            style={{
+              width: dimensions.width < 768 ? "100%" : "45%",
+              flexDirection: "row",
+              justifyContent: "left",
+              alignItems: "left",
+            }}
+          >
+            
+          <View>
+              
+            </View>
+          </View>
         </View>
 
         <View
@@ -507,6 +694,7 @@ function AddProcedureScreen({ navigation }) {
               />
             </View>
           </View>
+
           <View style={{ width: dimensions.width < 768 ? "100%" : "45%" }}>
             <Text
               style={{
@@ -517,12 +705,57 @@ function AddProcedureScreen({ navigation }) {
                 alignItems: "flex-start",
               }}
             >
-              Approver
+              รายชื่อคนไข้
+            </Text>
+            <View
+              style={{
+                flexDirection: "row",
+                borderColor: "#FEF0E6",
+                borderWidth: 1,
+                borderRadius: 10,
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <TextInput
+                  placeholder="กรอกรายชื่อคนไข้"
+                  placeholderTextColor="grey"
+                  value={patientName}
+                  onChangeText={setPatientName}
+                  style={{
+                    flex: 1,
+                    textAlign: "center",
+                    fontSize: 20,
+                    backgroundColor: "#FEF0E6",
+                  }}
+                />
+            </View>
+          </View>
+        </View>
+
+        <View
+          style={{
+            flexDirection: dimensions.width < 768 ? "column" : "row",
+            justifyContent: "space-between",
+            marginBottom: 8,
+          }}
+        >
+          <View style={{ width: dimensions.width < 768 ? "100%" : "45%" }}>
+            <Text
+              style={{
+                fontSize: 20,
+                fontWeight: 400,
+                marginVertical: 8,
+                textAlign: "left",
+                alignItems: "flex-start",
+              }}
+            >
+              Instructor
             </Text>
             <SelectList
               setSelected={onSelectTeacher}
               data={teachers}
-              placeholder={"Select the professor name"}
+              placeholder={"Select the instructor name"}
               placeholderTextColor="grey"
               boxStyles={{
                 width: "auto",
@@ -645,6 +878,24 @@ function AddProcedureScreen({ navigation }) {
           </View>
         </View>
 
+        <View style={{
+            flexDirection: "row",
+            justifyContent: "center",
+            alignItems: "center",
+            marginBottom: "10%",
+          }}>
+          <Pressable
+            style={[styles.button, styles.buttonProfessional]}
+            onPress={() =>
+              setProfessionalismScoresModalVisible(true)
+            }
+            >
+            <Text style={styles.textStyle}>
+              Professionalism Score
+            </Text>
+          </Pressable>
+        </View>
+
         {/* UI for image upload */}
         <View style={styles.uploadContainer}>
           <Text style={styles.uploadTitle}>
@@ -712,6 +963,130 @@ function AddProcedureScreen({ navigation }) {
           >
             <Text style={{ fontSize: 20, color: "white" }}>Back</Text>
           </TouchableOpacity>
+
+          {/* Modal สำหรับแสดงคะแนนความเป็นมืออาชีพ */}
+                  <Modal
+                    animationType="slide"
+                    transparent={true}
+                    visible={
+                      professionalismScoresModalVisible 
+                    }
+                    onRequestClose={() => {
+                      setProfessionalismScoresModalVisible(
+                        !professionalismScoresModalVisible
+                      );
+                    }}
+                  >
+                    <View style={styles.centerView}>
+                      <View style={styles.modalView}>
+
+                        <Text style={styles.professionalismHeader}>
+                            Professionalism
+                          </Text>{" "}
+                          (เลือกได้หลายตัวเลือก)
+                          {/* แสดง Checkbox และ Label */}
+
+                            <View style={styles.checkboxContainer}>
+                              <CheckBox
+                                value={professionalismScores.basicKnowledge}
+                                onValueChange={() =>
+                                  handleCheckboxChange("basicKnowledge")
+                                }
+                              />
+                              <Text style={styles.checkboxLabel}>Basic knowledge/basic science</Text>
+                            </View>
+
+                            <View style={styles.checkboxContainer}>
+                              <CheckBox
+                                value={
+                                  professionalismScores.clinicalSkills
+                                }
+                                onValueChange={() =>
+                                  handleCheckboxChange("clinicalSkills")
+                                }
+                              />
+                              <Text style={styles.checkboxLabel}>
+                              Clinical skills (history taking and physical examination)
+                              </Text>
+                            </View>
+
+                            <View style={styles.checkboxContainer}>
+                              <CheckBox
+                                value={professionalismScores.problemIdentification}
+                                onValueChange={() =>
+                                  handleCheckboxChange("problemIdentification")
+                                }
+                              />
+                              <Text style={styles.checkboxLabel}>
+                              Problem identification and approaching
+                              </Text>
+                            </View>
+
+                            <View style={styles.checkboxContainer}>
+                              <CheckBox
+                                value={professionalismScores.managementProblem}
+                                onValueChange={() =>
+                                  handleCheckboxChange("managementProblem")
+                                }
+                              />
+                              <Text style={styles.checkboxLabel}>
+                              Management/Problem solving
+                              </Text>
+                            </View>
+
+                            <View style={styles.checkboxContainer}>
+                              <CheckBox
+                                value={professionalismScores.patientEducation}
+                                onValueChange={() =>
+                                  handleCheckboxChange("patientEducation")
+                                }
+                              />
+                              <Text style={styles.checkboxLabel}>
+                              Patient education
+                              </Text>
+                            </View>
+
+                            <View style={styles.checkboxContainer}>
+                              <CheckBox
+                                value={
+                                  professionalismScores.evidenceBase
+                                }
+                                onValueChange={() =>
+                                  handleCheckboxChange("evidenceBase")
+                                }
+                              />
+                              <Text style={styles.checkboxLabel}>
+                              Evidence-based medicine
+                              </Text>
+                            </View>
+
+                            <View style={styles.checkboxContainer}>
+                              <CheckBox
+                                value={
+                                  professionalismScores.ethicalManner
+                                }
+                                onValueChange={() =>
+                                  handleCheckboxChange("ethicalManner")
+                                }
+                              />
+                              <Text style={styles.checkboxLabel}>
+                              Ethical and manner issues
+                              </Text>
+                            </View>
+
+                        <Pressable
+                          style={[styles.button, styles.buttonClose]}
+                          onPress={() =>
+                            setProfessionalismScoresModalVisible(
+                              !professionalismScoresModalVisible
+                            )
+                          }
+                        >
+                          <Text style={styles.textStyle}>Confirm</Text>
+                        </Pressable>
+                      </View>
+                    </View>
+                  </Modal>
         </View>
       </View>
     </ScrollView>

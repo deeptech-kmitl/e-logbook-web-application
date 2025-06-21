@@ -52,14 +52,14 @@ const SelectRoleScreen = ({ navigation }) => {
         style={styles.roleButton}
         onPress={() => handleRolePress("teacher")}
       >
-        <Text style={styles.roleButtonText}>Professor</Text>
+        <Text style={styles.roleButtonText}>Instructor/Staff</Text>
       </TouchableOpacity>
 
       <TouchableOpacity
         style={styles.roleButton}
         onPress={() => handleRolePress("staff")}
       >
-        <Text style={styles.roleButtonText}>Staff</Text>
+        <Text style={styles.roleButtonText}>Admin</Text>
       </TouchableOpacity>
 
       <View style={{ flex: 1 }} />

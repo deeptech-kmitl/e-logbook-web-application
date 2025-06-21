@@ -26,8 +26,11 @@ import {
   TextInput,
   CheckBox,
   Image,
+  Platform,
+  Button
 } from "react-native";
 import { SelectList } from "react-native-dropdown-select-list";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { isEmpty } from "lodash";
 import { Ionicons, FontAwesome, MaterialIcons } from "@expo/vector-icons";
 
@@ -37,7 +40,7 @@ function UserCaseScreen({ navigation }) {
     useState(false);
   const [changeModalVisible, setChangeModalVisible] = useState(false);
   const [imageModalVisible, setImageModalVisible] = useState(false);
-  const [selectedType, setSelectedType] = useState(null); // เพิ่ม selectedType เข้าไปใน state
+  const [selectedType, setSelectedType] = useState("all"); // เพิ่ม selectedType เข้าไปใน state
 
   const [CaseData, setCaseData] = useState([]);
   const [patientData, setPatientData] = useState([]);
@@ -46,6 +49,15 @@ function UserCaseScreen({ navigation }) {
   const [activityData, setActivityData] = useState([]);
 
   const [selectedCase, setSelectedCase] = useState(null);
+  const [selectedSubject, setSelectedSubject] = useState("All"); 
+
+  const [hnSearch, setHnSearch] = useState("");
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(new Date());
+  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+
+  const [isVisible, setIsVisible] = useState(false);
 
   const [windowWidth, setWindowWidth] = useState(
     Dimensions.get("window").width
@@ -61,8 +73,274 @@ function UserCaseScreen({ navigation }) {
     { key: "pending", value: "Pending" },
     { key: "approved", value: "Approved" },
     { key: "rejected", value: "Rejected" },
-    { key: "reApproved", value: "Re-approved" },
+    { key: "recheck", value: "Recheck" },
   ];
+
+  const subjectsByYear = [
+    { key: "All", value: "All" },
+    { key: "Family medicine clerkship", value: "Family medicine clerkship" },
+    { key: "Internal medicine clerkship", value: "Internal medicine clerkship" },
+    { key: "Surgery clerkship", value: "Surgery clerkship" },
+    {
+      key: "Anesthesiology, cardiology and critical care medicine clerkship",
+      value: "Anesthesiology, cardiology and critical care medicine clerkship",
+    },
+    {
+      key: "Obstetrics and gynecology clerkship",
+      value: "Obstetrics and gynecology clerkship",
+    },
+    {
+      key: "Pediatric clerkship",
+      value: "Pediatric clerkship",
+    },
+    {
+      key: "Ambulatory medicine clerkship",
+      value: "Ambulatory medicine clerkship",
+    },
+    {
+      key: "Accident and emergency medicine clerkship",
+      value: "Accident and emergency medicine clerkship",
+    },
+    {
+      key: "Oncology and palliative medicine clerkship",
+      value: "Oncology and palliative medicine clerkship",
+    },
+    {
+      key: "Practicum in internal medicine",
+      value: "Practicum in internal medicine",
+    },
+    { key: "Practicum in surgery", value: "Practicum in surgery" },
+    { key: "Practicum in Pediatrics", value: "Practicum in Pediatrics" },
+    {
+      key: "Practicum in Obstetrics and gynecology",
+      value: "Practicum in Obstetrics and gynecology",
+    },
+    {
+      key: "Practicum in orthopedics and emergency medicine",
+      value: "Practicum in orthopedics and emergency medicine",
+    },
+    {
+      key: "Practicum in community hospital",
+      value: "Practicum in community hospital",
+    },
+  ];
+
+  const [professors, setProfessors] = useState([]);
+  const [professorList, setProfessorList] = useState([]);
+
+  const [selectedProfessor, setSelectedProfessor] = useState(null);
+  const [professorId, setProfessorId] = useState(null); // สถานะสำหรับเก็บ id ของอาจารย์ที่ถูกเลือก
+  const [professorName, setProfessorName] = useState(null); // สถานะสำหรับเก็บชื่ออาจารย์ที่ถูกเลือก
+  const [teachers, setTeachers] = useState([]); // สถานะสำหรับเก็บรายการอาจารย์ทั้งหมด
+
+  const [students, setStudents] = useState([]); 
+  const [studentId, setStudentId] = useState(null); 
+  const [studentName, setStudentName] = useState(null); 
+  const [selectedStudent, setSelectedStudent] = useState(null);
+
+  // const loadProfessorData = async () => {
+  //   try {
+  //     const usersCollectionRef = collection(db, "users");
+  //     const querySnapshot = await getDocs(usersCollectionRef);
+  //     const professors = [];
+
+  //     querySnapshot.forEach((doc) => {
+  //       const data = doc.data();
+  //       if (data.role === "teacher") {
+  //         professors.push({ key: doc.id, value: data.displayName });
+  //       }
+  //     });
+
+  //     setProfessorList(professors);
+  //   } catch (error) {
+  //     console.error("Error fetching professor data:", error);
+  //   }
+  // };
+
+  useEffect(() => {
+    async function fetchTeachers() {
+      try {
+        const teacherRef = collection(db, "users");
+        const q = query(teacherRef, where("role", "==", "teacher")); // ใช้ query และ where ในการ filter
+
+        const querySnapshot = await getDocs(q); // ใช้ query ที่ถูก filter ในการ getDocs
+
+        const teacherArray = [];
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          teacherArray.push({ key: doc.id, value: data.displayName });
+        });
+
+        setTeachers(teacherArray); // ตั้งค่ารายการอาจารย์
+      } catch (error) {
+        console.error("Error fetching teachers:", error);
+      }
+    }
+
+    fetchTeachers(); // เรียกฟังก์ชันเพื่อดึงข้อมูลอาจารย์
+  }, []);
+
+  useEffect(() => {
+    async function fetchStudents() {
+      try {
+        const studentRef = collection(db, "users");
+        const q = query(studentRef, where("role", "==", "student"));
+  
+        const querySnapshot = await getDocs(q);
+
+        const studentArray = []; // Add 'All' option
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          studentArray.push({ key: doc.id, value: data.displayName });
+        });
+  
+        setStudents(studentArray);
+      } catch (error) {
+        console.error("Error fetching students:", error);
+      }
+    }
+  
+    fetchStudents();
+  }, []);
+  
+  const onSelectStudent = (selectedStudentId) => {
+      const selectedStudent = students.find(
+        (student) => student.key === selectedStudentId
+      );
+  
+      if (selectedStudent) {
+        console.log("🧑‍🎓 Selected student:", selectedStudent);
+        setStudentName(selectedStudent.value);
+        setStudentId(selectedStudent.key);
+      } else {
+        console.error("Student not found:", selectedStudentId);
+      }
+    };
+
+  const onSelectTeacher = (selectedTeacherId) => {
+    const selectedTeacher = teachers.find(
+      (teacher) => teacher.key === selectedTeacherId
+    );
+
+    if (selectedTeacher) {
+      // console.log("🧑‍🎓 Selected teacher:", selectedTeacher);
+      setProfessorName(selectedTeacher.value);
+      setProfessorId(selectedTeacher.key);
+    } else {
+      console.error("Teacher not found:", selectedTeacherId);
+    }
+  };
+
+useEffect(() => {
+  renderCards();
+}, [
+  hnSearch,
+  startDate,
+  endDate,
+  selectedType,
+  selectedStatus,
+  studentId,
+  studentName,
+  professorId,
+  professorName,
+]);
+
+
+  // useEffect(() => {
+  //   const unsubscribe = navigation.addListener("focus", () => {
+  //     loadPatientData();
+  //     loadActivityAndProcedureData();
+  //     loadProfessorData();
+  //   });
+
+  //   return unsubscribe;
+  // }, [navigation]);
+
+  const handleStartDateChange = (event, selectedDate) => {
+    const currentDate = selectedDate || startDate;
+    setShowStartDatePicker(false);
+    setStartDate(currentDate);
+  };
+
+  const handleEndDateChange = (event, selectedDate) => {
+    const currentDate = selectedDate || endDate;
+    setShowEndDatePicker(false);
+    setEndDate(currentDate);
+  };
+
+  const StartDateInput = () => {
+    if (Platform.OS === "web") {
+      return (
+        <input
+          type="date"
+          style={{
+            padding: 10,
+            fontSize: 16,
+            width: "90%",
+            backgroundColor: "#FEF0E6",
+            borderColor: "#FEF0E6",
+            borderWidth: 1,
+            borderRadius: 10,
+          }}
+          value={startDate ? startDate.toISOString().substr(0, 10) : ""}
+          onChange={(event) => setStartDate(event.target.value ? new Date(event.target.value) : null)}
+        />
+      );
+    } else {
+      return (
+        <>
+          <Button onPress={showStartDatePicker} title="Show date picker!" />
+          {showStartDatePicker && (
+            <DateTimePicker
+              testID="startDateTimePicker"
+              value={startDate || new Date()}
+              mode="date"
+              is24Hour={true}
+              display="default"
+              onChange={handleStartDateChange}
+            />
+          )}
+        </>
+      );
+    }
+  };
+
+  const EndDateInput = () => {
+    if (Platform.OS === "web") {
+      return (
+        <input
+          type="date"
+          style={{
+            padding: 10,
+            fontSize: 16,
+            width: "90%",
+            backgroundColor: "#FEF0E6",
+            borderColor: "#FEF0E6",
+            borderWidth: 1,
+            borderRadius: 10,
+          }}
+          value={endDate.toISOString().substr(0, 10)}
+          onChange={(event) => setEndDate(new Date(event.target.value))}
+        />
+      );
+    } else {
+      return (
+        <>
+          <Button onPress={showEndDatePicker} title="Show date picker!" />
+          {showEndDatePicker && (
+            <DateTimePicker
+              testID="endDateTimePicker"
+              value={endDate || new Date()}
+              mode="date"
+              is24Hour={true}
+              display="default"
+              onChange={handleEndDateChange}
+            />
+          )}
+        </>
+      );
+    }
+  };
 
   const [
     professionalismScoresModalVisible,
@@ -124,7 +402,7 @@ function UserCaseScreen({ navigation }) {
     },
     card: {
       width: "95%",
-      height: isMobile ? 150 : 150, // ปรับแต่งความสูงของ card ตามอุปกรณ์
+      height: isMobile ? 200 : 200, // ปรับแต่งความสูงของ card ตามอุปกรณ์
       marginVertical: isMobile ? 10 : 20, // ปรับแต่งระยะห่างระหว่าง card ตามอุปกรณ์
       borderRadius: 8,
       backgroundColor: "white",
@@ -154,7 +432,7 @@ function UserCaseScreen({ navigation }) {
       shadowRadius: 4,
       elevation: 5,
       width: isMobile ? "90%" : isTablet ? "70%" : "50%", // Responsive width
-      height: isMobile ? "auto" : 400, // Auto height for mobile
+      height: isMobile ? "auto" : "auto", // Auto height for mobile
     },
     modalView2: {
       margin: 20,
@@ -172,7 +450,7 @@ function UserCaseScreen({ navigation }) {
       shadowRadius: 4,
       elevation: 5,
       width: isMobile ? "90%" : isTablet ? "70%" : "50%", // Responsive width
-      height: isMobile ? "auto" : "70%", // Auto height for mobile
+      height: isMobile ? "auto" : "auto", // Auto height for mobile
     },
     button: {
       backgroundColor: "#05AB9F",
@@ -203,6 +481,11 @@ function UserCaseScreen({ navigation }) {
       textAlign: "left",
       fontSize: windowWidth < 768 ? 20 : 24,
     },
+    modalText2: {
+      marginBottom: 15,
+      textAlign: "center",
+      fontSize: windowWidth < 768 ? 20 : 24,
+    },
     centerView: {
       flex: 1,
       justifyContent: "center",
@@ -217,8 +500,7 @@ function UserCaseScreen({ navigation }) {
     },
     buttonsContainer: {
       flexDirection: "row",
-      justifyContent: "flex-end",
-      marginRight: 20,
+      justifyContent: "center",
       marginBottom: 20,
     },
     approveButton: {
@@ -249,7 +531,7 @@ function UserCaseScreen({ navigation }) {
     rightContainer: {
       flex: 1,
       justifyContent: "center",
-      alignItems: "flex-end",
+      alignItems: "center",
     },
     recheckModalButton: {
       flex: 1,
@@ -333,7 +615,7 @@ function UserCaseScreen({ navigation }) {
       maxHeight: "80%",
     },
     buttonViewImages: {
-      backgroundColor: "blue", // สีที่คุณต้องการ
+      backgroundColor: "#1C4CA7", // สีที่คุณต้องการ
       padding: 10,
       borderRadius: 10,
       marginTop: 10,
@@ -376,58 +658,114 @@ function UserCaseScreen({ navigation }) {
 
   const formatTimeUnit = (unit) => (unit < 10 ? `0${unit}` : unit.toString());
 
-  const loadPatientData = async () => {
-    try {
-      const patientCollectionRef = collection(db, "patients");
-      const querySnapshot = await getDocs(patientCollectionRef);
-      const inpatient = [];
-      const outpatient = [];
+const loadPatientData = async () => {
+  try {
+    const patientCollectionRef = collection(db, "patients");
+    const querySnapshot = await getDocs(patientCollectionRef);
+    const inpatient = [];
+    const outpatient = [];
 
-      querySnapshot.forEach((docSnapshot) => {
+    const patientDataWithNames = await Promise.all(
+      querySnapshot.docs.map(async (docSnapshot) => {
         const data = docSnapshot.data();
         data.id = docSnapshot.id;
-        if (data.patientType === "inpatient") {
-          inpatient.push(data);
-        } else if (data.patientType === "outpatient") {
-          outpatient.push(data);
+
+        // ดึงชื่อ student จาก users collection โดยเทียบ uid กับ createBy_id
+        if (data.createBy_id) {
+          const userDocRef = doc(db, "users", data.createBy_id);
+          const userDocSnap = await getDoc(userDocRef);
+          if (userDocSnap.exists()) {
+            const userData = userDocSnap.data();
+            data.studentName = userData.displayName || "ไม่พบชื่อ";
+          } else {
+            data.studentName = "ไม่พบชื่อ";
+          }
+        } else {
+          data.studentName = "ไม่มีข้อมูลผู้สร้าง";
         }
-      });
 
-      setPatientData(inpatient);
-      setOutpatientData(outpatient);
-    } catch (error) {
-      console.error("Error fetching Case data:", error);
-    }
-  };
+        return data;
+      })
+    );
 
-  const loadActivityAndProcedureData = async () => {
-    try {
-      const activityCollectionRef = collection(db, "activity");
-      const activityQuerySnapshot = await getDocs(activityCollectionRef);
-      const activities = [];
+    // แยก inpatient และ outpatient ตามประเภท
+    patientDataWithNames.forEach((data) => {
+      if (data.patientType === "inpatient") {
+        inpatient.push(data);
+      } else if (data.patientType === "outpatient") {
+        outpatient.push(data);
+      }
+    });
 
-      activityQuerySnapshot.forEach((docSnapshot) => {
+    setPatientData(inpatient);
+    setOutpatientData(outpatient);
+  } catch (error) {
+    console.error("Error fetching Case data:", error);
+  }
+};
+
+const loadActivityAndProcedureData = async () => {
+  try {
+    // โหลด activity
+    const activityCollectionRef = collection(db, "activity");
+    const activityQuerySnapshot = await getDocs(activityCollectionRef);
+
+    const activities = await Promise.all(
+      activityQuerySnapshot.docs.map(async (docSnapshot) => {
         const data = docSnapshot.data();
         data.id = docSnapshot.id;
-        activities.push(data);
-      });
 
-      const procedureCollectionRef = collection(db, "procedures");
-      const procedureQuerySnapshot = await getDocs(procedureCollectionRef);
-      const procedures = [];
+        // ดึงชื่อ student จาก users โดยใช้ createBy_id
+        if (data.createBy_id) {
+          const userDocRef = doc(db, "users", data.createBy_id);
+          const userDocSnap = await getDoc(userDocRef);
+          if (userDocSnap.exists()) {
+            const userData = userDocSnap.data();
+            data.studentName = userData.displayName || "ไม่พบชื่อ";
+          } else {
+            data.studentName = "ไม่พบชื่อ";
+          }
+        } else {
+          data.studentName = "ไม่มีข้อมูลผู้สร้าง";
+        }
 
-      procedureQuerySnapshot.forEach((docSnapshot) => {
+        return data;
+      })
+    );
+
+    // โหลด procedures
+    const procedureCollectionRef = collection(db, "procedures");
+    const procedureQuerySnapshot = await getDocs(procedureCollectionRef);
+
+    const procedures = await Promise.all(
+      procedureQuerySnapshot.docs.map(async (docSnapshot) => {
         const data = docSnapshot.data();
         data.id = docSnapshot.id;
-        procedures.push(data);
-      });
 
-      setActivityData(activities);
-      setProcedureData(procedures);
-    } catch (error) {
-      console.error("Error fetching activity or procedure data:", error);
-    }
-  };
+        // ดึงชื่อ student จาก users โดยใช้ createBy_id
+        if (data.createBy_id) {
+          const userDocRef = doc(db, "users", data.createBy_id);
+          const userDocSnap = await getDoc(userDocRef);
+          if (userDocSnap.exists()) {
+            const userData = userDocSnap.data();
+            data.studentName = userData.displayName || "ไม่พบชื่อ";
+          } else {
+            data.studentName = "ไม่พบชื่อ";
+          }
+        } else {
+          data.studentName = "ไม่มีข้อมูลผู้สร้าง";
+        }
+
+        return data;
+      })
+    );
+
+    setActivityData(activities);
+    setProcedureData(procedures);
+  } catch (error) {
+    console.error("Error fetching activity or procedure data:", error);
+  }
+};
 
   useEffect(() => {
     const unsubscribe = navigation.addListener("focus", () => {
@@ -440,26 +778,31 @@ function UserCaseScreen({ navigation }) {
 
   const handleChange = async () => {
     try {
-      console.log(selectedCase);
+      console.log("Selected Case:", selectedCase);
       if (selectedCase && selectedCase.id) {
-        // ตรวจสอบว่า selectedCase ไม่เป็น null และมี id
         const documentId = selectedCase.id;
-
+        console.log("Document ID:", documentId);
+  
         const collectionsToCheck = ["patients", "activity", "procedure"];
-
+  
         for (const collectionName of collectionsToCheck) {
-          const querySnapshot = await getDocs(
-            query(collection(db, collectionName), where("id", "==", documentId))
-          );
-
-          if (!isEmpty(querySnapshot.docs)) {
-            // พบ documentId ใน Collection ที่เป็นไปได้ ทำการอัปเดต
-            const docRef = doc(db, collectionName, documentId);
+          console.log(`Checking collection: ${collectionName}`);
+          const docRef = doc(db, collectionName, documentId);
+          const docSnapshot = await getDoc(docRef);
+  
+          if (docSnapshot.exists()) {
+            console.log(`Document found in collection: ${collectionName}`);
             await updateDoc(docRef, { status: "pending" });
+            console.log("Document status updated to 'pending'");
+            loadPatientData();
+            loadActivityAndProcedureData();
             setChangeModalVisible(false);
-            break;
+            alert("Case updated status successfully!");
+            return;
           }
         }
+  
+        console.log("Document not found in any collection");
       } else {
         console.error("Missing selectedCase or document ID.");
       }
@@ -467,7 +810,7 @@ function UserCaseScreen({ navigation }) {
       console.error("Error updating document status:", error);
     }
   };
-
+  
   const handleButtonChange = (caseData) => {
     setSelectedCase(caseData);
     setChangeModalVisible(true);
@@ -492,12 +835,60 @@ function UserCaseScreen({ navigation }) {
   };
 
   const renderCards = () => {
-    const allCases = filterCasesByType(selectedType).filter(
-      (caseData) => caseData.status === selectedStatus
-    );
+    const allCases = filterCasesByType(selectedType)
+    .filter((caseData) => 
+      caseData.status === selectedStatus)
+    .filter(
+      (caseData) =>
+        selectedSubject === "All" ||
+        (caseData.subject && caseData.subject === selectedSubject)
+    )
+    .filter((caseData) => {
+      // Filter by hnSearch
+      const hnMatch = hnSearch
+        ? caseData.hn?.toLowerCase().includes(hnSearch.toLowerCase())
+        : true;
+
+      // Filter by date range
+      const admissionDate = caseData.admissionDate.toDate();
+      const dateInRange =
+        (!startDate || admissionDate >= startDate) &&
+        (!endDate || admissionDate <= endDate);
+
+      // Filter by professor
+      const professorMatch = professorId
+        ? caseData.professorId === professorId
+        : professorName
+        ? caseData.professorName === professorName
+        : true;
+
+      // Filter by student
+      const studentMatch = studentId
+        ? caseData.createBy_id === studentId
+        : studentName
+        ? caseData.studentName === studentName
+        : true;
+
+      // if (studentId && caseData.createBy_id === studentId) {
+      //   console.log("🎯 MATCHED CASE:", caseData);
+      // } else if (studentId) {
+      //   console.log("❌ Not matched:", {
+      //     caseStudentId: caseData.createBy_id,
+      //     selectedStudentId: studentId,
+      //     selectedStudentName: studentName,
+      //   });
+      // }
+
+      return hnMatch && dateInRange && professorMatch && studentMatch;
+
+    });
 
     return allCases
-      .sort((a, b) => b.admissionDate.toDate() - a.admissionDate.toDate())
+    .sort((a, b) => {
+      const aRejectionTime = a.rejectionTimestamp ? a.rejectionTimestamp.toDate() : a.admissionDate.toDate();
+      const bRejectionTime = b.rejectionTimestamp ? b.rejectionTimestamp.toDate() : b.admissionDate.toDate();
+      return bRejectionTime - aRejectionTime;
+    })
       .map((caseData, index) => (
         <TouchableOpacity
           style={styles.cardContainer}
@@ -517,7 +908,14 @@ function UserCaseScreen({ navigation }) {
                         lineHeight: 30,
                       }}
                     >
-                      {caseData.procedureType} ({caseData.status})
+                      HN : {caseData.hn} ({caseData.status}) (Procedure)
+                    </Text>
+                  )}
+                  {caseData.procedureType && (
+                    <Text
+                      style={{ marginLeft: 20, lineHeight: 30, opacity: 0.4 }}
+                    >
+                      Type : {caseData.procedureType}
                     </Text>
                   )}
                   {caseData.activityType && (
@@ -529,20 +927,23 @@ function UserCaseScreen({ navigation }) {
                         lineHeight: 30,
                       }}
                     >
-                      {caseData.activityType} ({caseData.status})
+                      {caseData.activityType} ({caseData.status}) (Activity)
                     </Text>
                   )}
                   <Text
                     style={{ marginLeft: 20, lineHeight: 30, opacity: 0.4 }}
                   >
-                    {caseData.procedureType ? "Approved By" : "Professor Name"}:{" "}
-                    {caseData.procedureType
-                      ? caseData.approvedByName
-                      : caseData.professorName}
+                    Instructor Name : {caseData.professorName}
+                  </Text>
+                  <Text
+                    style={{ marginLeft: 20, lineHeight: 30, opacity: 0.4 }}
+                  >
+                    Student Name : {caseData.studentName}
                   </Text>
                 </>
               ) : (
                 <>
+                {caseData.patientType === "inpatient" && (
                   <Text
                     style={{
                       fontSize: 20,
@@ -551,16 +952,38 @@ function UserCaseScreen({ navigation }) {
                       lineHeight: 30,
                     }}
                   >
-                    HN : {caseData.hn} ({caseData.status})
+                    HN : {caseData.hn} ({caseData.status}) (IPD)
+                  </Text>
+                )}
+
+                {caseData.patientType === "outpatient" && (
+                  <Text
+                    style={{
+                      fontSize: 20,
+                      fontWeight: "bold",
+                      marginLeft: 20,
+                      lineHeight: 30,
+                    }}
+                  >
+                    HN : {caseData.hn} ({caseData.status}) (OPD)
+                  </Text>
+                )}
+
+                  <Text
+                    style={{ marginLeft: 20, lineHeight: 30, opacity: 0.4 }}
+                  >
+                    Instructor Name : {caseData.professorName}
                   </Text>
                   <Text
                     style={{ marginLeft: 20, lineHeight: 30, opacity: 0.4 }}
                   >
-                    {caseData.procedureType ? "Approved By" : "Professor Name"}:{" "}
-                    {caseData.procedureType
-                      ? caseData.approvedByName
-                      : caseData.professorName}
+                    Student Name : {caseData.studentName}
                   </Text>
+                  {caseData.patientName?.trim() && !caseData.activityType?.trim() && (
+                    <Text style={{ marginLeft: 20, lineHeight: 30, opacity: 0.4 }}>
+                      Patient Name : {caseData.patientName}
+                    </Text>
+                  )}
                   {caseData.procedureType && (
                     <Text
                       style={{ marginLeft: 20, lineHeight: 30, opacity: 0.4 }}
@@ -600,7 +1023,7 @@ function UserCaseScreen({ navigation }) {
                 </Text>
               )}
             </View>
-            {caseData.status !== "pending" && (
+            {/* {caseData.status !== "pending" && (
               <View style={styles.rightContainer}>
                 <View style={styles.buttonsContainer}>
                   <TouchableOpacity
@@ -613,7 +1036,7 @@ function UserCaseScreen({ navigation }) {
                   </TouchableOpacity>
                 </View>
               </View>
-            )}
+            )} */}
           </View>
         </TouchableOpacity>
       ));
@@ -637,7 +1060,7 @@ function UserCaseScreen({ navigation }) {
         return activityData.filter(
           (caseData) => caseData.status === selectedStatus
         );
-      default:
+      case "all":
         return [
           ...patientData.filter(
             (caseData) => caseData.status === selectedStatus
@@ -652,90 +1075,275 @@ function UserCaseScreen({ navigation }) {
             (caseData) => caseData.status === selectedStatus
           ),
         ];
+      default:
+        return [];
     }
   };
 
   return (
     <View style={styles.container}>
+      <Button
+          color="#FE810E"
+          title={isVisible ? "Hide Filters" : "Show Filters"}
+          onPress={() => setIsVisible(!isVisible)}
+        />
+
+      {isVisible && (
+        <>
       <View
         style={{
           marginVertical: 10,
-          flexDirection: "row",
-          alignItems: "center",
+          flexDirection: isPC ? 'row' : 'column', // Row only for wide screens
+          alignItems: isPC ? 'flex-start' : 'center',
+          justifyContent: isPC ? 'flex-start' : 'center',
+          flexWrap: isPC ? 'wrap' : 'nowrap', // Allow wrap on wide screens if needed
         }}
       >
+      <View style={{ marginBottom: isPC ? 0 : 10, marginRight: isPC ? 20 : 0 }}>
+        <Text style={{ marginBottom: 10, textAlign: 'center' }}>Filter by hn:</Text>
+          <TextInput
+            style={{
+              width: '100%',
+              backgroundColor: "#FEF0E6",
+              borderColor: "#FEF0E6",
+              borderWidth: 1,
+              borderRadius: 10,
+              padding: 12,
+              textAlign: "center",
+            }}
+            placeholder="Search by hn"
+            value={hnSearch}
+            onChangeText={(text) => {
+              setHnSearch(text);
+            }}
+          />
+      </View>
+
+    {!isPC ? (
+      <View
+        style={{
+          // marginVertical: 10,
+          flexDirection: "row",
+          alignContent: 'space-between',
+          alignItems: "center",  
+        }}
+      >
+      <View style={{ marginBottom: 10, marginRight: 20 }}>
+        <Text style={{ marginBottom: 10, textAlign: 'center' }}>Filter by status:</Text>
         <SelectList
           data={statusOptions}
           setSelected={setSelectedStatus}
-          placeholder="Select status"
+          placeholder="Pending"
           defaultOption={selectedStatus}
           search={false}
           boxStyles={{
-            width: "auto",
+            width: '100%',
             backgroundColor: "#FEF0E6",
             borderColor: "#FEF0E6",
             borderWidth: 1,
             borderRadius: 10,
           }}
-          dropdownStyles={{ backgroundColor: "#FEF0E6" }}
-        />
-
-        <SelectList
-          data={[
-            { key: "inpatient", value: "IPD" },
-            { key: "outpatient", value: "OPD" },
-            { key: "procedure", value: "Procedure" },
-            { key: "activity", value: "Activity" },
-          ]}
-          setSelected={setSelectedType}
-          placeholder="Select case type"
-          defaultOption={selectedType}
-          search={false}
-          boxStyles={{
-            width: "auto",
+          dropdownStyles={{
             backgroundColor: "#FEF0E6",
-            borderColor: "#FEF0E6",
-            borderWidth: 1,
-            borderRadius: 10,
-            marginLeft: 15,
+            width: "100%",
           }}
-          dropdownStyles={{ backgroundColor: "#FEF0E6" }}
         />
       </View>
 
+      <View style={{ marginBottom: 10, marginRight: 20 }}> 
+        <Text style={{ textAlign: 'center', marginBottom: 10}}>Filter by case type : </Text>
+          <SelectList
+            data={[
+              { key: "all", value: "All Cases" },
+              { key: "inpatient", value: "IPD" },
+              { key: "outpatient", value: "OPD" },
+              { key: "procedure", value: "Procedure" },
+              { key: "activity", value: "Activity" },
+            ]}
+            setSelected={setSelectedType}
+            placeholder="All Cases"
+            defaultOption={selectedType}
+            search={false}
+            boxStyles={{
+              width: "100%",
+              backgroundColor: "#FEF0E6",
+              borderColor: "#FEF0E6",
+              borderWidth: 1,
+              borderRadius: 10,
+              // marginLeft: 15,
+            }}
+            dropdownStyles={{ 
+              backgroundColor: "#FEF0E6",
+              width: "100%",
+             }}
+          />
+          </View>
+        </View>
+        ) : (
+          <>
+      <View style={{ marginBottom: 10, marginRight: 20 }}>
+        <Text style={{ marginBottom: 10, textAlign: 'center' }}>Filter by status:</Text>
+        <SelectList
+          data={statusOptions}
+          setSelected={setSelectedStatus}
+          placeholder="Pending"
+          defaultOption={selectedStatus}
+          search={false}
+          boxStyles={{
+            width: '100%',
+            backgroundColor: "#FEF0E6",
+            borderColor: "#FEF0E6",
+            borderWidth: 1,
+            borderRadius: 10,
+          }}
+          dropdownStyles={{
+            backgroundColor: "#FEF0E6",
+            width: "100%",
+          }}
+        />
+      </View>
+
+      <View style={{ marginBottom: 10, marginRight: 20 }}> 
+        <Text style={{ textAlign: 'center', marginBottom: 10}}>Filter by case type : </Text>
+          <SelectList
+            data={[
+              { key: "all", value: "All Cases" },
+              { key: "inpatient", value: "IPD" },
+              { key: "outpatient", value: "OPD" },
+              { key: "procedure", value: "Procedure" },
+              { key: "activity", value: "Activity" },
+            ]}
+            setSelected={setSelectedType}
+            placeholder="All Cases"
+            defaultOption={selectedType}
+            search={false}
+            boxStyles={{
+              width: "100%",
+              backgroundColor: "#FEF0E6",
+              borderColor: "#FEF0E6",
+              borderWidth: 1,
+              borderRadius: 10,
+              // marginLeft: 15,
+            }}
+            dropdownStyles={{ 
+              backgroundColor: "#FEF0E6",
+              width: "100%",
+             }}
+          />
+          </View>
+          </>
+        )}
+
+    <View style={{ marginBottom: isPC ? 0 : 10, marginRight: isPC ? 20 : 0 }}> 
+      <Text style={{ textAlign: 'center', marginBottom: 10}}>Filter by instructor name : </Text>
+      <SelectList
+                setSelected={onSelectTeacher}
+                data={teachers}
+                placeholder={"Select the instructor name"}
+                placeholderTextColor="grey"
+                boxStyles={{
+                  width: "100%",
+                  backgroundColor: "#FEF0E6",
+                  borderColor: "#FEF0E6",
+                  borderWidth: 1,
+                  borderRadius: 10,
+                }}
+                dropdownStyles={{ 
+                  backgroundColor: "#FEF0E6",
+                  width: '100%'
+                 }}
+              />
+    </View>
+
+    <View style={{ marginBottom: isPC ? 0 : 10, marginRight: isPC ? 20 : 0 }}> 
+      <Text style={{ textAlign: 'center', marginBottom: 10}}>Filter by student name : </Text>
+      <SelectList
+                setSelected={onSelectStudent}
+                data={students}
+                placeholder={"Select the student name"}
+                placeholderTextColor="grey"
+                boxStyles={{
+                  width: "100%",
+                  backgroundColor: "#FEF0E6",
+                  borderColor: "#FEF0E6",
+                  borderWidth: 1,
+                  borderRadius: 10,
+                }}
+                dropdownStyles={{ 
+                  backgroundColor: "#FEF0E6",
+                  width: '100%'
+                 }}
+              />
+    </View>
+
+      <View style={{ marginBottom: isPC ? 0 : 10, marginRight: isPC ? 20 : 0 }}>
+        <Text style={{ textAlign: 'center', marginBottom: 10}}>Filter by subject : </Text>
+        <SelectList
+                placeholder="All"
+                defaultValue={selectedSubject}
+                setSelected={setSelectedSubject} // 4. เมื่อมีการเลือก Subject ใหม่ ให้เรียกใช้ handleSelectSubject เพื่อเปลี่ยนค่า selectedSubject
+                data={subjectsByYear}
+                search={false}
+                boxStyles={{
+                  width: "50%",
+                  backgroundColor: "#FEF0E6",
+                  borderColor: "#FEF0E6",
+                  borderWidth: 1,
+                  borderRadius: 10,
+                  marginLeft: 10,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  alignSelf: 'center'
+                }}
+                dropdownStyles={{ 
+                  backgroundColor: "#FEF0E6", 
+                  width: "50%" ,             
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  alignSelf: 'center' }}
+              />
+      </View>
+
+    {!isPC ? (
+  <View
+    style={{
+      // marginVertical: 10,
+      flexDirection: "row",
+      alignContent: 'space-between',
+      alignItems: "center",  
+    }}
+  >
+      <View style={{ marginBottom: isPC ? 0 : 10, marginRight: 20 }}>
+        <Text style={{ marginBottom: 10, textAlign: 'center' }}>Start Date:</Text>
+        <StartDateInput />
+      </View>
+      
+      <View style={{ marginBottom: isPC ? 0 : 10, marginRight: isPC ? 20 : 0 }}>
+        <Text style={{ marginBottom: 10, textAlign: 'center' }}>End Date:</Text>
+        <EndDateInput />
+      </View>
+
+    </View>
+    ) : (
+      <>
+      <View style={{ marginBottom: isPC ? 0 : 10, marginRight: 20 }}>
+        <Text style={{ marginBottom: 10, textAlign: 'center' }}>Start Date:</Text>
+        <StartDateInput />
+      </View>
+      
+      <View style={{ marginBottom: isPC ? 0 : 10, marginRight: isPC ? 20 : 0 }}>
+        <Text style={{ marginBottom: 10, textAlign: 'center' }}>End Date:</Text>
+        <EndDateInput />
+      </View>
+      </>
+)}
+</View>
+      </>
+      )}
+      
       <View style={styles.boxCard}>
         <ScrollView>{renderCards()}</ScrollView>
       </View>
-
-      {/* Modal สำหรับยืนยันการเปลี่ยน */}
-      <Modal
-        animationType="fade"
-        transparent={true}
-        visible={changeModalVisible}
-        onRequestClose={() => setChangeModalVisible(false)}
-      >
-        <View style={styles.centerView}>
-          <View style={styles.modalView}>
-            <Text style={styles.modalText}>
-              Change status this case to pending?
-            </Text>
-            <View style={styles.buttonContainer}>
-              <Pressable
-                style={[styles.recheckModalButton, styles.buttonApprove]}
-                onPress={handleChange}
-              >
-                <Text style={styles.textStyle}>Confirm</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.recheckModalButton, styles.buttonCancel]}
-                onPress={() => setChangeModalVisible(false)}
-              >
-                <Text style={styles.textStyle}>Cancel</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
 
       <Modal
         animationType="fade"
@@ -748,12 +1356,59 @@ function UserCaseScreen({ navigation }) {
             <ScrollView>
               {selectedCase && (
                 <>
+                {selectedCase.status !== "pending" && (
+                  <View style={styles.rightContainer}>
+                    <View style={styles.buttonsContainer}>
+                      <TouchableOpacity
+                        style={styles.rejectButton}
+                        onPress={() => {
+                          handleButtonChange(selectedCase);
+                        }}
+                      >
+                        <Text style={styles.buttonText}>Change</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
+                {selectedCase.subject && (
+                <View styles={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', alignSelf: 'center' }}>
+                  <Text style={styles.modalText2}>
+                    <Text style={{ fontWeight: "bold" }}>{selectedCase.subject}</Text>
+                  </Text>
+                </View>
+                )}
+
+                  <Text style={styles.modalText}>
+                    <Text style={{ fontWeight: "bold" }}>Type cases : </Text>
+                    {selectedCase.patientType === "inpatient" && "ผู้ป่วยใน(IPD)"}
+                    {selectedCase.patientType === "outpatient" && "ผู้ป่วยนอก(OPD)"}
+                    {selectedCase.activityType && "กิจกรรม(Activity)"}
+                    {selectedCase.procedureType && "หัตถการ(Procedure)"}
+                  </Text>
+
+                  <Text style={styles.modalText}>
+                    <Text style={{ fontWeight: "bold" }}>
+                      วันที่บันทึกข้อมูล :{" "}
+                    </Text>
+                    {selectedCase.recordDate
+                      ? formatDate2(selectedCase.recordDate.toDate())
+                      : "ไม่มี"}
+                  </Text>
+
+                  <Text style={styles.modalText}>
+                      <Text style={{ fontWeight: "bold" }}>
+                        ชื่อนักศึกษาแพทย์ :{" "}
+                      </Text>{" "}
+                      {selectedCase.studentName}
+                  </Text>
+
                   <Text style={styles.modalText}>
                     <Text style={{ fontWeight: "bold" }}>
                       Admission Date :{" "}
                     </Text>
                     {formatDate2(selectedCase.admissionDate.toDate())}
                   </Text>
+
                   {selectedCase.hours !== "" && selectedCase.minutes !== "" && (
                     <>
                       <Text style={styles.modalText}>
@@ -768,12 +1423,12 @@ function UserCaseScreen({ navigation }) {
                   <Text style={styles.modalText}>
                     <Text style={{ fontWeight: "bold" }}>
                       {selectedCase.procedureType
-                        ? "Approved By"
-                        : "Professor Name"}
+                        ? "Instructor Name"
+                        : "Instructor Name"}
                       :{" "}
                     </Text>{" "}
                     {selectedCase.procedureType
-                      ? selectedCase.approvedByName
+                      ? selectedCase.professorName
                       : selectedCase.professorName}
                   </Text>
                   {selectedCase.activityType && (
@@ -794,10 +1449,24 @@ function UserCaseScreen({ navigation }) {
                       {selectedCase.hn}
                     </Text>
                   )}
+                  {selectedCase.patientName && (
+                  <Text style={styles.modalText}>
+                    <Text style={{ fontWeight: "bold" }}>Patient Name :</Text>{" "}
+                    {selectedCase.patientName || "ไม่มี"}
+                  </Text>
+                  )}
                   {selectedCase.procedureLevel && (
                     <Text style={styles.modalText}>
                       <Text style={{ fontWeight: "bold" }}>Level :</Text>{" "}
                       {displayLevel(selectedCase.procedureLevel)}
+                    </Text>
+                  )}
+                  {selectedCase.diagnosticType && (
+                    <Text style={styles.modalText}>
+                      <Text style={{ fontWeight: "bold" }}>
+                        หมวดหมู่การวินิจฉัย :
+                      </Text>{" "}
+                      {selectedCase.diagnosticType}
                     </Text>
                   )}
                   {selectedCase.mainDiagnosis && (
@@ -886,6 +1555,37 @@ function UserCaseScreen({ navigation }) {
         </View>
       </Modal>
 
+{/* Modal สำหรับยืนยันการเปลี่ยน */}
+<Modal
+        animationType="fade"
+        transparent={true}
+        visible={changeModalVisible}
+        onRequestClose={() => setChangeModalVisible(false)}
+      >
+        <View style={styles.centerView}>
+          <View style={styles.modalView}>
+            <Text style={styles.modalText}>
+              Change status this case to pending?
+            </Text>
+            <View style={styles.buttonContainer}>
+              <Pressable
+                style={[styles.recheckModalButton, styles.buttonApprove]}
+                onPress={handleChange}
+              >
+                <Text style={styles.textStyle}>Confirm</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.recheckModalButton, styles.buttonCancel]}
+                onPress={() => setChangeModalVisible(false)}
+              >
+                <Text style={styles.textStyle}>Cancel</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+
       <Modal
         animationType="slide"
         transparent={true}
@@ -905,55 +1605,85 @@ function UserCaseScreen({ navigation }) {
                 Professionalism scores
               </Text>
               {selectedCase.professionalismScores && (
-                <>
-                  <Text style={styles.modalText}>
-                    <Text style={{ fontWeight: "bold", fontSize: 20 }}>
-                      Punctual :{" "}
-                    </Text>
-                    {selectedCase.professionalismScores.punctual ? "✔️" : "❌"}
-                  </Text>
-                  <Text style={styles.modalText}>
-                    <Text style={{ fontWeight: "bold", fontSize: 20 }}>
-                      Appropriately dressed:{" "}
-                    </Text>
-                    {selectedCase.professionalismScores.appropriatelyDressed
-                      ? "✔️"
-                      : "❌"}
-                  </Text>
-                  <Text style={styles.modalText}>
-                    <Text style={{ fontWeight: "bold", fontSize: 20 }}>
-                      Respect the Case :{" "}
-                    </Text>
-                    {selectedCase.professionalismScores.respectsCases
-                      ? "✔️"
-                      : "❌"}
-                  </Text>
-                  <Text style={styles.modalText}>
-                    <Text style={{ fontWeight: "bold", fontSize: 20 }}>
-                      Good listener :{" "}
-                    </Text>
-                    {selectedCase.professionalismScores.goodListener
-                      ? "✔️"
-                      : "❌"}
-                  </Text>
-                  <Text style={styles.modalText}>
-                    <Text style={{ fontWeight: "bold", fontSize: 20 }}>
-                      Respect colleagues :{" "}
-                    </Text>
-                    {selectedCase.professionalismScores.respectsColleagues
-                      ? "✔️"
-                      : "❌"}
-                  </Text>
-                  <Text style={styles.modalText}>
-                    <Text style={{ fontWeight: "bold", fontSize: 20 }}>
-                      Accurately record Case information :{" "}
-                    </Text>
-                    {selectedCase.professionalismScores.accurateRecordKeeping
-                      ? "✔️"
-                      : "❌"}
-                  </Text>
-                </>
-              )}
+                                        <>
+                                          <Text style={styles.modalText}>
+                                            <Text
+                                              style={{ fontWeight: "bold", fontSize: 20 }}
+                                            >
+                                              Basic knowledge/basic science :{" "}
+                                            </Text>
+                                            {selectedCase.professionalismScores.basicKnowledge
+                                              ? "✔️"
+                                              : "❌"}
+                                          </Text>
+                                          <Text style={styles.modalText}>
+                                            <Text
+                                              style={{ fontWeight: "bold", fontSize: 20 }}
+                                            >
+                                              Clinical skills (history taking and physical examination) :{" "}
+                                            </Text>
+                                            {selectedCase.professionalismScores
+                                              .clinicalSkills
+                                              ? "✔️"
+                                              : "❌"}
+                                          </Text>
+                                          <Text style={styles.modalText}>
+                                            <Text
+                                              style={{ fontWeight: "bold", fontSize: 20 }}
+                                            >
+                                              Problem identification and approaching :{" "}
+                                            </Text>
+                                            {selectedCase.professionalismScores
+                                              .problemIdentification
+                                              ? "✔️"
+                                              : "❌"}
+                                          </Text>
+                                          <Text style={styles.modalText}>
+                                            <Text
+                                              style={{ fontWeight: "bold", fontSize: 20 }}
+                                            >
+                                              Management/Problem solving :{" "}
+                                            </Text>
+                                            {selectedCase.professionalismScores
+                                              .managementProblem
+                                              ? "✔️"
+                                              : "❌"}
+                                          </Text>
+                                          <Text style={styles.modalText}>
+                                            <Text
+                                              style={{ fontWeight: "bold", fontSize: 20 }}
+                                            >
+                                              Patient education :{" "}
+                                            </Text>
+                                            {selectedCase.professionalismScores
+                                              .patientEducation
+                                              ? "✔️"
+                                              : "❌"}
+                                          </Text>
+                                          <Text style={styles.modalText}>
+                                            <Text
+                                              style={{ fontWeight: "bold", fontSize: 20 }}
+                                            >
+                                              Evidence-based medicine :{" "}
+                                            </Text>
+                                            {selectedCase.professionalismScores
+                                              .evidenceBase
+                                              ? "✔️"
+                                              : "❌"}
+                                          </Text>
+                                          <Text style={styles.modalText}>
+                                            <Text
+                                              style={{ fontWeight: "bold", fontSize: 20 }}
+                                            >
+                                              Ethical and manner issues :{" "}
+                                            </Text>
+                                            {selectedCase.professionalismScores
+                                              .ethicalManner
+                                              ? "✔️"
+                                              : "❌"}
+                                          </Text>
+                                        </>
+                                      )}
 
               <Pressable
                 style={[styles.button, styles.buttonClose]}
@@ -989,10 +1719,20 @@ function UserCaseScreen({ navigation }) {
         >
           <View
             style={{
-              width: "70%",
-              height: "70%",
+              width: "80%",
+              height: "80%",
               backgroundColor: "white",
               borderRadius: 10,
+              margin: 10,
+              padding: 25,
+              shadowColor: "#000",
+              shadowOffset: {
+                width: 0,
+                height: 2,
+              },
+              shadowOpacity: 0.25,
+              shadowRadius: 4,
+              elevation: 5,
             }}
           >
             <ScrollView>

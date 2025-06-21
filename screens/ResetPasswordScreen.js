@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Dimensions,
   Image,
+  ScrollView
 } from "react-native";
 import { getAuth, sendPasswordResetEmail } from "firebase/auth";
 import validator from "validator";
@@ -58,6 +59,8 @@ const ResetPasswordScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+      <View style={{ flex: 1 }}>
       <Header />
       <SubHeader text="Forgot Password" />
 
@@ -145,8 +148,8 @@ const ResetPasswordScreen = ({ navigation }) => {
       >
         ◄ Back to login
       </Text>
-
-      <View style={{ flex: 1 }} />
+      </View>
+      </ScrollView>
       <Footer />
     </View>
   );

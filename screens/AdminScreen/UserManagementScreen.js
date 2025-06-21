@@ -3,14 +3,12 @@ import {
   collection,
   getDocs,
   doc,
-  getDoc,
-  setDoc,
-  updateDoc,
-  Timestamp,
   deleteDoc,
+  updateDoc
 } from "firebase/firestore";
-import { deleteUser, getAuth, updateProfile, updateEmail } from "firebase/auth";
+import { deleteUser, updateProfile, updateEmail } from "firebase/auth";
 import { db } from "../../data/firebaseDB";
+import { getFunctions, httpsCallable } from 'firebase/functions'
 import {
   Alert,
   Modal,
@@ -22,8 +20,11 @@ import {
   ScrollView,
   Dimensions,
   TextInput,
+  ActivityIndicator,
+  Picker
 } from "react-native";
 import { SelectList } from "react-native-dropdown-select-list";
+import { Ionicons, FontAwesome, MaterialIcons } from "@expo/vector-icons";
 
 function UserManagementScreen({ navigation }) {
   const [modalVisible, setModalVisible] = useState(false);
@@ -32,6 +33,7 @@ function UserManagementScreen({ navigation }) {
   const [modalEditVisible, setModalEditVisible] = useState(false);
   const [userData, setUserData] = useState([]); // state เก็บข้อมูลผู้ใช้ทั้งหมด
   const [filteredUserData, setFilteredUserData] = useState([]); // state เก็บข้อมูลผู้ใช้ที่ผ่านการกรอง
+  const [loading, setLoading] = useState(false);
 
   const [selectedUser, setSelectedUser] = useState(null);
   const [displayName, setDisplayName] = useState("");
@@ -41,6 +43,7 @@ function UserManagementScreen({ navigation }) {
   const [originalEmail, setOriginalEmail] = useState("");
 
   const [selectedRole, setSelectedRole] = useState("");
+  const [uid, setUid] = useState("");
 
   const [windowWidth, setWindowWidth] = useState(
     Dimensions.get("window").width
@@ -59,8 +62,8 @@ function UserManagementScreen({ navigation }) {
 
   const [selectedStatus, setSelectedStatus] = useState("student");
   const statusOptions = [
-    { key: "student", value: "Student" },
-    { key: "teacher", value: "Teacher" },
+    { key: "student", value: "student" },
+    { key: "teacher", value: "teacher" },
   ];
 
   const updateWindowDimensions = () => {
@@ -116,6 +119,8 @@ function UserManagementScreen({ navigation }) {
       setOriginalDisplayName(selectedUser.displayName);
       setEmail(selectedUser.email);
       setOriginalEmail(selectedUser.email);
+      setSelectedRole(selectedUser.role);
+      setUid(selectedUser.uid);
     }
   }, [selectedUser]);
 
@@ -128,6 +133,7 @@ function UserManagementScreen({ navigation }) {
   const handleCardPress = (user) => {
     setSelectedUser(user);
     setModalVisible(true);
+    console.log(selectedRole);
   };
 
   const handleEditUser = (user) => {
@@ -192,42 +198,73 @@ function UserManagementScreen({ navigation }) {
   }, [searchText, unfilteredUserData]); // ให้ useEffect ทำงานเมื่อ searchText หรือ unfilteredPatientData เปลี่ยน
 
   const handleUpdateUser = async () => {
-    // try {
-    //   // อัปเดตข้อมูลผู้ใช้ใน Firestore
-    //   const docRef = doc(db, "users", selectedUser.id);
-    //   await updateDoc(docRef, {
-    //     displayName: displayName,
-    //     role: selectedRole,
-    //     email: email
-    //   });
-    //   // อัปเดตอีเมลใน Firebase Authentication
-    //   const auth = getAuth();
-    //   const userToUpdate = await getUserByEmail(auth, selectedUser.email); // ดึงข้อมูลผู้ใช้จากอีเมลที่ต้องการอัปเดต
-    //   if (userToUpdate) {
-    //     await updateEmail(userToUpdate, email); // ใช้ข้อมูลผู้ใช้ที่ดึงมาเพื่ออัปเดตอีเมล
-    //   }
-    //   alert("Update complete!");
-    //   setModalEditVisible(false);
-    //   loadUserData();
-    // } catch (error) {
-    //   console.error("Error updating user:", error);
-    // }
+    if (selectedUser) {
+      try {
+        // กำหนดค่า loading เป็น true เพื่อแสดง indicator ระหว่างการโหลด
+        setLoading(true);
+  
+        // อ้างอิงไปที่ document ที่ต้องการแก้ไขใน collection users
+        const userRef = doc(db, "users", selectedUser.uid);
+  
+        // ข้อมูลใหม่ที่จะอัพเดท
+        const updatedUserData = {
+          displayName: displayName,
+          role: selectedRole,
+        };
+  
+        // อัพเดทข้อมูลใน Firestore
+        await updateDoc(userRef, updatedUserData);
+  
+        // โหลดข้อมูลใหม่อีกครั้งเพื่ออัพเดท state
+        await loadUserData();
+  
+        // ปิด modal แก้ไขและรีเซ็ต selectedUser
+        setModalEditVisible(false);
+        setSelectedUser(null);
+  
+        alert("User updated successfully!");
+  
+      } catch (error) {
+        console.error("Error updating user:", error);
+        alert("Error updating user. Please try again.");
+      } finally {
+        // กำหนดค่า loading เป็น false หลังจากเสร็จสิ้นการอัพเดท
+        setLoading(false);
+      }
+    }
   };
 
   const handleDeleteUser = async () => {
     try {
-      const docRef = doc(db, "users", selectedUser.id);
-      await deleteDoc(docRef);
+      if (selectedUser) {
+        setLoading(true);
 
-      // Delete the user from Authentication using their UID
-      const auth = getAuth();
-      await deleteUser(auth.currentUser, selectedUser.id);
-
-      alert("User deleted successfully!");
-      setConfirmationModalVisible(false);
-      loadUserData();
-    } catch (error) {
-      console.error("Error deleting user:", error);
+        const uid = selectedUser.uid; 
+        console.log(selectedUser);
+  
+        const deleteUser = httpsCallable(getFunctions(), 'deleteUser');
+        deleteUser({ uid }).then(async (result) => {
+          console.log(result.data);
+          
+          // เพิ่มการลบใน Collection users ด้วย uid ที่ได้
+          const userRef = doc(db, 'users', uid);
+          await deleteDoc(userRef);
+          
+          console.log("User document successfully deleted!");
+          alert("User deleted successfully!");
+          setConfirmationModalVisible(false);
+          loadUserData();
+        }).catch((error) => {
+          console.error("Error deleting user:", error.message);
+          // ทำการ handle ข้อผิดพลาดได้ตามที่เหมาะสม
+        })
+        .finally(() => {
+          setLoading(false); // สิ้นสุดการโหลด
+      });
+      }} catch (error) {
+      console.error("Error deleting user:", error.message);
+      // ทำการ handle ข้อผิดพลาดได้ตามที่เหมาะสม
+      setLoading(false); // สิ้นสุดการโหลดในกรณีเกิด error
     }
   };
 
@@ -273,7 +310,7 @@ function UserManagementScreen({ navigation }) {
       alignItems: "center",
     },
     boxCard: {
-      height: "60%", // ปรับแต่งความสูงของ boxCard ตามอุปกรณ์
+      height: "70%", // ปรับแต่งความสูงของ boxCard ตามอุปกรณ์
       width: isMobile ? "90%" : "90%", // ปรับแต่งความกว้างของ boxCard ตามอุปกรณ์
       marginLeft: isMobile ? "50" : "50",
       marginRight: isMobile ? "50" : "50",
@@ -328,16 +365,16 @@ function UserManagementScreen({ navigation }) {
       marginBottom: 20,
     },
     editButton: {
-      backgroundColor: "blue",
-      padding: 10,
-      borderRadius: 13,
-      marginRight: 10,
+      position: "absolute",
+      top: 10,
+      right: 10
     },
     deleteButton: {
-      backgroundColor: "red",
-      padding: 10,
-      borderRadius: 13,
+      position: "absolute",
+      bottom: 10,
+      right: 10,
     },
+
     buttonText: {
       color: "white",
     },
@@ -429,13 +466,15 @@ function UserManagementScreen({ navigation }) {
                 Email : {user.email}
               </Text>
             </View>
-            <View style={styles.rightContainer}>
-              <View style={styles.buttonsContainer}>
-                {/* <TouchableOpacity style={styles.editButton} onPress={() => {
-                                    handleEditUser(user);
-                                }}>
-                                    <Text style={styles.buttonText}>Edit</Text>
-                                </TouchableOpacity> */}
+
+                <TouchableOpacity 
+                  style={styles.editButton} 
+                  onPress={() => {
+                    handleEditUser(user);
+                }}>
+                <FontAwesome name="edit" size={24} color="gray" />
+                </TouchableOpacity>
+
                 <TouchableOpacity
                   style={styles.deleteButton}
                   onPress={() => {
@@ -444,10 +483,9 @@ function UserManagementScreen({ navigation }) {
                     setConfirmationModalVisible(true);
                   }}
                 >
-                  <Text style={styles.buttonText}>Delete</Text>
+                  <MaterialIcons name="delete" size={24} color="red" />
                 </TouchableOpacity>
-              </View>
-            </View>
+
           </View>
         </TouchableOpacity>
       ));
@@ -696,7 +734,7 @@ function UserManagementScreen({ navigation }) {
                   alignItems: "flex-start",
                 }}
               >
-                E-mail
+                E-mail (ไม่สามารถแก้ไขได้)
               </Text>
               <View
                 style={{
@@ -710,6 +748,8 @@ function UserManagementScreen({ navigation }) {
               >
                 <TextInput
                   value={email}
+                  editable={false}
+                  selectTextOnFocus={false}
                   onChangeText={setEmail}
                   style={{
                     width: "100%",
@@ -748,7 +788,7 @@ function UserManagementScreen({ navigation }) {
                   data={statusOptions}
                   setSelected={setSelectedRole}
                   placeholder="Select role"
-                  defaultOption={selectedUser ? selectedUser.role : ""} // แก้ไขตรงนี้
+                  defaultOption={{ key: selectedRole, value: selectedRole }} // แก้ไขตรงนี้
                   search={false}
                   boxStyles={{
                     width: "auto",
@@ -796,20 +836,24 @@ function UserManagementScreen({ navigation }) {
             >
               Are you sure you want to delete this user?
             </Text>
-            <View style={styles.buttonsContainer2}>
-              <TouchableOpacity
-                style={[styles.button, styles.buttonUpdate]}
-                onPress={handleDeleteUser}
-              >
-                <Text style={styles.textStyle}>Delete</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.button, styles.buttonClose]}
-                onPress={() => setConfirmationModalVisible(false)}
-              >
-                <Text style={styles.textStyle}>Cancel</Text>
-              </TouchableOpacity>
-            </View>
+            {loading ? (
+                <ActivityIndicator size="large" color="#0000ff" />
+            ) : (
+                <View style={styles.buttonsContainer2}>
+                    <TouchableOpacity
+                        style={[styles.button, styles.buttonUpdate]}
+                        onPress={handleDeleteUser}
+                    >
+                        <Text style={styles.textStyle}>Delete</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={[styles.button, styles.buttonClose]}
+                        onPress={() => setConfirmationModalVisible(false)}
+                    >
+                        <Text style={styles.textStyle}>Cancel</Text>
+                    </TouchableOpacity>
+                </View>
+            )}
           </View>
         </View>
       </Modal>

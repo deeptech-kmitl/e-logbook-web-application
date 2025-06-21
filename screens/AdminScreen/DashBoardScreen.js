@@ -30,6 +30,10 @@ const subjectsByYear = [
     value: "Obstetrics and gynecology clerkship",
   },
   {
+    key: "Pediatric clerkship",
+    value: "Pediatric clerkship",
+  },
+  {
     key: "Ambulatory medicine clerkship",
     value: "Ambulatory medicine clerkship",
   },
@@ -55,6 +59,10 @@ const subjectsByYear = [
     key: "Practicum in orthopedics and emergency medicine",
     value: "Practicum in orthopedics and emergency medicine",
   },
+  {
+    key: "Practicum in community hospital",
+    value: "Practicum in community hospital",
+  },
 ];
 
 const DashBoardScreen = ({ navigation }) => {
@@ -75,7 +83,7 @@ const DashBoardScreen = ({ navigation }) => {
     return () => Dimensions.removeEventListener("change", onChange);
   }, []);
 
-  const textSize = dimensions.width < 768 ? 20 : 24;
+  const textSize = dimensions.width < 768 ? 22 : 26;
   const buttonTextSize = dimensions.width < 768 ? 20 : 24;
 
   const handleLogout = () => {
@@ -103,7 +111,7 @@ const DashBoardScreen = ({ navigation }) => {
       let approvedCases = 0;
       let rejectedCases = 0;
       let pendingCases = 0;
-      let reApprovedCases = 0;
+      let recheckCases = 0;
 
       for (const collectionRef of collectionRefs) {
         let userQuerySnapshot;
@@ -123,17 +131,17 @@ const DashBoardScreen = ({ navigation }) => {
             rejectedCases++;
           } else if (data.status === "pending") {
             pendingCases++;
-          } else if (data.status === "reApproved") {
-            reApprovedCases++;
+          } else if (data.status === "recheck") {
+            recheckCases++;
           }
         });
       }
 
       const data = {
-        labels: ["Approved", "Rejected", "Pending", "Re-approved"],
+        labels: ["Approved", "Rejected", "Pending", "Recheck"],
         datasets: [
           {
-            data: [approvedCases, rejectedCases, pendingCases, reApprovedCases],
+            data: [approvedCases, rejectedCases, pendingCases, recheckCases],
             backgroundColor: ["#2a9d8f", "#e76f51", "#e9c46a", "#7ecafc"],
           },
         ],
@@ -195,7 +203,6 @@ const DashBoardScreen = ({ navigation }) => {
               fontSize: textSize,
               alignSelf: "center",
               textAlign: "center",
-              marginVertical: 25,
               fontWeight: "bold",
             },
           ]}
@@ -236,24 +243,31 @@ const DashBoardScreen = ({ navigation }) => {
             }}
             dropdownStyles={{ backgroundColor: "#FEF0E6" }}
           />
-
-          <SelectList
+        </View>
+        <SelectList
             placeholder="Select subjects"
             defaultValue={selectedSubject}
-            setSelected={setSelectedSubject}
+            setSelected={setSelectedSubject} // 4. เมื่อมีการเลือก Subject ใหม่ ให้เรียกใช้ handleSelectSubject เพื่อเปลี่ยนค่า selectedSubject
             data={subjectsByYear}
             search={false}
             boxStyles={{
-              width: "auto",
+              width: "50%",
               backgroundColor: "#FEF0E6",
               borderColor: "#FEF0E6",
               borderWidth: 1,
               borderRadius: 10,
               marginLeft: 10,
+              justifyContent: 'center',
+              alignItems: 'center',
+              alignSelf: 'center'
             }}
-            dropdownStyles={{ backgroundColor: "#FEF0E6" }}
+            dropdownStyles={{ 
+              backgroundColor: "#FEF0E6", 
+              width: "50%",              
+              justifyContent: 'center',
+              alignItems: 'center',
+              alignSelf: 'center' }}
           />
-        </View>
       </ScrollView>
     </View>
   );
@@ -277,10 +291,10 @@ const styles = StyleSheet.create({
     height: 41,
     width: 130,
     justifyContent: "center",
-    alignSelf: "center",
-    alignItems: "center",
+    alignSelf: "flex-end",
     borderRadius: 5,
     marginBottom: 10,
+    marginRight: 15
   },
   logoutButton: {
     backgroundColor: "red",

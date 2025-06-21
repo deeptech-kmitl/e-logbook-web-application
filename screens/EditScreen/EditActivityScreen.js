@@ -5,10 +5,13 @@ import {
   Button,
   StyleSheet,
   TouchableOpacity,
+  CheckBox,
   TextInput,
   Platform,
   ScrollView,
   Dimensions,
+  Pressable,
+  Modal
 } from "react-native";
 import { SelectList } from "react-native-dropdown-select-list";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -34,17 +37,18 @@ function EditActivityScreen({ route, navigation }) {
     activityData.admissionDate.toDate()
   );
 
-  const [mainDiagnosis, setMainDiagnosis] = useState(activityData.mainDiagnosis || []); // ใช้ TextInput สำหรับ Main Diagnosis
-  const [selectedDiagnosis, setSelectedDiagnosis] = useState([{}]); // เก็บโรคที่เลือกทั้งหมด
-  const [mainDiagnoses, setMainDiagnoses] = useState([]); // เก็บรายชื่อโรค
-  const [otherDiagnosis, setOtherDiagnosis] = useState(""); // ใช้ TextInput สำหรับโรคอื่นๆ
-  const [isOtherSelected, setIsOtherSelected] = useState(false); // ตัวแปรสำหรับตรวจสอบว่าเลือก Other หรือไม่
+  const [selectedDate2, setSelectedDate2] = useState(
+    activityData?.recordDate ? activityData.recordDate.toDate() : new Date()
+  );
 
+  const [topic, setTopic] = useState(activityData.topic);
   const [professorId, setProfessorId] = useState(activityData.professorId);
   const [professorName, setProfessorName] = useState(
     activityData.professorName
   ); // สถานะสำหรับเก็บชื่ออาจารย์ที่ถูกเลือก
   const [teachers, setTeachers] = useState([]);
+
+  // const [patientName, setPatientName] = useState(activityData.patientName || "");
 
   const [activityType, setActivityType] = useState([]);
   const [selectedActivityType, setSelectedActivityType] = useState(
@@ -64,9 +68,44 @@ function EditActivityScreen({ route, navigation }) {
     activityData.minutes.toString()
   );
 
+  const [
+    professionalismScoresModalVisible,
+    setProfessionalismScoresModalVisible,
+  ] = useState(false);
+
+  const defaultScores = {
+    basicKnowledge: false,
+    clinicalSkills: false,
+    problemIdentification: false,
+    managementProblem: false,
+    patientEducation: false,
+    evidenceBase: false,
+    ethicalManner: false,
+  };
+
+  const [professionalismScores, setProfessionalismScores] = useState({
+    ...defaultScores,
+    ...(activityData.professionalismScores || {}),
+  });
+
+    // ฟังก์ชันเพื่อจัดการการเปลี่ยนแปลงของ Checkbox
+  const handleCheckboxChange = (scoreName) => {
+    setProfessionalismScores((prevScores) => ({
+      ...prevScores,
+      [scoreName]: !prevScores[scoreName],
+    }));
+  };
+
   const [uploadedImages, setUploadedImages] = useState([]);
 
+  const [windowWidth, setWindowWidth] = useState(
+    Dimensions.get("window").width
+  );
   const [dimensions, setDimensions] = useState(Dimensions.get("window"));
+
+  const isMobile = windowWidth < 768; // ตรวจสอบว่าอุปกรณ์เป็น Mobile หรือไม่
+  const isTablet = windowWidth >= 768 && windowWidth < 1024; // ตรวจสอบว่าอุปกรณ์เป็น Tablet หรือไม่
+  const isPC = windowWidth >= 1024; // ตรวจสอบว่าอุปกรณ์เป็น PC หรือไม่
 
   const hours = Array.from({ length: 24 }, (_, i) => ({
     key: i.toString(),
@@ -132,6 +171,66 @@ function EditActivityScreen({ route, navigation }) {
       marginTop: 10,
       textAlign: "center",
       color: "blue",
+    },
+    professionalismHeader: {
+      fontWeight: "bold",
+      fontSize: 24,
+      marginBottom: 10,
+    },
+    checkboxContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      width: "100%", // Full width for checkbox row
+      justifyContent: "flex-start", // Align items to left
+      marginBottom: 10,
+    },
+    checkboxLabel: {
+      marginLeft: 10,
+      fontSize: 20,
+    },
+    centerView: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+      backgroundColor: "rgba(0, 0, 0, 0.6)",
+    },
+    modalView: {
+      margin: 20,
+      backgroundColor: "white",
+      borderRadius: 8,
+      padding: 35,
+      alignItems: "center",
+      justifyContent: "center",
+      shadowColor: "#000",
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.25,
+      shadowRadius: 4,
+      elevation: 5,
+      width: isMobile ? "90%" : isTablet ? "70%" : "50%", // Responsive width
+      height: "auto", // Auto height for mobile
+    },
+    textStyle: {
+      color: "white",
+      fontWeight: "bold",
+      textAlign: "center",
+    },
+    buttonClose: {
+      backgroundColor: "green",
+      padding: 10,
+      borderRadius: 10,
+      elevation: 2,
+      alignSelf: "center",
+      marginTop: 10,
+    },
+    buttonProfessional: {
+      backgroundColor: "blue", // สีที่คุณต้องการ
+      padding: 10,
+      borderRadius: 10,
+      marginTop: 10,
+      marginRight: 15,
     },
   });
 
@@ -204,6 +303,46 @@ function EditActivityScreen({ route, navigation }) {
     }
   };
 
+  const DateInput2 = () => {
+    if (Platform.OS === "web") {
+      return (
+        <input
+          type="date"
+          disabled
+          style={{
+            marginTop: 5,
+            padding: 10,
+            fontSize: 16,
+            width: "95%",
+            backgroundColor: "#FEF0E6",
+            borderColor: "#FEF0E6",
+            borderWidth: 1,
+            borderRadius: 10,
+          }}
+          value={selectedDate2.toISOString().substr(0, 10)}
+          onChange={(event) => setSelectedDate2(new Date(event.target.value))}
+        />
+      );
+    } else {
+      return (
+        <>
+          <Button onPress={showDatepicker} title="Show date picker!" />
+          {show && (
+            <DateTimePicker
+              testID="dateTimePicker"
+              value={date}
+              mode={"date"}
+              is24Hour={true}
+              display="default"
+              onChange={onChange}
+              disabled
+            />
+          )}
+        </>
+      );
+    }
+  };
+
   const onSelectTeacher = (selectedTeacherId) => {
     const selectedTeacher = teachers.find(
       (teacher) => teacher.key === selectedTeacherId
@@ -216,37 +355,6 @@ function EditActivityScreen({ route, navigation }) {
       console.error("Teacher not found:", selectedTeacherId);
     }
   };
-
-  const fetchMainDiagnoses = async () => {
-    try {
-      const mainDiagnosisDocRef = doc(
-        db,
-        "mainDiagnosis",
-        "LcvLDMSEraOH9zH4fbmS"
-      );
-      const docSnap = await getDoc(mainDiagnosisDocRef);
-
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        const diagnoses = data.diseases.map((disease, index) => ({
-          key: `${(index + 1).toString().padStart(3, "0")} | ${disease}`, // ปรับแก้ที่นี่เพื่อให้ key เป็นชื่อโรคด้วย
-          value: `${(index + 1).toString().padStart(3, "0")} | ${disease}`,
-        }));
-
-        diagnoses.sort((a, b) => a.value.localeCompare(b.value));
-
-        setMainDiagnoses(diagnoses);
-      } else {
-        console.log("No such document!");
-      }
-    } catch (error) {
-      console.error("Error fetching main diagnoses:", error);
-    }
-  };
-
-  useEffect(() => {
-    fetchMainDiagnoses();
-  }, []);
 
   useEffect(() => {
     async function fetchTeachers() {
@@ -296,8 +404,8 @@ function EditActivityScreen({ route, navigation }) {
 
   const saveDataToFirestore = async () => {
     try {
-      if (!mainDiagnosis && !otherDiagnosis) {
-        alert("โปรดกรอก Main Diagnosis หรือใส่โรคอื่นๆ");
+      if (!topic) {
+        alert("โปรดกรอกหัวข้อที่เรียนรู้");
         return;
       }
 
@@ -334,12 +442,12 @@ function EditActivityScreen({ route, navigation }) {
       if (activityDocSnapshot.exists()) {
         const activityData = activityDocSnapshot.data();
 
-        if (activityData.status === "reApproved") {
+        if (activityData.status === "recheck") {
           await updateDoc(activityDocRef, {
             admissionDate: Timestamp.fromDate(new Date(selectedDate)),
             activityType: selectedActivityType, // Activity
             createBy_id: user.uid, // User ID
-            mainDiagnosis: isOtherSelected ? otherDiagnosis : mainDiagnosis,
+            topic: topic,
             note: note, // Note
             professorName: teachers.find((t) => t.key === professorId)?.value,
             professorId: professorId,
@@ -350,6 +458,7 @@ function EditActivityScreen({ route, navigation }) {
             hours: parseInt(selectedHour),
             minutes: parseInt(selectedMinute),
             isEdited: true,
+            professionalismScores: professionalismScores,
           });
 
           alert("อัปเดตข้อมูลสำเร็จ");
@@ -361,7 +470,7 @@ function EditActivityScreen({ route, navigation }) {
             admissionDate: Timestamp.fromDate(new Date(selectedDate)),
             activityType: selectedActivityType, // Activity
             createBy_id: user.uid, // User ID
-            mainDiagnosis: isOtherSelected ? otherDiagnosis : mainDiagnosis,
+            topic: topic,
             note: note, // Note
             professorName: teachers.find((t) => t.key === professorId)?.value,
             professorId: professorId,
@@ -371,6 +480,7 @@ function EditActivityScreen({ route, navigation }) {
                 : activityData.images, // We'll store the image URLs in the next step
             hours: parseInt(selectedHour),
             minutes: parseInt(selectedMinute),
+            professionalismScores: professionalismScores,
           });
 
           alert("อัปเดตข้อมูลสำเร็จ");
@@ -391,6 +501,42 @@ function EditActivityScreen({ route, navigation }) {
       <View style={styles.container}>
         <View style={{ marginVertical: dimensions.width < 768 ? 40 : 60 }}>
           <SubHeader text="EDIT ACTIVITY" />
+        </View>
+
+        <View
+          style={{
+            flexDirection: dimensions.width < 768 ? "column" : "row",
+            alignItems: "left",
+            marginBottom: 8,
+            justifyContent: "space-between",
+          }}
+        >
+          <View style={{ width: dimensions.width < 768 ? "100%" : "45%" }}>
+            <Text
+              style={{
+                fontSize: 20,
+                fontWeight: 400,
+                marginVertical: 8,
+                textAlign: "left",
+              }}
+            >
+              วันที่บันทึกข้อมูล
+            </Text>
+            <DateInput2 />
+          </View>
+          <View
+            style={{
+              width: dimensions.width < 768 ? "100%" : "45%",
+              flexDirection: "row",
+              justifyContent: "left",
+              alignItems: "left",
+            }}
+          >
+            
+          <View>
+              
+            </View>
+          </View>
         </View>
 
         <View
@@ -519,13 +665,13 @@ function EditActivityScreen({ route, navigation }) {
                 alignItems: "flex-start",
               }}
             >
-              Professor
+              Instructor
             </Text>
             <SelectList
               setSelected={onSelectTeacher}
               defaultOption={{ key: professorId, value: professorName }}
               data={teachers}
-              placeholder={"Select the professor name"}
+              placeholder={"Select the instructor name"}
               placeholderTextColor="grey"
               boxStyles={{
                 width: "auto",
@@ -548,9 +694,9 @@ function EditActivityScreen({ route, navigation }) {
               textAlign: "left",
             }}
           >
-            Topic (ถ้าไม่มีตัวเลือก ให้เลือก Other)
+            Topic
           </Text>
-          {isOtherSelected ? (
+
             <View
               style={{
                 height: 48,
@@ -563,10 +709,10 @@ function EditActivityScreen({ route, navigation }) {
               }}
             >
               <TextInput
-                placeholder="Fill the main diagnosis"
+                placeholder="Fill the topic"
                 placeholderTextColor="grey"
-                value={otherDiagnosis} // Display otherDiagnosis value here
-                onChangeText={setOtherDiagnosis}
+                value={topic} // Display otherDiagnosis value here
+                onChangeText={setTopic}
                 style={{
                   width: "100%",
                   textAlign: "center",
@@ -576,30 +722,6 @@ function EditActivityScreen({ route, navigation }) {
                 }}
               />
             </View>
-          ) : (
-            <SelectList
-              setSelected={(value) => {
-                if (value === "Other") {
-                  setIsOtherSelected(true);
-                  setMainDiagnosis(""); // เปลี่ยนเป็น string และกำหนดให้เป็นค่าว่างเมื่อเลือก Other
-                } else {
-                  setIsOtherSelected(false);
-                  setMainDiagnosis(value); // เปลี่ยนค่า mainDiagnosis เมื่อเลือก diagnosis อื่น
-                }
-              }}
-              data={[...mainDiagnoses, { key: "Other", value: "Other" }]}
-              placeholder={"Select a diagnosis"}
-              defaultOption={{ key: mainDiagnosis, value: mainDiagnosis }} // กำหนด defaultOption ให้เป็นค่า mainDiagnosis ปัจจุบัน
-              boxStyles={{
-                width: "auto",
-                backgroundColor: "#FEF0E6",
-                borderColor: "#FEF0E6",
-                borderWidth: 1,
-                borderRadius: 10,
-              }}
-              dropdownStyles={{ backgroundColor: "#FEF0E6" }}
-            />
-          )}
         </View>
 
         <View style={{ marginBottom: 16, width: "70%" }}>
@@ -641,6 +763,24 @@ function EditActivityScreen({ route, navigation }) {
               }}
             ></TextInput>
           </View>
+        </View>
+
+        <View style={{
+            flexDirection: "row",
+            justifyContent: "center",
+            alignItems: "center",
+            marginBottom: "10%",
+          }}>
+          <Pressable
+            style={[styles.button, styles.buttonProfessional]}
+            onPress={() =>
+              setProfessionalismScoresModalVisible(true)
+            }
+            >
+            <Text style={styles.textStyle}>
+              Professionalism Score
+            </Text>
+          </Pressable>
         </View>
 
         {/* UI for image upload */}
@@ -710,6 +850,131 @@ function EditActivityScreen({ route, navigation }) {
           >
             <Text style={{ fontSize: 20, color: "white" }}>Back</Text>
           </TouchableOpacity>
+
+          {/* Modal สำหรับแสดงคะแนนความเป็นมืออาชีพ */}
+                  <Modal
+                    animationType="slide"
+                    transparent={true}
+                    visible={
+                      professionalismScoresModalVisible 
+                    }
+                    onRequestClose={() => {
+                      setProfessionalismScoresModalVisible(
+                        !professionalismScoresModalVisible
+                      );
+                    }}
+                  >
+                    <View style={styles.centerView}>
+                      <View style={styles.modalView}>
+
+                        <Text style={styles.professionalismHeader}>
+                            Professionalism
+                          </Text>{" "}
+                          (เลือกได้หลายตัวเลือก)
+                          {/* แสดง Checkbox และ Label */}
+
+                            <View style={styles.checkboxContainer}>
+                              <CheckBox
+                                value={professionalismScores.basicKnowledge}
+                                onValueChange={() =>
+                                  handleCheckboxChange("basicKnowledge")
+                                }
+                              />
+                              <Text style={styles.checkboxLabel}>Basic knowledge/basic science</Text>
+                            </View>
+
+                            <View style={styles.checkboxContainer}>
+                              <CheckBox
+                                value={
+                                  professionalismScores.clinicalSkills
+                                }
+                                onValueChange={() =>
+                                  handleCheckboxChange("clinicalSkills")
+                                }
+                              />
+                              <Text style={styles.checkboxLabel}>
+                              Clinical skills (history taking and physical examination)
+                              </Text>
+                            </View>
+
+                            <View style={styles.checkboxContainer}>
+                              <CheckBox
+                                value={professionalismScores.problemIdentification}
+                                onValueChange={() =>
+                                  handleCheckboxChange("problemIdentification")
+                                }
+                              />
+                              <Text style={styles.checkboxLabel}>
+                              Problem identification and approaching
+                              </Text>
+                            </View>
+
+                            <View style={styles.checkboxContainer}>
+                              <CheckBox
+                                value={professionalismScores.managementProblem}
+                                onValueChange={() =>
+                                  handleCheckboxChange("managementProblem")
+                                }
+                              />
+                              <Text style={styles.checkboxLabel}>
+                              Management/Problem solving
+                              </Text>
+                            </View>
+
+                            <View style={styles.checkboxContainer}>
+                              <CheckBox
+                                value={professionalismScores.patientEducation}
+                                onValueChange={() =>
+                                  handleCheckboxChange("patientEducation")
+                                }
+                              />
+                              <Text style={styles.checkboxLabel}>
+                              Patient education
+                              </Text>
+                            </View>
+
+                            <View style={styles.checkboxContainer}>
+                              <CheckBox
+                                value={
+                                  professionalismScores.evidenceBase
+                                }
+                                onValueChange={() =>
+                                  handleCheckboxChange("evidenceBase")
+                                }
+                              />
+                              <Text style={styles.checkboxLabel}>
+                              Evidence-based medicine
+                              </Text>
+                            </View>
+
+                            <View style={styles.checkboxContainer}>
+                              <CheckBox
+                                value={
+                                  professionalismScores.ethicalManner
+                                }
+                                onValueChange={() =>
+                                  handleCheckboxChange("ethicalManner")
+                                }
+                              />
+                              <Text style={styles.checkboxLabel}>
+                              Ethical and manner issues
+                              </Text>
+                            </View>
+
+                        <Pressable
+                          style={[styles.button, styles.buttonClose]}
+                          onPress={() =>
+                            setProfessionalismScoresModalVisible(
+                              !professionalismScoresModalVisible
+                            )
+                          }
+                        >
+                          <Text style={styles.textStyle}>Confirm</Text>
+                        </Pressable>
+                      </View>
+                    </View>
+                  </Modal>
+
         </View>
       </View>
     </ScrollView>

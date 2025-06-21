@@ -7,6 +7,8 @@ import {
   updateDoc,
   Timestamp,
   deleteDoc,
+  query,
+  where,
 } from "firebase/firestore";
 import { db } from "../data/firebaseDB";
 import {
@@ -24,8 +26,11 @@ import {
   TextInput,
   CheckBox,
   ActivityIndicator,
+  Platform,
+  Button
 } from "react-native";
 import { SelectList } from "react-native-dropdown-select-list";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { useSelector } from "react-redux";
 import { Ionicons, FontAwesome, MaterialIcons } from "@expo/vector-icons";
 import SubHeader from "../component/SubHeader";
@@ -33,6 +38,12 @@ import SubHeader from "../component/SubHeader";
 function ActivityScreen({ navigation }) {
   const [modalVisible, setModalVisible] = useState(false);
   const [confirmationModalVisible, setConfirmationModalVisible] =
+    useState(false);
+  const [approveConfirmationVisible, setApproveConfirmationVisible] = 
+    useState(false);
+  const [recheckConfirmationVisible, setRecheckConfirmationVisible] = 
+    useState(false);
+  const [rejectConfirmationVisible, setRejectConfirmationVisible] = 
     useState(false);
   const [deleteConfirmationVisible, setDeleteConfirmationVisible] =
     useState(false);
@@ -45,6 +56,12 @@ function ActivityScreen({ navigation }) {
   const role = useSelector((state) => state.role);
   const [isLoading, setIsLoading] = useState(true);
   const subject = useSelector((state) => state.subject);
+  const [isVisible, setIsVisible] = useState(false);
+
+  const [students, setStudents] = useState([]); 
+  const [studentId, setStudentId] = useState(null); 
+  const [studentName, setStudentName] = useState(null); 
+  const [selectedStudent, setSelectedStudent] = useState(null);
 
   const [windowWidth, setWindowWidth] = useState(
     Dimensions.get("window").width
@@ -56,26 +73,35 @@ function ActivityScreen({ navigation }) {
 
   const [dimensions, setDimensions] = useState(Dimensions.get("window"));
 
+  const [sortOrder, setSortOrder] = useState('newest');
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(new Date());
+  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+
   const [searchText, setSearchText] = useState("");
   const [filteredActivityData, setFilteredActivityData] = useState([]); // state เก็บข้อมูลผู้ใช้ที่ผ่านการกรอง
   const [unfilteredActivityData, setUnfilteredActivityData] = useState([]);
 
   const [selectedStatus, setSelectedStatus] = useState("pending");
   const statusOptions = [
+    { key: "all", value: "All" },
     { key: "pending", value: "Pending" },
     { key: "approved", value: "Approved" },
     { key: "rejected", value: "Rejected" },
-    { key: "reApproved", value: "Re-approved" },
+    { key: "recheck", value: "Recheck" },
+  ];
+
+  const dateOptions = [
+    { key: 'newest', value: 'Newest to Oldest' },
+    { key: 'oldest', value: 'Oldest to Newest' }
   ];
 
   const [selectedSubject, setSelectedSubject] = useState("All");
   const subjectsByYear = [
     { key: "All", value: "All" },
     { key: "Family medicine clerkship", value: "Family medicine clerkship" },
-    {
-      key: "Internal medicine clerkship",
-      value: "Internal medicine clerkship",
-    },
+    { key: "Internal medicine clerkship", value: "Internal medicine clerkship" },
     { key: "Surgery clerkship", value: "Surgery clerkship" },
     {
       key: "Anesthesiology, cardiology and critical care medicine clerkship",
@@ -84,6 +110,10 @@ function ActivityScreen({ navigation }) {
     {
       key: "Obstetrics and gynecology clerkship",
       value: "Obstetrics and gynecology clerkship",
+    },
+    {
+      key: "Pediatric clerkship",
+      value: "Pediatric clerkship",
     },
     {
       key: "Ambulatory medicine clerkship",
@@ -111,6 +141,10 @@ function ActivityScreen({ navigation }) {
       key: "Practicum in orthopedics and emergency medicine",
       value: "Practicum in orthopedics and emergency medicine",
     },
+    {
+      key: "Practicum in community hospital",
+      value: "Practicum in community hospital",
+    },
   ];
 
   const [
@@ -119,12 +153,13 @@ function ActivityScreen({ navigation }) {
   ] = useState(false);
 
   const [professionalismScores, setProfessionalismScores] = useState({
-    punctual: false,
-    appropriatelyDressed: false,
-    respectsActivities: false,
-    goodListener: false,
-    respectsColleagues: false,
-    accurateRecordKeeping: false,
+    basicKnowledge: false,
+    clinicalSkills: false,
+    problemIdentification: false,
+    managementProblem: false,
+    patientEducation: false,
+    evidenceBase: false,
+    ethicalManner: false,
   });
 
   // ประกาศ State สำหรับการเก็บค่าการให้คะแนน
@@ -162,7 +197,110 @@ function ActivityScreen({ navigation }) {
   useEffect(() => {
     // เรียก handleSearch เมื่อ searchText เปลี่ยน
     handleSearch(searchText);
-  }, [searchText, unfilteredActivityData]); // ให้ useEffect ทำงานเมื่อ searchText หรือ unfilteredPatientData เปลี่ยน
+  }, [searchText, unfilteredActivityData, sortOrder]); // ให้ useEffect ทำงานเมื่อ searchText หรือ unfilteredPatientData เปลี่ยน
+
+  const handleStartDateChange = (event, selectedDate) => {
+    const currentDate = selectedDate || startDate;
+    setShowStartDatePicker(false);
+    setStartDate(currentDate);
+  };
+
+  const handleEndDateChange = (event, selectedDate) => {
+    const currentDate = selectedDate || endDate;
+    setShowEndDatePicker(false);
+    setEndDate(currentDate);
+  };
+
+  const filterByDateRange = (activities) => {
+    return activities.filter((activity) => {
+      const admissionDate = activity.admissionDate.toDate();
+      const admissionDateOnly = new Date(admissionDate.getFullYear(), admissionDate.getMonth(), admissionDate.getDate());
+      const startDateOnly = startDate ? new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()) : null;
+      const endDateOnly = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+  
+      if (startDateOnly && endDateOnly) {
+        return admissionDateOnly >= startDateOnly && admissionDateOnly <= endDateOnly;
+      } else if (startDateOnly) {
+        return admissionDateOnly >= startDateOnly;
+      } else if (endDateOnly) {
+        return admissionDateOnly <= endDateOnly;
+      }
+      return true;
+    });
+  };
+  const StartDateInput = () => {
+    if (Platform.OS === "web") {
+      return (
+        <input
+          type="date"
+          style={{
+            padding: 10,
+            fontSize: 16,
+            width: "90%",
+            backgroundColor: "#FEF0E6",
+            borderColor: "#FEF0E6",
+            borderWidth: 1,
+            borderRadius: 10,
+          }}
+          value={startDate ? startDate.toISOString().substr(0, 10) : ""}
+          onChange={(event) => setStartDate(event.target.value ? new Date(event.target.value) : null)}
+        />
+      );
+    } else {
+      return (
+        <>
+          <Button onPress={showStartDatePicker} title="Show date picker!" />
+          {showStartDatePicker && (
+            <DateTimePicker
+              testID="startDateTimePicker"
+              value={startDate || new Date()}
+              mode="date"
+              is24Hour={true}
+              display="default"
+              onChange={handleStartDateChange}
+            />
+          )}
+        </>
+      );
+    }
+  };
+
+  const EndDateInput = () => {
+    if (Platform.OS === "web") {
+      return (
+        <input
+          type="date"
+          style={{
+            padding: 10,
+            fontSize: 16,
+            width: "90%",
+            backgroundColor: "#FEF0E6",
+            borderColor: "#FEF0E6",
+            borderWidth: 1,
+            borderRadius: 10,
+          }}
+          value={endDate.toISOString().substr(0, 10)}
+          onChange={(event) => setEndDate(new Date(event.target.value))}
+        />
+      );
+    } else {
+      return (
+        <>
+          <Button onPress={showEndDatePicker} title="Show date picker!" />
+          {showEndDatePicker && (
+            <DateTimePicker
+              testID="endDateTimePicker"
+              value={endDate || new Date()}
+              mode="date"
+              is24Hour={true}
+              display="default"
+              onChange={handleEndDateChange}
+            />
+          )}
+        </>
+      );
+    }
+  };
 
   const updateWindowDimensions = () => {
     setWindowWidth(Dimensions.get("window").width);
@@ -192,29 +330,44 @@ function ActivityScreen({ navigation }) {
 
   useEffect(() => {
     if (selectedActivity) {
-      if (selectedStatus === "reApproved") {
+      if (selectedStatus === "recheck") {
         setComment(selectedActivity.comment || "");
         setRating(selectedActivity.rating || "");
         setProfessionalismScores(
           selectedActivity.professionalismScores || {
-            punctual: false,
-            appropriatelyDressed: false,
-            respectsActivities: false,
-            goodListener: false,
-            respectsColleagues: false,
-            accurateRecordKeeping: false,
+            basicKnowledge: false,
+            clinicalSkills: false,
+            problemIdentification: false,
+            managementProblem: false,
+            patientEducation: false,
+            evidenceBase: false,
+            ethicalManner: false,
           }
         );
+      } else if (selectedStatus === "all") {
+        setComment(selectedActivity.comment || "");
+        setRating(selectedActivity.rating || "");
+        setProfessionalismScores(
+          selectedActivity.professionalismScores || {
+            basicKnowledge: false,
+            clinicalSkills: false,
+            problemIdentification: false,
+            managementProblem: false,
+            patientEducation: false,
+            evidenceBase: false,
+            ethicalManner: false
+        });
       } else if (selectedStatus === "pending") {
         setComment("");
         setRating("");
         setProfessionalismScores({
-          punctual: false,
-          appropriatelyDressed: false,
-          respectsActivities: false,
-          goodListener: false,
-          respectsColleagues: false,
-          accurateRecordKeeping: false,
+            basicKnowledge: false,
+            clinicalSkills: false,
+            problemIdentification: false,
+            managementProblem: false,
+            patientEducation: false,
+            evidenceBase: false,
+            ethicalManner: false,
         });
       }
     }
@@ -223,8 +376,13 @@ function ActivityScreen({ navigation }) {
   const isEditable = () => {
     if (selectedStatus === "pending") {
       return true;
-    } else if (selectedStatus === "reApproved") {
+    } else if (selectedStatus === "recheck") { 
       return selectedActivity ? selectedActivity.isEdited : false;
+    } else if (selectedStatus === "all") {
+      if (selectedActivity && selectedActivity.isEdited === false) {
+        return false;
+      }
+      return true; // Default to true if the condition for 'false' is not met
     }
     return false;
   };
@@ -242,7 +400,7 @@ function ActivityScreen({ navigation }) {
       alignItems: "center",
     },
     boxCard: {
-      height: "60%", // ปรับแต่งความสูงของ boxCard ตามอุปกรณ์
+      height: "70%", // ปรับแต่งความสูงของ boxCard ตามอุปกรณ์
       width: isMobile ? "90%" : "90%", // ปรับแต่งความกว้างของ boxCard ตามอุปกรณ์
       marginLeft: isMobile ? "50" : "50",
       marginRight: isMobile ? "50" : "50",
@@ -280,7 +438,7 @@ function ActivityScreen({ navigation }) {
       shadowRadius: 4,
       elevation: 5,
       width: isMobile ? "90%" : isTablet ? "70%" : "50%", // Responsive width
-      height: isMobile ? "auto" : 400, // Auto height for mobile
+      height: isMobile ? "auto" : "auto", // Auto height for mobile
     },
     modalView2: {
       margin: 20,
@@ -409,7 +567,7 @@ function ActivityScreen({ navigation }) {
       maxHeight: "80%",
     },
     buttonViewImages: {
-      backgroundColor: "blue", // สีที่คุณต้องการ
+      backgroundColor: "#1C4CA7", // สีที่คุณต้องการ
       padding: 10,
       borderRadius: 10,
       marginTop: 10,
@@ -504,6 +662,47 @@ function ActivityScreen({ navigation }) {
     setImageModalVisible(true);
   };
 
+  useEffect(() => {
+    async function fetchStudents() {
+      try {
+        const studentRef = collection(db, "users");
+        const q = query(studentRef, where("role", "==", "student"));
+  
+        const querySnapshot = await getDocs(q);
+        const studentArray = [{ key: "", value: "All" }]; // Add 'All' option
+  
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          studentArray.push({ key: doc.id, value: data.displayName });
+        });
+  
+        setStudents(studentArray);
+      } catch (error) {
+        console.error("Error fetching students:", error);
+      }
+    }
+  
+    fetchStudents();
+  }, []);
+  
+  const onSelectStudent = (selectedStudentId) => {
+    if (selectedStudentId === "") { // Check if 'All' is selected
+      setStudentName("All");
+      setStudentId("");
+    } else {
+      const selectedStudent = students.find(
+        (student) => student.key === selectedStudentId
+      );
+  
+      if (selectedStudent) {
+        setStudentName(selectedStudent.value);
+        setStudentId(selectedStudent.key);
+      } else {
+        console.error("Student not found:", selectedStudentId);
+      }
+    }
+  };
+
   const loadActivityData = async () => {
     try {
       setIsLoading(true);
@@ -582,13 +781,24 @@ function ActivityScreen({ navigation }) {
 
   const handleApprove = async () => {
     try {
+
+      if (!rating || rating === "") {
+        alert("โปรดเลือก Rating");
+        return;
+      }
+
+      if (rating === "Unsatisfied") {
+        alert("ไม่สามารถ Approve ได้(เนื่องจากคุณเลือก Unsatisfied)");
+        return; // หยุดการทำงานของฟังก์ชันที่นี่ถ้า rating เป็น unsatisfied
+      }
+
       const activityDocRef = doc(db, "activity", selectedActivity.id);
       await updateDoc(activityDocRef, {
         status: "approved",
         comment: comment,
         rating: rating,
         approvalTimestamp: Timestamp.now(),
-        professionalismScores: professionalismScores,
+        // professionalismScores: professionalismScores,
       });
       resetScoresAndComment();
       setModalVisible(false);
@@ -600,14 +810,18 @@ function ActivityScreen({ navigation }) {
 
   const handleReApprove = async () => {
     try {
+      if (rating === "Unsatisfied") {
+        alert("ไม่สามารถ Recheck ได้(เนื่องจากคุณเลือก Unsatisfied)");
+        return; // หยุดการทำงานของฟังก์ชันที่นี่ถ้า rating เป็น unsatisfied
+      }
       const activityDocRef = doc(db, "activity", selectedActivity.id);
       await updateDoc(activityDocRef, {
-        status: "reApproved",
+        status: "recheck",
         comment: comment,
         rating: rating,
         reApprovalTimestamp: Timestamp.now(),
-        professionalismScores: professionalismScores, // บันทึกคะแนนความเป็นมืออาชีพ
-        isReApproved: true,
+        // professionalismScores: professionalismScores, 
+        isRecheck: true,
         isEdited: false,
       });
       // รีเซ็ตคะแนนและความคิดเห็น
@@ -627,7 +841,7 @@ function ActivityScreen({ navigation }) {
         comment: comment,
         rejectionTimestamp: Timestamp.now(),
         rating: rating,
-        professionalismScores: professionalismScores, // บันทึกคะแนนความเป็นมืออาชีพ
+        // professionalismScores: professionalismScores, 
       });
       resetScoresAndComment();
       setModalVisible(false);
@@ -640,42 +854,42 @@ function ActivityScreen({ navigation }) {
   const resetScoresAndComment = () => {
     setComment("");
     setRating("");
-    setProfessionalismScores({
-      punctual: false,
-      appropriatelyDressed: false,
-      respectsActivities: false,
-      goodListener: false,
-      respectsColleagues: false,
-      accurateRecordKeeping: false,
-    });
+    // setProfessionalismScores({
+    //   punctual: false,
+    //   appropriatelyDressed: false,
+    //   respectsActivities: false,
+    //   goodListener: false,
+    //   respectsColleagues: false,
+    //   accurateRecordKeeping: false,
+    // });
   };
 
   const renderAddDataButton = () => {
     if (role == "student") {
       return (
         <TouchableOpacity
-          onPress={handleAddData}
-          style={{
-            height: 37,
-            width: 174,
-            marginTop: isLandscape ? 25 : 50,
-            // marginRight: isLandscape ? 60 : 50,
-            marginBottom: isLandscape ? 25 : 0,
-            justifyContent: "center",
-            alignItems: "center",
-            backgroundColor: "#FE810E",
-            borderRadius: 10,
-            shadowColor: "#000",
-            shadowOffset: {
-              width: 0,
-              height: 2,
-            },
-            shadowOpacity: 0.25,
-            shadowRadius: 4,
-            elevation: 5,
-          }}
-        >
-          <Text style={{ fontSize: 22, color: "white" }}>Add</Text>
+        onPress={handleAddData}
+        style={{
+          height: isLandscape ? 37 : 30,
+          width: isLandscape ? 174 : 120,
+          marginTop: isLandscape ? 25 : 0,
+          // marginRight: isLandscape ? 60 : 50,
+          marginBottom: isLandscape ? 25 : 10,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: "#FE810E",
+          borderRadius: 10,
+          shadowColor: "#000",
+          shadowOffset: {
+            width: 0,
+            height: 2,
+          },
+          shadowOpacity: 0.25,
+          shadowRadius: 4,
+          elevation: 5,
+        }}
+      >
+          <Text style={{ fontSize: isLandscape ? 22 : 18, color: "white" }}>Add</Text>
         </TouchableOpacity>
       );
     }
@@ -756,17 +970,30 @@ function ActivityScreen({ navigation }) {
         // <Text>Loading...</Text>
       );
     }
-    return filteredActivityData
+    const filteredByDate = filterByDateRange(filteredActivityData);
+
+    return filteredByDate
       .filter(
         (activity) =>
           selectedSubject === "All" ||
           (activity.subject && activity.subject === selectedSubject)
       )
-      .filter((activity) => activity.status === selectedStatus) // กรองเฉพาะข้อมูลที่มีสถานะเป็น pending
+      .filter((activity) =>
+        selectedStatus === "all" ? true : activity.status === selectedStatus
+      )
       .filter((activity) =>
         role === "student" ? activity.subject === subject : true
       )
-      .sort((a, b) => b.admissionDate.toDate() - a.admissionDate.toDate()) // เรียงลำดับตามวันที่ล่าสุดไปยังเก่าสุด
+      .filter((activity) =>
+        studentId ? activity.createBy_id === studentId : true // Show all students if studentId is not selected
+      )
+      .sort((a, b) => {
+        if (sortOrder === 'newest') {
+          return b.admissionDate.toDate() - a.admissionDate.toDate();
+        } else {
+          return a.admissionDate.toDate() - b.admissionDate.toDate();
+        }
+      })
       .map((activity, index) => (
         <TouchableOpacity
           style={styles.cardContainer}
@@ -802,7 +1029,7 @@ function ActivityScreen({ navigation }) {
                   <Text
                     style={{ marginLeft: 20, lineHeight: 30, opacity: 0.4 }}
                   >
-                    Professor Name : {activity.professorName}
+                    Instructor Name : {activity.professorName}
                   </Text>
 
                   {activity.status === "pending" ? (
@@ -855,8 +1082,9 @@ function ActivityScreen({ navigation }) {
                     </Text>
                   )}
 
-                  {selectedStatus !== "approved" &&
-                    selectedStatus !== "rejected" && (
+                  {
+                  (selectedStatus === "all" || selectedStatus === "pending" || selectedStatus === "recheck") &&
+                      (activity.status === "pending" || activity.status === "recheck") && (
                       <>
                         <TouchableOpacity
                           style={{ position: "absolute", top: 10, right: 10 }}
@@ -914,6 +1142,11 @@ function ActivityScreen({ navigation }) {
                   >
                     Student Name : {activity.studentName}
                   </Text>
+                  {/* <Text
+                    style={{ marginLeft: 20, lineHeight: 30, opacity: 0.4 }}
+                  >
+                    Patient Name : {activity.patientName}
+                  </Text> */}
                   {activity.status === "pending" ? (
                     <Text
                       style={{ marginLeft: 20, lineHeight: 30, opacity: 0.4 }}
@@ -954,7 +1187,7 @@ function ActivityScreen({ navigation }) {
                       {activity.reApprovalTimestamp && (
                         <Text>
                           {" "}
-                          (Re-Approved:{" "}
+                          (Recheck:{" "}
                           {formatDateToThai(
                             activity.reApprovalTimestamp.toDate()
                           )}
@@ -1005,20 +1238,50 @@ function ActivityScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <View style={{ marginVertical: windowWidth < 768 ? 20 : 60 }}>
+      <View style={{ marginVertical: windowWidth < 768 ? 0 : 20 }}>
         <SubHeader text="ACTIVITY" />
       </View>
 
-      {renderApprovedButton()}
+      {/* {renderApprovedButton()} */}
 
-      <View
-        style={{
-          marginVertical: 10,
-          flexDirection: isMobile ? "column" : "row",
-          alignItems: "center",
-        }}
-      >
-        {role !== "student" && (
+      <Button
+          color="#FE810E"
+          title={isVisible ? "Hide Filters" : "Show Filters"}
+          onPress={() => setIsVisible(!isVisible)}
+        />
+
+{isVisible && (
+  <>
+    <View
+      style={{
+        marginVertical: 10,
+        flexDirection: isPC ? 'row' : 'column', // Row only for wide screens
+        alignItems: isPC ? 'flex-start' : 'center',
+        justifyContent: isPC ? 'flex-start' : 'center',
+        flexWrap: isPC ? 'wrap' : 'nowrap', // Allow wrap on wide screens if needed
+      }}
+    >
+      <View style={{ marginBottom: isPC ? 0 : 10, marginRight: isPC ? 20 : 0 }}>
+        <Text style={{ marginBottom: 10, textAlign: 'center' }}>Filter by type name :</Text>
+        <TextInput
+          style={{
+            width: '100%',
+            backgroundColor: "#FEF0E6",
+            borderColor: "#FEF0E6",
+            borderWidth: 1,
+            borderRadius: 10,
+            padding: 12,
+            textAlign: "center",
+          }}
+          placeholder="Search by type name"
+          value={searchText}
+          onChangeText={(text) => setSearchText(text)}
+        />
+      </View>
+
+      {role !== "student" && (
+        <View style={{ marginBottom: isPC ? 0 : 10, marginRight: isPC ? 20 : 0 }}>
+          <Text style={{ marginBottom: 10, textAlign: 'center' }}>Filter by subject:</Text>
           <SelectList
             data={subjectsByYear}
             setSelected={setSelectedSubject}
@@ -1026,58 +1289,177 @@ function ActivityScreen({ navigation }) {
             defaultOption={selectedSubject}
             search={false}
             boxStyles={{
-              width: "auto",
+              width: '100%',
               backgroundColor: "#FEF0E6",
               borderColor: "#FEF0E6",
               borderWidth: 1,
               borderRadius: 10,
-              marginRight: isMobile ? 0 : 10,
-              marginBottom: isMobile ? 10 : 0,
+            }}
+            dropdownStyles={{
+              backgroundColor: "#FEF0E6",
+              width: "100%",
+            }}
+          />
+        </View>
+      )}
+
+{!isPC ? (
+  <View
+    style={{
+      // marginVertical: 10,
+      flexDirection: "row",
+      alignContent: 'space-between',
+      alignItems: "center",  
+    }}
+  >
+    <View style={{ marginBottom: 10 , marginRight: 20}}>
+      <Text style={{ marginBottom: 10, textAlign: 'center' }}>Sort by date:</Text>
+      <SelectList
+        data={dateOptions}
+        setSelected={setSortOrder}
+        placeholder="Sort by date"
+        defaultOption={sortOrder}
+        search={false}
+        boxStyles={{
+          width: '100%',
+          backgroundColor: "#FEF0E6",
+          borderColor: "#FEF0E6",
+          borderWidth: 1,
+          borderRadius: 10,
+        }}
+        dropdownStyles={{
+          backgroundColor: "#FEF0E6",
+          width: "100%",
+        }}
+      />
+    </View>
+
+    <View style={{ marginBottom: 10, marginRight: 20 }}>
+      <Text style={{ marginBottom: 10, textAlign: 'center' }}>Filter by status:</Text>
+      <SelectList
+        data={statusOptions}
+        setSelected={setSelectedStatus}
+        placeholder="Pending"
+        defaultOption={selectedStatus}
+        search={false}
+        boxStyles={{
+          width: '100%',
+          backgroundColor: "#FEF0E6",
+          borderColor: "#FEF0E6",
+          borderWidth: 1,
+          borderRadius: 10,
+        }}
+        dropdownStyles={{
+          backgroundColor: "#FEF0E6",
+          width: "100%",
+        }}
+      />
+    </View>
+  </View>
+) : (
+  <>
+    <View style={{ marginBottom: 10, marginRight: 20 }}>
+      <Text style={{ marginBottom: 10, textAlign: 'center' }}>Sort by date:</Text>
+      <SelectList
+        data={dateOptions}
+        setSelected={setSortOrder}
+        placeholder="Sort by date"
+        defaultOption={sortOrder}
+        search={false}
+        boxStyles={{
+          width: '100%',
+          backgroundColor: "#FEF0E6",
+          borderColor: "#FEF0E6",
+          borderWidth: 1,
+          borderRadius: 10,
+        }}
+        dropdownStyles={{
+          backgroundColor: "#FEF0E6",
+          width: "100%",
+        }}
+      />
+    </View>
+
+    <View style={{ marginBottom: 10, marginRight: 20 }}>
+      <Text style={{ marginBottom: 10, textAlign: 'center' }}>Filter by status:</Text>
+      <SelectList
+        data={statusOptions}
+        setSelected={setSelectedStatus}
+        placeholder="Pending"
+        defaultOption={selectedStatus}
+        search={false}
+        boxStyles={{
+          width: '100%',
+          backgroundColor: "#FEF0E6",
+          borderColor: "#FEF0E6",
+          borderWidth: 1,
+          borderRadius: 10,
+        }}
+        dropdownStyles={{
+          backgroundColor: "#FEF0E6",
+          width: "100%",
+        }}
+      />
+    </View>
+  </>
+)}
+
+{!isPC ? (
+  <View
+    style={{
+      // marginVertical: 10,
+      flexDirection: "row",
+      alignContent: 'space-between',
+      alignItems: "center",  
+    }}
+  >
+      <View style={{ marginBottom: isPC ? 0 : 10, marginRight: 20 }}>
+        <Text style={{ marginBottom: 10, textAlign: 'center' }}>Start Date:</Text>
+        <StartDateInput />
+      </View>
+      
+      <View style={{ marginBottom: isPC ? 0 : 10, marginRight: isPC ? 20 : 0 }}>
+        <Text style={{ marginBottom: 10, textAlign: 'center' }}>End Date:</Text>
+        <EndDateInput />
+      </View>
+
+    </View>
+    ) : (
+      <>
+      <View style={{ marginBottom: isPC ? 0 : 10, marginRight: 20 }}>
+        <Text style={{ marginBottom: 10, textAlign: 'center' }}>Start Date:</Text>
+        <StartDateInput />
+      </View>
+      
+      <View style={{ marginBottom: isPC ? 0 : 10, marginRight: isPC ? 20 : 0 }}>
+        <Text style={{ marginBottom: 10, textAlign: 'center' }}>End Date:</Text>
+        <EndDateInput />
+      </View>
+      </>
+)}
+
+      {role !== "student" && (
+        <View style={{ marginBottom: isPC ? 0 : 10, marginRight: isPC ? 20 : 0 }}>
+          <Text style={{ marginBottom: 10, textAlign: 'center' }}>Filter by medical student name:</Text>
+          <SelectList
+            setSelected={onSelectStudent}
+            data={students}
+            placeholder="Select the Medical student name"
+            placeholderTextColor="grey"
+            boxStyles={{
+              width: '100%',
+              backgroundColor: "#FEF0E6",
+              borderColor: "#FEF0E6",
+              borderWidth: 1,
+              borderRadius: 10,
             }}
             dropdownStyles={{ backgroundColor: "#FEF0E6" }}
           />
-        )}
-
-        <SelectList
-          data={statusOptions}
-          setSelected={setSelectedStatus}
-          placeholder="Select status"
-          defaultOption={selectedStatus}
-          search={false}
-          boxStyles={{
-            width: "auto",
-            backgroundColor: "#FEF0E6",
-            borderColor: "#FEF0E6",
-            borderWidth: 1,
-            borderRadius: 10,
-            marginBottom: isMobile ? 10 : 0,
-          }}
-          dropdownStyles={{ backgroundColor: "#FEF0E6" }}
-        />
-
-        <TextInput
-          style={{
-            flex: 1,
-            backgroundColor: "#FEF0E6",
-            borderColor: "#FEF0E6",
-            borderWidth: 1,
-            borderRadius: 10,
-            padding: 12,
-            marginLeft: isMobile ? 0 : 15,
-            textAlign: "center",
-          }}
-          placeholder="Search by type name"
-          placeholderStyle={{
-            textAlign: "center",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-          value={searchText}
-          onChangeText={(text) => {
-            setSearchText(text);
-          }}
-        />
-      </View>
+        </View>
+      )}
+    </View>
+  </>
+)}
 
       {/* Modal สำหรับยืนยัน Approve/Reject */}
       {/* <Modal
@@ -1176,9 +1558,12 @@ function ActivityScreen({ navigation }) {
 
       <View style={styles.boxCard}>
         {role === "student" && (
-          <Text style={styles.modalText}>
-            <Text style={{ fontWeight: "bold" }}>{subject}</Text>
-          </Text>
+          <View styles={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={styles.modalText}>
+              <Text style={{ fontWeight: "bold" }}>{subject}</Text>
+            </Text>
+            {renderAddDataButton()}
+          </View>
         )}
         <ScrollView>{renderCards()}</ScrollView>
       </View>
@@ -1240,6 +1625,22 @@ function ActivityScreen({ navigation }) {
                   ) : null}
                   <Text style={styles.modalText}>
                     <Text style={{ fontWeight: "bold" }}>
+                      วันที่บันทึกข้อมูล :{" "}
+                    </Text>
+                    {selectedActivity.recordDate
+                      ? formatDate2(selectedActivity.recordDate.toDate())
+                      : "ไม่มี"}
+                  </Text>
+                  {role !== "student" && selectedActivity.studentName ? (
+                    <Text style={styles.modalText}>
+                      <Text style={{ fontWeight: "bold" }}>
+                        ชื่อนักศึกษาแพทย์ :{" "}
+                      </Text>{" "}
+                      {selectedActivity.studentName}
+                    </Text>
+                  ) : null}
+                  <Text style={styles.modalText}>
+                    <Text style={{ fontWeight: "bold" }}>
                       Admission Date :{" "}
                     </Text>
                     {formatDate2(selectedActivity.admissionDate.toDate())}
@@ -1259,17 +1660,21 @@ function ActivityScreen({ navigation }) {
 
                   <Text style={styles.modalText}>
                     <Text style={{ fontWeight: "bold" }}>
-                      Professor Name :{" "}
+                      Instructor Name :{" "}
                     </Text>{" "}
                     {selectedActivity.professorName}
                   </Text>
+                  {/* <Text style={styles.modalText}>
+                    <Text style={{ fontWeight: "bold" }}>Patient Name :</Text>{" "}
+                    {selectedActivity.patientName || "ไม่มี"}
+                  </Text> */}
                   <Text style={styles.modalText}>
                     <Text style={{ fontWeight: "bold" }}>Type :</Text>{" "}
                     {selectedActivity.activityType || "None"}
                   </Text>
                   <Text style={styles.modalText}>
                     <Text style={{ fontWeight: "bold" }}>Topic : </Text>{" "}
-                    {selectedActivity.mainDiagnosis}
+                    {selectedActivity.topic || "None"}
                   </Text>
                   <Text style={styles.modalText}>
                     <Text style={{ fontWeight: "bold" }}>
@@ -1280,8 +1685,11 @@ function ActivityScreen({ navigation }) {
 
                   {(selectedStatus === "approved" ||
                     selectedStatus === "rejected" ||
-                    (selectedStatus === "reApproved" &&
-                      role === "student")) && (
+                    (selectedStatus === "all" && 
+                      (selectedActivity.status !== "pending" && 
+                      (role === "student" || (role === "teacher" && selectedActivity.status !== "recheck")) && 
+                      (selectedActivity.status === "approved" || selectedActivity.status === "rejected" || selectedActivity.status === "recheck"))) ||
+                    (selectedStatus === "recheck" && role === "student")) && (
                     <Text style={styles.modalText}>
                       <Text style={{ fontWeight: "bold" }}>Rating : </Text>
                       {selectedActivity.rating || "ไม่มี"}
@@ -1290,8 +1698,11 @@ function ActivityScreen({ navigation }) {
 
                   {(selectedStatus === "approved" ||
                     selectedStatus === "rejected" ||
-                    (selectedStatus === "reApproved" &&
-                      role === "student")) && (
+                    (selectedStatus === "all" && 
+                      (selectedActivity.status !== "pending" && 
+                      (role === "student" || (role === "teacher" && selectedActivity.status !== "recheck")) && 
+                      (selectedActivity.status === "approved" || selectedActivity.status === "rejected" || selectedActivity.status === "recheck"))) ||
+                    (selectedStatus === "recheck" && role === "student")) && (
                     <Text style={styles.modalText}>
                       <Text style={{ fontWeight: "bold" }}>***Comment : </Text>
                       {selectedActivity.comment || "ไม่มี"}
@@ -1299,31 +1710,18 @@ function ActivityScreen({ navigation }) {
                   )}
 
                   <View style={styles.buttonRow}>
-                    {(selectedStatus === "approved" ||
-                      selectedStatus === "rejected" ||
-                      (selectedStatus === "reApproved" &&
-                        role === "student")) && (
-                      <Pressable
-                        style={[styles.button, styles.buttonProfessional]}
-                        onPress={() =>
-                          setProfessionalismScoresModalVisible(true)
-                        }
-                      >
-                        <Text style={styles.textStyle}>
-                          View Professionalism Score
-                        </Text>
-                      </Pressable>
-                    )}
 
                     {role !== "student" &&
                       selectedStatus !== "approved" &&
-                      selectedStatus !== "rejected" && (
+                      selectedStatus !== "rejected" &&
+                      (selectedStatus === "all" || selectedStatus === "pending" || selectedStatus === "recheck") &&
+                      (selectedActivity.status === "pending" || selectedActivity.status === "recheck") &&  (
                         <View style={styles.centerView2}>
-                          <Text style={styles.professionalismHeader}>
+                          {/* <Text style={styles.professionalismHeader}>
                             Professionalism
                           </Text>{" "}
                           (เลือกได้หลายตัวเลือก)
-                          {/* แสดง Checkbox และ Label */}
+                          
                           {selectedActivity && (
                             <View style={styles.checkboxContainer}>
                               <CheckBox
@@ -1409,7 +1807,7 @@ function ActivityScreen({ navigation }) {
                                 Accurately record Activity information
                               </Text>
                             </View>
-                          )}
+                          )} */}
                           <Text
                             style={{
                               fontSize: 24,
@@ -1460,6 +1858,9 @@ function ActivityScreen({ navigation }) {
                               Unsatisfied
                             </Text>
                           </View>
+                          {rating === "Unsatisfied" && ( 
+                            <Text>(ไม่สามารถเลือก Approve หรือ Recheck ได้)</Text>
+                          )}
                           <Text
                             style={{
                               marginBottom: 10,
@@ -1487,6 +1888,16 @@ function ActivityScreen({ navigation }) {
                               textAlignVertical: "top",
                             }}
                           />
+
+                        <Pressable
+                          style={[styles.button, styles.buttonProfessional]}
+                          onPress={() => setProfessionalismScoresModalVisible(true)}
+                        >
+                          <Text style={styles.textStyle}>
+                            View Professionalism Score
+                          </Text>
+                        </Pressable>
+
                           {selectedActivity.images &&
                             selectedActivity.images.length > 0 && (
                               <Pressable
@@ -1499,37 +1910,39 @@ function ActivityScreen({ navigation }) {
                               </Pressable>
                             )}
                           <View style={styles.buttonContainer}>
-                            {(selectedActivity.isEdited ||
-                              selectedStatus === "pending") && (
+                          {((selectedActivity.isEdited === undefined || selectedActivity.isEdited === true) &&
+                              selectedStatus === "all" || selectedStatus === "pending" || (selectedStatus === "recheck" && selectedActivity.isEdited === true)) &&
+                              (selectedActivity.status === "pending" || selectedActivity.status === "recheck") && (
                               <Pressable
                                 style={[
                                   styles.recheckModalButton,
                                   styles.buttonApprove,
                                 ]}
-                                onPress={() => handleApprove()}
+                                onPress={() => setApproveConfirmationVisible(true)}
                               >
                                 <Text style={styles.textStyle}>Approve</Text>
                               </Pressable>
                             )}
-                            {!selectedActivity.isReApproved && (
+                            {((selectedActivity.isEdited === undefined && selectedActivity.isRecheck === undefined) || selectedActivity.isEdited === true) && (
                               <Pressable
                                 style={[
                                   styles.recheckModalButton,
                                   styles.buttonReApprove,
                                 ]}
-                                onPress={() => handleReApprove()}
+                                onPress={() => setRecheckConfirmationVisible(true)}
                               >
-                                <Text style={styles.textStyle}>Re-approve</Text>
+                                <Text style={styles.textStyle}>Recheck</Text>
                               </Pressable>
                             )}
-                            {(selectedActivity.isEdited ||
-                              selectedStatus === "pending") && (
+                            {((selectedActivity.isEdited === undefined || selectedActivity.isEdited === true) &&
+                              selectedStatus === "all" || selectedStatus === "pending" || (selectedStatus === "recheck" && selectedActivity.isEdited === true)) &&
+                              (selectedActivity.status === "pending" || selectedActivity.status === "recheck") && (
                               <Pressable
                                 style={[
                                   styles.recheckModalButton,
                                   styles.buttonCancel,
                                 ]}
-                                onPress={() => handleReject()}
+                                onPress={() => setRejectConfirmationVisible(true)}
                               >
                                 <Text style={styles.textStyle}>Reject</Text>
                               </Pressable>
@@ -1544,10 +1957,22 @@ function ActivityScreen({ navigation }) {
                         </View>
                       )}
 
+                      {role === 'student' && (
+                        <Pressable
+                          style={[styles.button, styles.buttonProfessional]}
+                          onPress={() => setProfessionalismScoresModalVisible(true)}
+                        >
+                          <Text style={styles.textStyle}>
+                            View Professionalism Score
+                          </Text>
+                        </Pressable>
+                      )}
+
                     {(role !== "teacher" ||
                       (role === "teacher" &&
                         (selectedStatus === "approved" ||
-                          selectedStatus === "rejected"))) &&
+                          selectedStatus === "rejected" ||
+                          (selectedStatus === "all" && (selectedActivity.status !== "pending" && selectedActivity.status !== "recheck"))))) &&
                       selectedActivity.images &&
                       selectedActivity.images.length > 0 && (
                         <Pressable
@@ -1558,10 +1983,25 @@ function ActivityScreen({ navigation }) {
                         </Pressable>
                       )}
 
+                    {(role === "teacher" &&
+                        (selectedStatus === "approved" ||
+                          selectedStatus === "rejected" ||
+                          (selectedStatus === "all" && (selectedActivity.status !== "pending" && selectedActivity.status !== "recheck")))) && (
+                        <Pressable
+                          style={[styles.button, styles.buttonProfessional]}
+                          onPress={() => setProfessionalismScoresModalVisible(true)}
+                        >
+                          <Text style={styles.textStyle}>
+                            View Professionalism Score
+                          </Text>
+                        </Pressable>
+                    )}
+
                     {(role !== "teacher" ||
                       (role === "teacher" &&
                         (selectedStatus === "approved" ||
-                          selectedStatus === "rejected"))) && (
+                          selectedStatus === "rejected" ||
+                          (selectedStatus === "all" && (selectedActivity.status !== "pending" && selectedActivity.status !== "recheck"))))) && (
                       <Pressable
                         style={[styles.button, styles.buttonClose]}
                         onPress={() => setModalVisible(!modalVisible)}
@@ -1591,10 +2031,20 @@ function ActivityScreen({ navigation }) {
                     >
                       <View
                         style={{
-                          width: "70%",
-                          height: "70%",
+                          width: "80%",
+                          height: "80%",
                           backgroundColor: "white",
                           borderRadius: 10,
+                          margin: 10,
+                          padding: 25,
+                          shadowColor: "#000",
+                          shadowOffset: {
+                            width: 0,
+                            height: 2,
+                          },
+                          shadowOpacity: 0.25,
+                          shadowRadius: 4,
+                          elevation: 5,
                         }}
                       >
                         <ScrollView>
@@ -1653,16 +2103,112 @@ function ActivityScreen({ navigation }) {
                       </View>
                     </View>
                   </Modal>
+
+             {/* Modal สำหรับยืนยันการ Approve */}
+             <Modal
+                        animationType="fade"
+                        transparent={true}
+                        visible={approveConfirmationVisible}
+                        onRequestClose={() => setApproveConfirmationVisible(false)}
+                      >
+                        <View style={styles.centerView}>
+                          <View style={styles.modalView}>
+                            <Text style={styles.modalText}>
+                              Confirm approve this case?
+                            </Text>
+                            <View style={styles.buttonContainer}>
+                              <Pressable
+                                style={[styles.recheckModalButton, styles.buttonApprove]}
+                                onPress={() => {
+                                  handleApprove();
+                                  setApproveConfirmationVisible(false);
+                                }}
+                              >
+                                <Text style={styles.textStyle}>Confirm</Text>
+                              </Pressable>
+                              <Pressable
+                                style={[styles.recheckModalButton, styles.buttonCancel]}
+                                onPress={() => setApproveConfirmationVisible(false)}
+                              >
+                                <Text style={styles.textStyle}>Cancel</Text>
+                              </Pressable>
+                            </View>
+                          </View>
+                        </View>
+                      </Modal>
+
+                {/* Modal สำหรับยืนยันการ Recheck */}
+                <Modal
+                        animationType="fade"
+                        transparent={true}
+                        visible={recheckConfirmationVisible}
+                        onRequestClose={() => setRecheckConfirmationVisible(false)}
+                      >
+                        <View style={styles.centerView}>
+                          <View style={styles.modalView}>
+                            <Text style={styles.modalText}>
+                              Confirm recheck this case?
+                            </Text>
+                            <View style={styles.buttonContainer}>
+                              <Pressable
+                                style={[styles.recheckModalButton, styles.buttonApprove]}
+                                onPress={() => {
+                                  handleReApprove();
+                                  setRecheckConfirmationVisible(false);
+                                }}
+                              >
+                                <Text style={styles.textStyle}>Confirm</Text>
+                              </Pressable>
+                              <Pressable
+                                style={[styles.recheckModalButton, styles.buttonCancel]}
+                                onPress={() => setRecheckConfirmationVisible(false)}
+                              >
+                                <Text style={styles.textStyle}>Cancel</Text>
+                              </Pressable>
+                            </View>
+                          </View>
+                        </View>
+                      </Modal>
+
+                {/* Modal สำหรับยืนยันการ Reject */}
+                <Modal
+                        animationType="fade"
+                        transparent={true}
+                        visible={rejectConfirmationVisible}
+                        onRequestClose={() => setRejectConfirmationVisible(false)}
+                      >
+                        <View style={styles.centerView}>
+                          <View style={styles.modalView}>
+                            <Text style={styles.modalText}>
+                              Confirm reject this case?
+                            </Text>
+                            <View style={styles.buttonContainer}>
+                              <Pressable
+                                style={[styles.recheckModalButton, styles.buttonApprove]}
+                                onPress={() => {
+                                  handleReject();
+                                  setRejectConfirmationVisible(false);
+                                }}
+                              >
+                                <Text style={styles.textStyle}>Confirm</Text>
+                              </Pressable>
+                              <Pressable
+                                style={[styles.recheckModalButton, styles.buttonCancel]}
+                                onPress={() => setRejectConfirmationVisible(false)}
+                              >
+                                <Text style={styles.textStyle}>Cancel</Text>
+                              </Pressable>
+                            </View>
+                          </View>
+                        </View>
+                      </Modal>
+
                   {/* Modal สำหรับแสดงคะแนนความเป็นมืออาชีพ */}
                   <Modal
                     animationType="slide"
                     transparent={true}
                     visible={
-                      professionalismScoresModalVisible &&
-                      (selectedActivity.status === "approved" ||
-                        selectedActivity.status === "rejected" ||
-                        (selectedActivity.status === "reApproved" &&
-                          role === "student"))
+                      professionalismScoresModalVisible 
                     }
                     onRequestClose={() => {
                       setProfessionalismScoresModalVisible(
@@ -1681,15 +2227,16 @@ function ActivityScreen({ navigation }) {
                         >
                           Professionalism scores
                         </Text>
-                        {selectedActivity.professionalismScores && (
+                          {selectedActivity.professionalismScores && (
                           <>
                             <Text style={styles.modalText}>
                               <Text
                                 style={{ fontWeight: "bold", fontSize: 20 }}
                               >
-                                Punctual :{" "}
+                                Basic knowledge/basic science :{" "}
                               </Text>
-                              {selectedActivity.professionalismScores.punctual
+                              {selectedActivity.professionalismScores
+                                .basicKnowledge
                                 ? "✔️"
                                 : "❌"}
                             </Text>
@@ -1697,10 +2244,11 @@ function ActivityScreen({ navigation }) {
                               <Text
                                 style={{ fontWeight: "bold", fontSize: 20 }}
                               >
-                                Appropriately dressed:{" "}
+                                Clinical skills (history taking and physical
+                                examination) :{" "}
                               </Text>
                               {selectedActivity.professionalismScores
-                                .appropriatelyDressed
+                                .clinicalSkills
                                 ? "✔️"
                                 : "❌"}
                             </Text>
@@ -1708,10 +2256,10 @@ function ActivityScreen({ navigation }) {
                               <Text
                                 style={{ fontWeight: "bold", fontSize: 20 }}
                               >
-                                Respect the Activities :{" "}
+                                Problem identification and approaching :{" "}
                               </Text>
                               {selectedActivity.professionalismScores
-                                .respectsActivities
+                                .problemIdentification
                                 ? "✔️"
                                 : "❌"}
                             </Text>
@@ -1719,10 +2267,10 @@ function ActivityScreen({ navigation }) {
                               <Text
                                 style={{ fontWeight: "bold", fontSize: 20 }}
                               >
-                                Good listener :{" "}
+                                Management/Problem solving :{" "}
                               </Text>
                               {selectedActivity.professionalismScores
-                                .goodListener
+                                .managementProblem
                                 ? "✔️"
                                 : "❌"}
                             </Text>
@@ -1730,10 +2278,10 @@ function ActivityScreen({ navigation }) {
                               <Text
                                 style={{ fontWeight: "bold", fontSize: 20 }}
                               >
-                                Respect colleagues :{" "}
+                                Patient education :{" "}
                               </Text>
                               {selectedActivity.professionalismScores
-                                .respectsColleagues
+                                .patientEducation
                                 ? "✔️"
                                 : "❌"}
                             </Text>
@@ -1741,10 +2289,21 @@ function ActivityScreen({ navigation }) {
                               <Text
                                 style={{ fontWeight: "bold", fontSize: 20 }}
                               >
-                                Accurately record activity information :{" "}
+                                Evidence-based medicine :{" "}
                               </Text>
                               {selectedActivity.professionalismScores
-                                .accurateRecordKeeping
+                                .evidenceBase
+                                ? "✔️"
+                                : "❌"}
+                            </Text>
+                            <Text style={styles.modalText}>
+                              <Text
+                                style={{ fontWeight: "bold", fontSize: 20 }}
+                              >
+                                Ethical and manner issues :{" "}
+                              </Text>
+                              {selectedActivity.professionalismScores
+                                .ethicalManner
                                 ? "✔️"
                                 : "❌"}
                             </Text>
@@ -1770,16 +2329,6 @@ function ActivityScreen({ navigation }) {
           </View>
         </View>
       </Modal>
-      <View
-        style={{
-          flex: 1,
-          justifyContent: "flex-start",
-          alignSelf: "flex-start",
-          marginLeft: 50,
-        }}
-      >
-        {renderAddDataButton()}
-      </View>
     </View>
   );
 }

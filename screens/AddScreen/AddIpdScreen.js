@@ -9,6 +9,9 @@ import {
   Platform,
   ScrollView,
   Dimensions,
+  Pressable,
+  CheckBox,
+  Modal
 } from "react-native";
 import { SelectList } from "react-native-dropdown-select-list";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -31,6 +34,10 @@ import SubHeader from "../../component/SubHeader";
 
 function AddIpdScreen({ navigation }) {
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate2, setSelectedDate2] = useState(new Date());
+
+  const [selectedDiagnostic, setSelectedDiagnostic] = useState("");
+  const [mainDiagnostic, setMainDiagnostic] = useState("");
 
   const [mainDiagnosis, setMainDiagnosis] = useState(""); // ใช้ TextInput สำหรับ Main Diagnosis
   const [selectedDiagnosis, setSelectedDiagnosis] = useState([{}]); // เก็บโรคที่เลือกทั้งหมด
@@ -40,6 +47,7 @@ function AddIpdScreen({ navigation }) {
 
   const [hn, setHN] = useState(""); // HN
   const [hnYear, setHNYear] = useState(""); // ปีพ.ศ.
+  const [patientName, setPatientName] = useState("");
   const [coMorbid, setCoMorbid] = useState(""); // Co-Morbid Diagnosis
   const [note, setNote] = useState(""); // Note
   const status = "pending"; // Status
@@ -51,6 +59,37 @@ function AddIpdScreen({ navigation }) {
   const [date, setDate] = useState(new Date());
   const [show, setShow] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+
+  const [
+    professionalismScoresModalVisible,
+    setProfessionalismScoresModalVisible,
+  ] = useState(false);
+
+  const [professionalismScores, setProfessionalismScores] = useState({
+    basicKnowledge: false,
+    clinicalSkills: false,
+    problemIdentification: false,
+    managementProblem: false,
+    patientEducation: false,
+    evidenceBase: false,
+    ethicalManner: false
+  });
+
+    // ฟังก์ชันเพื่อจัดการการเปลี่ยนแปลงของ Checkbox
+  const handleCheckboxChange = (scoreName) => {
+    setProfessionalismScores((prevScores) => ({
+      ...prevScores,
+      [scoreName]: !prevScores[scoreName],
+    }));
+  };
+
+  const [windowWidth, setWindowWidth] = useState(
+    Dimensions.get("window").width
+  );
+
+  const isMobile = windowWidth < 768; // ตรวจสอบว่าอุปกรณ์เป็น Mobile หรือไม่
+  const isTablet = windowWidth >= 768 && windowWidth < 1024; // ตรวจสอบว่าอุปกรณ์เป็น Tablet หรือไม่
+  const isPC = windowWidth >= 1024; // ตรวจสอบว่าอุปกรณ์เป็น PC หรือไม่
 
   const [selectedHour, setSelectedHour] = useState("");
   const [selectedMinute, setSelectedMinute] = useState("");
@@ -86,6 +125,66 @@ function AddIpdScreen({ navigation }) {
       alignItems: "left",
       justifyContent: "left",
       paddingHorizontal: dimensions.width < 768 ? 10 : 30,
+    },
+    professionalismHeader: {
+      fontWeight: "bold",
+      fontSize: 24,
+      marginBottom: 10,
+    },
+    checkboxContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      width: "100%", // Full width for checkbox row
+      justifyContent: "flex-start", // Align items to left
+      marginBottom: 10,
+    },
+    checkboxLabel: {
+      marginLeft: 10,
+      fontSize: 20,
+    },
+    centerView: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+      backgroundColor: "rgba(0, 0, 0, 0.6)",
+    },
+    modalView: {
+      margin: 20,
+      backgroundColor: "white",
+      borderRadius: 8,
+      padding: 35,
+      alignItems: "center",
+      justifyContent: "center",
+      shadowColor: "#000",
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.25,
+      shadowRadius: 4,
+      elevation: 5,
+      width: isMobile ? "90%" : isTablet ? "70%" : "50%", // Responsive width
+      height: "auto", // Auto height for mobile
+    },
+    textStyle: {
+      color: "white",
+      fontWeight: "bold",
+      textAlign: "center",
+    },
+    buttonClose: {
+      backgroundColor: "green",
+      padding: 10,
+      borderRadius: 10,
+      elevation: 2,
+      alignSelf: "center",
+      marginTop: 10,
+    },
+    buttonProfessional: {
+      backgroundColor: "blue", // สีที่คุณต้องการ
+      padding: 10,
+      borderRadius: 10,
+      marginTop: 10,
+      marginRight: 15,
     },
   });
 
@@ -137,6 +236,46 @@ function AddIpdScreen({ navigation }) {
     }
   };
 
+  const DateInput2 = () => {
+    if (Platform.OS === "web") {
+      return (
+        <input
+          type="date"
+          disabled
+          style={{
+            marginTop: 5,
+            padding: 10,
+            fontSize: 16,
+            width: "95%",
+            backgroundColor: "#FEF0E6",
+            borderColor: "#FEF0E6",
+            borderWidth: 1,
+            borderRadius: 10,
+          }}
+          value={selectedDate2.toISOString().substr(0, 10)}
+          onChange={(event) => setSelectedDate2(new Date(event.target.value))}
+        />
+      );
+    } else {
+      return (
+        <>
+          <Button onPress={showDatepicker} title="Show date picker!" />
+          {show && (
+            <DateTimePicker
+              testID="dateTimePicker"
+              value={date}
+              mode={"date"}
+              is24Hour={true}
+              display="default"
+              onChange={onChange}
+              disabled
+            />
+          )}
+        </>
+      );
+    }
+  };
+
   const onDrop = (acceptedFiles) => {
     // Check if the uploaded file is a PDF
     if (acceptedFiles[0].type !== "application/pdf") {
@@ -165,6 +304,29 @@ function AddIpdScreen({ navigation }) {
       return null;
     }
   };
+
+  useEffect(() => {
+    async function fetchDiagnosticType() {
+      try {
+        const diagnosticTypeRef = collection(db, "diagnosis_type");
+        const querySnapshot = await getDocs(diagnosticTypeRef);
+
+        const Diagnostic = [];
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          data.diagnosisType.forEach((diagnostic) => {
+            Diagnostic.push({ key: diagnostic, value: diagnostic });
+          });
+        });
+
+        setMainDiagnostic(Diagnostic);
+      } catch (error) {
+        console.error("Error fetching main diagnosis:", error);
+      }
+    }
+
+    fetchDiagnosticType();
+  }, []);
 
   const onSelectTeacher = (selectedTeacherId) => {
     const selectedTeacher = teachers.find(
@@ -245,10 +407,15 @@ function AddIpdScreen({ navigation }) {
 
   const saveDataToFirestore = async () => {
     try {
-      // if (!selectedDiagnosis || selectedDiagnosis.some(diagnosis => !diagnosis.value)) {
-      //   alert("โปรดกรอก Main Diagnosis ในทุกแถว");
-      //   return;
-      // }
+      if (selectedDiagnosis.length === 0 || selectedDiagnosis.some(diagnosis => !diagnosis.value)) {
+        alert("โปรดเลือก Co-Morbid Diagnosis");
+        return;
+      }
+
+      if (!selectedDiagnostic && subject === "Practicum in internal medicine") {
+        alert("โปรดเลือกหมวดหมู่การวินิจฉัย");
+        return;
+      }
 
       if (!mainDiagnosis && !otherDiagnosis) {
         alert("โปรดกรอก Main Diagnosis หรือใส่โรคอื่นๆ");
@@ -276,6 +443,15 @@ function AddIpdScreen({ navigation }) {
         return;
       }
 
+      const hasProfessionalismScore =
+        professionalismScores &&
+        Object.values(professionalismScores).some(score => score !== null && score !== "");
+
+      if (!hasProfessionalismScore) {
+        alert("โปรดเลือก Professionalism");
+        return;
+      }
+
       // Get the currently authenticated user
       const user = auth.currentUser;
       const uploadedPdfUrl = await uploadPdfToStorage();
@@ -285,18 +461,22 @@ function AddIpdScreen({ navigation }) {
       const formattedHNYear = hnYear.padStart(2, "0");
 
       // รวม HN และปีพ.ศ. เข้าด้วยกัน
-      const fullHN = formattedHNYear + formattedHN;
+      const fullHN = `${formattedHN}/${formattedHNYear}`;
 
       // Check if a user is authenticated
       if (user) {
         const { uid } = user;
         const timestamp = Timestamp.fromDate(selectedDate);
+        const timestamp2 = Timestamp.fromDate(selectedDate2);
         // Add a new document with a generated ID to a collection
         await addDoc(collection(db, "patients"), {
+          recordDate: timestamp2,
           admissionDate: timestamp,
           coMorbid: selectedDiagnosis.length > 0 ? selectedDiagnosis : null,
           createBy_id: uid, // User ID
+          ...(subject === "Practicum in internal medicine" && { diagnosticType: selectedDiagnostic }), // Conditional diagnosticType
           hn: fullHN, // HN
+          patientName: patientName,
           mainDiagnosis: isOtherSelected ? otherDiagnosis : mainDiagnosis,
           note: note, // Note
           patientType: patientType,
@@ -309,14 +489,18 @@ function AddIpdScreen({ navigation }) {
           subject,
           lastHN: formattedHN,
           hnYear,
+          professionalismScores: professionalismScores,
           // Add more fields as needed
         });
 
         // Clear the input fields after successfully saving data
         setHN("");
         setHNYear("");
+        setPatientName("");
         setSelectedDate(new Date());
+        setSelectedDate2(new Date());
         setSelectedDiagnosis([{}]);
+        setSelectedDiagnostic("");
         setCoMorbid("");
         setNote("");
         setPdfFile(null);
@@ -325,9 +509,12 @@ function AddIpdScreen({ navigation }) {
         setMainDiagnosis("");
         setOtherDiagnosis("");
         setIsOtherSelected(false);
+        // setProfessionalismScores
 
         // Display a success message or perform any other action
         alert("บันทึกข้อมูลสำเร็จ");
+        navigation.navigate('ผู้ป่วยใน')
+
       } else {
         // Handle the case when no user is authenticated
         alert("ไม่พบข้อมูลผู้ใช้");
@@ -350,7 +537,43 @@ function AddIpdScreen({ navigation }) {
           style={{
             flexDirection: dimensions.width < 768 ? "column" : "row",
             alignItems: "left",
-            marginBottom: 16,
+            marginBottom: 8,
+            justifyContent: "space-between",
+          }}
+        >
+          <View style={{ width: dimensions.width < 768 ? "100%" : "45%" }}>
+            <Text
+              style={{
+                fontSize: 20,
+                fontWeight: 400,
+                marginVertical: 8,
+                textAlign: "left",
+              }}
+            >
+              วันที่บันทึกข้อมูล
+            </Text>
+            <DateInput2 />
+          </View>
+          <View
+            style={{
+              width: dimensions.width < 768 ? "100%" : "45%",
+              flexDirection: "row",
+              justifyContent: "left",
+              alignItems: "left",
+            }}
+          >
+
+          <View>
+              
+            </View>
+          </View>
+        </View>
+
+        <View
+          style={{
+            flexDirection: dimensions.width < 768 ? "column" : "row",
+            alignItems: "left",
+            marginBottom: 8,
             justifyContent: "space-between",
           }}
         >
@@ -427,7 +650,7 @@ function AddIpdScreen({ navigation }) {
           style={{
             flexDirection: dimensions.width < 768 ? "column" : "row",
             justifyContent: "space-between",
-            marginBottom: 16,
+            marginBottom: 8,
           }}
         >
           <View style={{ width: dimensions.width < 768 ? "100%" : "45%" }}>
@@ -483,6 +706,7 @@ function AddIpdScreen({ navigation }) {
               />
             </View>
           </View>
+
           <View style={{ width: dimensions.width < 768 ? "100%" : "45%" }}>
             <Text
               style={{
@@ -493,12 +717,57 @@ function AddIpdScreen({ navigation }) {
                 alignItems: "flex-start",
               }}
             >
-              Professor
+              รายชื่อคนไข้
+            </Text>
+            <View
+              style={{
+                flexDirection: "row",
+                borderColor: "#FEF0E6",
+                borderWidth: 1,
+                borderRadius: 10,
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <TextInput
+                  placeholder="กรอกรายชื่อคนไข้"
+                  placeholderTextColor="grey"
+                  value={patientName}
+                  onChangeText={setPatientName}
+                  style={{
+                    flex: 1,
+                    textAlign: "center",
+                    fontSize: 20,
+                    backgroundColor: "#FEF0E6",
+                  }}
+                />
+            </View>
+          </View>
+        </View>
+
+        <View
+          style={{
+            flexDirection: dimensions.width < 768 ? "column" : "row",
+            justifyContent: "space-between",
+            marginBottom: 8,
+          }}
+        >
+          <View style={{ width: dimensions.width < 768 ? "100%" : "45%" }}>
+            <Text
+              style={{
+                fontSize: 20,
+                fontWeight: 400,
+                marginVertical: 8,
+                textAlign: "left",
+                alignItems: "flex-start",
+              }}
+            >
+              Instructor
             </Text>
             <SelectList
               setSelected={onSelectTeacher}
               data={teachers}
-              placeholder={"Select the professor name"}
+              placeholder={"Select the instructor name"}
               placeholderTextColor="grey"
               boxStyles={{
                 width: "auto",
@@ -510,7 +779,65 @@ function AddIpdScreen({ navigation }) {
               dropdownStyles={{ backgroundColor: "#FEF0E6" }}
             />
           </View>
+
+          <View style={{ width: dimensions.width < 768 ? "100%" : "45%" }}>
+            {/* <Text
+              style={{
+                fontSize: 20,
+                fontWeight: 400,
+                marginVertical: 8,
+                textAlign: "left",
+                alignItems: "flex-start",
+              }}
+            >
+              Instructor
+            </Text>
+            <SelectList
+              setSelected={onSelectTeacher}
+              data={teachers}
+              placeholder={"Select the instructor name"}
+              placeholderTextColor="grey"
+              boxStyles={{
+                width: "auto",
+                backgroundColor: "#FEF0E6",
+                borderColor: "#FEF0E6",
+                borderWidth: 1,
+                borderRadius: 10,
+              }}
+              dropdownStyles={{ backgroundColor: "#FEF0E6" }}
+            /> */}
+          </View>
         </View>
+
+        {subject === "Practicum in internal medicine" && (
+          <View>
+            <Text
+              style={{
+                fontSize: 20,
+                fontWeight: 400,
+                marginVertical: 8,
+                textAlign: "left",
+                alignItems: "flex-start",
+              }}
+            >
+              หมวดหมู่การวินิจฉัย
+            </Text>
+            <SelectList
+              setSelected={setSelectedDiagnostic}
+              data={mainDiagnostic}
+              placeholder={"Select the diagnostic type"}
+              placeholderTextColor="grey"
+              boxStyles={{
+                width: "auto",
+                backgroundColor: "#FEF0E6",
+                borderColor: "#FEF0E6",
+                borderWidth: 1,
+                borderRadius: 10,
+              }}
+              dropdownStyles={{ backgroundColor: "#FEF0E6" }}
+            />
+          </View>
+          )}
 
         <View>
           <Text
@@ -525,38 +852,11 @@ function AddIpdScreen({ navigation }) {
           </Text>
         </View>
 
-        {isOtherSelected ? (
-          <View
-            style={{
-              height: 48,
-              borderColor: "#FEF0E6",
-              borderWidth: 1,
-              borderRadius: 10,
-              alignItems: "left",
-              justifyContent: "left",
-              marginVertical: 8,
-            }}
-          >
-            <TextInput
-              placeholder="Fill the main diagnosis"
-              placeholderTextColor="grey"
-              value={otherDiagnosis}
-              onChangeText={setOtherDiagnosis}
-              style={{
-                width: "100%",
-                textAlign: "center",
-                height: "100%",
-                fontSize: 20,
-                backgroundColor: "#FEF0E6",
-              }}
-            />
-          </View>
-        ) : (
-          <SelectList
+        <SelectList
             setSelected={(value) => {
               if (value === "Other") {
                 setIsOtherSelected(true);
-                setMainDiagnosis("");
+                setMainDiagnosis(""); // Clear the selected diagnosis when "Other" is selected
               } else {
                 setIsOtherSelected(false);
                 setMainDiagnosis(value);
@@ -573,7 +873,33 @@ function AddIpdScreen({ navigation }) {
             }}
             dropdownStyles={{ backgroundColor: "#FEF0E6" }}
           />
-        )}
+          {isOtherSelected && (
+            <View
+              style={{
+                height: 48,
+                borderColor: "#FEF0E6",
+                borderWidth: 1,
+                borderRadius: 10,
+                alignItems: "left",
+                justifyContent: "left",
+                marginVertical: 8,
+              }}
+            >
+              <TextInput
+                placeholder="Fill the main diagnosis"
+                placeholderTextColor="grey"
+                value={otherDiagnosis}
+                onChangeText={setOtherDiagnosis}
+                style={{
+                  width: "100%",
+                  textAlign: "center",
+                  height: "100%",
+                  fontSize: 20,
+                  backgroundColor: "#FEF0E6",
+                }}
+              />
+            </View>
+          )}
 
         <View>
           <Text
@@ -687,6 +1013,24 @@ function AddIpdScreen({ navigation }) {
           </View>
         </View>
 
+        <View style={{
+            flexDirection: "row",
+            justifyContent: "center",
+            alignItems: "center",
+            marginBottom: "10%",
+          }}>
+          <Pressable
+            style={[styles.button, styles.buttonProfessional]}
+            onPress={() =>
+              setProfessionalismScoresModalVisible(true)
+            }
+            >
+            <Text style={styles.textStyle}>
+              Professionalism Score
+            </Text>
+          </Pressable>
+        </View>
+
         <View style={{ marginBottom: 16 }}>
           <Text
             style={{
@@ -770,6 +1114,130 @@ function AddIpdScreen({ navigation }) {
           >
             <Text style={{ fontSize: 20, color: "white" }}>Back</Text>
           </TouchableOpacity>
+
+          {/* Modal สำหรับแสดงคะแนนความเป็นมืออาชีพ */}
+                  <Modal
+                    animationType="slide"
+                    transparent={true}
+                    visible={
+                      professionalismScoresModalVisible 
+                    }
+                    onRequestClose={() => {
+                      setProfessionalismScoresModalVisible(
+                        !professionalismScoresModalVisible
+                      );
+                    }}
+                  >
+                    <View style={styles.centerView}>
+                      <View style={styles.modalView}>
+
+                        <Text style={styles.professionalismHeader}>
+                            Professionalism
+                          </Text>{" "}
+                          (เลือกได้หลายตัวเลือก)
+                          {/* แสดง Checkbox และ Label */}
+
+                            <View style={styles.checkboxContainer}>
+                              <CheckBox
+                                value={professionalismScores.basicKnowledge}
+                                onValueChange={() =>
+                                  handleCheckboxChange("basicKnowledge")
+                                }
+                              />
+                              <Text style={styles.checkboxLabel}>Basic knowledge/basic science</Text>
+                            </View>
+
+                            <View style={styles.checkboxContainer}>
+                              <CheckBox
+                                value={
+                                  professionalismScores.clinicalSkills
+                                }
+                                onValueChange={() =>
+                                  handleCheckboxChange("clinicalSkills")
+                                }
+                              />
+                              <Text style={styles.checkboxLabel}>
+                              Clinical skills (history taking and physical examination)
+                              </Text>
+                            </View>
+
+                            <View style={styles.checkboxContainer}>
+                              <CheckBox
+                                value={professionalismScores.problemIdentification}
+                                onValueChange={() =>
+                                  handleCheckboxChange("problemIdentification")
+                                }
+                              />
+                              <Text style={styles.checkboxLabel}>
+                              Problem identification and approaching
+                              </Text>
+                            </View>
+
+                            <View style={styles.checkboxContainer}>
+                              <CheckBox
+                                value={professionalismScores.managementProblem}
+                                onValueChange={() =>
+                                  handleCheckboxChange("managementProblem")
+                                }
+                              />
+                              <Text style={styles.checkboxLabel}>
+                              Management/Problem solving
+                              </Text>
+                            </View>
+
+                            <View style={styles.checkboxContainer}>
+                              <CheckBox
+                                value={professionalismScores.patientEducation}
+                                onValueChange={() =>
+                                  handleCheckboxChange("patientEducation")
+                                }
+                              />
+                              <Text style={styles.checkboxLabel}>
+                              Patient education
+                              </Text>
+                            </View>
+
+                            <View style={styles.checkboxContainer}>
+                              <CheckBox
+                                value={
+                                  professionalismScores.evidenceBase
+                                }
+                                onValueChange={() =>
+                                  handleCheckboxChange("evidenceBase")
+                                }
+                              />
+                              <Text style={styles.checkboxLabel}>
+                              Evidence-based medicine
+                              </Text>
+                            </View>
+
+                            <View style={styles.checkboxContainer}>
+                              <CheckBox
+                                value={
+                                  professionalismScores.ethicalManner
+                                }
+                                onValueChange={() =>
+                                  handleCheckboxChange("ethicalManner")
+                                }
+                              />
+                              <Text style={styles.checkboxLabel}>
+                              Ethical and manner issues
+                              </Text>
+                            </View>
+
+                        <Pressable
+                          style={[styles.button, styles.buttonClose]}
+                          onPress={() =>
+                            setProfessionalismScoresModalVisible(
+                              !professionalismScoresModalVisible
+                            )
+                          }
+                        >
+                          <Text style={styles.textStyle}>Confirm</Text>
+                        </Pressable>
+                      </View>
+                    </View>
+                  </Modal>
         </View>
       </View>
     </ScrollView>

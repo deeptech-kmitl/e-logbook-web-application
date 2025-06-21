@@ -7,9 +7,10 @@ import {
   Image,
   Dimensions,
   ScrollView,
+  Linking
 } from "react-native";
 import { useSelector, useDispatch } from "react-redux";
-import { clearUser } from "../redux/action";
+import { clearSubject, clearUser } from "../redux/action";
 import { db } from "../data/firebaseDB";
 import { getDocs, collection, query, where } from "firebase/firestore";
 import { Pie } from "react-chartjs-2";
@@ -30,6 +31,10 @@ const subjectsByYear = [
   {
     key: "Obstetrics and gynecology clerkship",
     value: "Obstetrics and gynecology clerkship",
+  },
+  {
+    key: "Pediatric clerkship",
+    value: "Pediatric clerkship",
   },
   {
     key: "Ambulatory medicine clerkship",
@@ -57,6 +62,10 @@ const subjectsByYear = [
     key: "Practicum in orthopedics and emergency medicine",
     value: "Practicum in orthopedics and emergency medicine",
   },
+  {
+    key: "Practicum in community hospital",
+    value: "Practicum in community hospital",
+  },
 ];
 
 const HomeScreen = ({ navigation }) => {
@@ -68,8 +77,9 @@ const HomeScreen = ({ navigation }) => {
   const [dimensions, setDimensions] = useState(Dimensions.get("window"));
   const [caseData, setCaseData] = useState([]);
   const [selectedCollection, setSelectedCollection] = useState("all");
-  const [selectedSubject, setSelectedSubject] = useState("All"); // เพิ่ม state สำหรับเก็บรายวิชาที่ถูกเลือก
-
+  const [selectedSubject, setSelectedSubject] = useState(
+    role === "teacher" ? "All" : subject
+  ); 
   useEffect(() => {
     const onChange = ({ window }) => {
       setDimensions(window);
@@ -81,10 +91,16 @@ const HomeScreen = ({ navigation }) => {
 
   const textSize = dimensions.width < 768 ? 20 : 24;
   const buttonTextSize = dimensions.width < 768 ? 20 : 24;
+  const buttonNewTextSize = dimensions.width < 768 ? 20 : 24;
 
   const handleLogout = () => {
     dispatch(clearUser());
     navigation.navigate("SelectRole");
+  };
+
+  const handleClearSubject = () => {
+    dispatch(clearSubject());
+    navigation.navigate("Subject");
   };
 
   useEffect(() => {
@@ -96,7 +112,7 @@ const HomeScreen = ({ navigation }) => {
       case "student":
         return "Student";
       case "teacher":
-        return "Professor";
+        return "Instructor/Staff";
       case "staff":
         return "Staff";
       default:
@@ -120,7 +136,7 @@ const HomeScreen = ({ navigation }) => {
       let approvedCases = 0;
       let rejectedCases = 0;
       let pendingCases = 0;
-      let reApprovedCases = 0;
+      let recheckCases = 0;
 
       for (const collectionRef of collectionRefs) {
         let userQuerySnapshot;
@@ -149,17 +165,17 @@ const HomeScreen = ({ navigation }) => {
             rejectedCases++;
           } else if (data.status === "pending") {
             pendingCases++;
-          } else if (data.status === "reApproved") {
-            reApprovedCases++;
+          } else if (data.status === "recheck") {
+            recheckCases++;
           }
         });
       }
 
       const data = {
-        labels: ["Approved", "Rejected", "Pending", "Re-approved"],
+        labels: ["Approved", "Rejected", "Pending", "Recheck"],
         datasets: [
           {
-            data: [approvedCases, rejectedCases, pendingCases, reApprovedCases],
+            data: [approvedCases, rejectedCases, pendingCases, recheckCases],
             backgroundColor: ["#2a9d8f", "#e76f51", "#e9c46a", "#7ecafc"],
           },
         ],
@@ -248,6 +264,18 @@ const HomeScreen = ({ navigation }) => {
               </Text>
             )}
           </View>
+          {role === "teacher" && (
+            <TouchableOpacity
+              style={[styles.button, styles.estimateButton]}
+              onPress={() => {
+                Linking.openURL("https://script.google.com/macros/s/AKfycbxJ7vm1-nyIJan5mNKHvFQU8T2YiGVJo_sYjCxQJDB1ULrsqeSeaqr17TIumJG2A_o2/exec");
+              }}
+            >
+              <Text style={[styles.buttonText, { fontSize: buttonTextSize }]}>
+                ระบบประเมิน
+              </Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
             style={[styles.button, styles.logoutButton]}
             onPress={handleLogout}
@@ -256,6 +284,7 @@ const HomeScreen = ({ navigation }) => {
               Logout
             </Text>
           </TouchableOpacity>
+
         </View>
         <View style={styles.line} />
 
@@ -266,7 +295,7 @@ const HomeScreen = ({ navigation }) => {
               fontSize: textSize,
               alignSelf: "center",
               textAlign: "center",
-              marginVertical: 25,
+              marginVertical: 20,
               fontWeight: "bold",
             },
           ]}
@@ -308,24 +337,44 @@ const HomeScreen = ({ navigation }) => {
             }}
             dropdownStyles={{ backgroundColor: "#FEF0E6" }}
           />
-
-          <SelectList
+        </View>
+        {role === "teacher" && (
+        <SelectList
             placeholder="Select subjects"
             defaultValue={selectedSubject}
             setSelected={setSelectedSubject} // 4. เมื่อมีการเลือก Subject ใหม่ ให้เรียกใช้ handleSelectSubject เพื่อเปลี่ยนค่า selectedSubject
             data={subjectsByYear}
             search={false}
             boxStyles={{
-              width: "auto",
+              width: "50%",
               backgroundColor: "#FEF0E6",
               borderColor: "#FEF0E6",
               borderWidth: 1,
               borderRadius: 10,
               marginLeft: 10,
+              justifyContent: 'center',
+              alignItems: 'center',
+              alignSelf: 'center'
             }}
-            dropdownStyles={{ backgroundColor: "#FEF0E6" }}
+            dropdownStyles={{ 
+              backgroundColor: "#FEF0E6", 
+              width: "50%",              
+              justifyContent: 'center',
+              alignItems: 'center',
+              alignSelf: 'center' }}
           />
-        </View>
+        )}
+          {role === "student" && (
+          <Text
+              style={[
+                styles.passwordResetLink,
+                { textAlign: "center", fontSize: buttonNewTextSize },
+              ]}
+              onPress={handleClearSubject}
+            >
+              ◄ Back to select subject
+            </Text>
+          )}
       </ScrollView>
     </View>
   );
@@ -357,6 +406,12 @@ const styles = StyleSheet.create({
   logoutButton: {
     backgroundColor: "red",
   },
+  estimateButton: {
+    backgroundColor: "blue",
+  },
+  subjectButton: {
+    backgroundColor: "orange",
+  },
   bottomBox: {
     marginTop: 20,
     alignItems: "center",
@@ -364,6 +419,10 @@ const styles = StyleSheet.create({
   buttonText: {
     color: "white",
     textAlign: "center",
+  },
+  passwordResetLink: {
+    marginVertical: 10,
+    color: "#9D5716",
   },
 });
 
