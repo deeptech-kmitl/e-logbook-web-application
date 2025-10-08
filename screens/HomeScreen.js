@@ -268,7 +268,7 @@ const HomeScreen = ({ navigation }) => {
             <TouchableOpacity
               style={[styles.button, styles.estimateButton]}
               onPress={() => {
-                Linking.openURL("https://script.google.com/macros/s/AKfycbxJ7vm1-nyIJan5mNKHvFQU8T2YiGVJo_sYjCxQJDB1ULrsqeSeaqr17TIumJG2A_o2/exec");
+                Linking.openURL("https://script.google.com/macros/s/AKfycbykuuvVNA0hgX9pwae4g08U4PC6_ThX6vvJXGKjtUfROA-Qzczf-V79L8HpZa0iHbMSgw/exec");
               }}
             >
               <Text style={[styles.buttonText, { fontSize: buttonTextSize }]}>
